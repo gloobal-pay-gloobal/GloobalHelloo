@@ -39,6 +39,7 @@ var hellooApi = {
   asks: () => gloobalApiClient.get("/api/helloo/asks"),
   answerAsk: (id, action) => gloobalApiClient.post(`/api/helloo/asks/${encodeURIComponent(id)}`, { action }),
   earnings: (month) => gloobalApiClient.get(`/api/helloo/earnings${month ? `?month=${encodeURIComponent(month)}` : ""}`),
+  together: (accountId) => gloobalApiClient.get(`/api/helloo/people/${encodeURIComponent(accountId)}/together`),
   startCall: (to, video) => gloobalApiClient.post("/api/helloo/calls", { to, video: Boolean(video) }),
   calls: () => gloobalApiClient.get("/api/helloo/calls"),
   activeCall: () => gloobalApiClient.get("/api/helloo/calls/active"),

@@ -16,7 +16,7 @@ import {
   Forward as HlForward, Star as HlStar, Trash2 as HlTrash, Pin as HlPinIcon, BellOff as HlBellOff,
   Archive as HlArchive, Timer as HlTimer, Flag as HlFlag, Download as HlDownload, Share2 as HlShare,
   Smartphone as HlMobile, Sparkles as HlSpark, Lock as HlLock, Wallet as HlWallet, IndianRupee as HlRupee,
-  Hash as HlHash, Keyboard as HlKeyboard, Fingerprint as HlFinger, ChevronDown as HlDown, Send as HlSend, UserPlus as HlUserPlus, Pencil as HlPencil, Globe2 as HlGlobe, Briefcase as HlBriefcase, Smile as HlSmile, FileText as HlFileText, Pause as HlPause, RefreshCw as HlRetry, Grip as HlGrip, Info as HlInfo
+  Hash as HlHash, Keyboard as HlKeyboard, Fingerprint as HlFinger, ChevronDown as HlDown, Send as HlSend, UserPlus as HlUserPlus, Pencil as HlPencil, Globe2 as HlGlobe, Briefcase as HlBriefcase, Smile as HlSmile, FileText as HlFileText, Pause as HlPause, RefreshCw as HlRetry, Grip as HlGrip, Info as HlInfo, BadgeCheck as HlVerified
 } from "lucide-react";
 
 var HELLOO_TABS = [
@@ -93,4 +93,24 @@ function HellooPrimary({ children, onClick, disabled, Icon, color }) {
 }
 function HellooSecondary({ children, onClick, Icon }) {
   return <button onClick={onClick} className="v2-tap" style={{ width: "100%", minHeight: 48, display: "flex", alignItems: "center", justifyContent: "center", gap: 8, borderRadius: HT.buttonRadius ?? 999, border: HT.cardBorder || `1px solid ${T.line}`, background: HT.cardBg || T.surface, backdropFilter: HT.blur, color: T.ink, fontSize: 14.5, fontWeight: 800, cursor: "pointer", fontFamily: T.fontBody, padding: "0 14px", whiteSpace: "nowrap", minWidth: 0 }}>{Icon && <Icon size={18} color={T.ink} style={{ flexShrink: 0 }} />}<span style={{ minWidth: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{children}</span></button>;
+}
+
+// The round dial, as an icon: eight keys around a centre, like the pad it
+// opens.
+function HlDial({ size = 24, color = "#fff" }) {
+  const r = size / 2, k = size * 0.11, ring = size * 0.33;
+  const dots = Array.from({ length: 8 }, (_, i) => { const a = (i / 8) * Math.PI * 2 - Math.PI / 2; return <circle key={i} cx={r + Math.cos(a) * ring} cy={r + Math.sin(a) * ring} r={k} fill={color} />; });
+  return <svg width={size} height={size} viewBox={`0 0 ${size} ${size}`} aria-hidden="true">{dots}<circle cx={r} cy={r} r={k * 1.35} fill={color} /></svg>;
+}
+
+// Your own face in Helloo: your photo, or your initials on a tint — never
+// a logo standing in for a person.
+function HellooMeAvatar({ me, size = 38 }) {
+  return <HellooAvatar person={{ id: me.gloobalId || me.id, name: me.name, photo: me.photo, flag: "" }} size={size} flag={false} />;
+}
+
+// A name with GLOOBAL's verified mark: the account exists, the name is the
+// one on it.
+function HellooVerifiedName({ person, size = 15 }) {
+  return <span style={{ display: "inline-flex", alignItems: "center", gap: 5, minWidth: 0 }}><span style={{ fontSize: size, fontWeight: 800, color: T.ink, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{person.handle ? <CreatorHandleText handle={person.handle} /> : person.name}</span><HlVerified size={size + 2} color={HT.free} style={{ flexShrink: 0 }} /></span>;
 }
