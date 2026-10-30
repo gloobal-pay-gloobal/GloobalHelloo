@@ -37,7 +37,15 @@ the change.
 Netlify settings live in `netlify.toml` (base `gloobal-helloo-preview`,
 command `npm run build`, publish `dist`).
 
-**Today this is a demo.** Every person, chat, figure and payment comes
-from `frontend/HellooDemoData.jsx` and the samples in `HellooApp.jsx`;
-nothing is sent anywhere. Sign-in, chats, calls and pricing go live once
-the Helloo server is built (Release 1 order in `docs/SPEC-v1.md`).
+**What is live (Release 1, steps 1–4).** Sign in with a GLOOBAL ID and
+PIN; contacts are the people you have paid or been paid by on GLOOBAL; chats,
+voice notes and Pay-in-chat run on the GLOOBAL API (`/api/helloo/...` in
+GloobalV3's `server/lib/helloo.js`) with a live WebSocket and Web Push for
+when the app is closed. Calls, prices for strangers, Share nearby, letters
+and Activity are the next steps in `docs/SPEC-v1.md`; their screens are in
+`frontend/` but the app does not open them yet.
+
+To run against a local GLOOBAL server, copy `gloobal-helloo-preview/.env.example`
+to `.env` and set `VITE_API_URL` (the server must list your dev origin in
+`ALLOWED_ORIGINS`). `frontend/HellooDemoData.jsx` holds sample people for
+screenshots only; it is not in the build.

@@ -1,173 +1,489 @@
 // frontend/HellooApp.jsx
 //
-// The app. For now a demo shell with the screens wired to sample people,
-// so every screen can be seen and tapped through; the server comes next.
-import { useState as useStateH9, useEffect as useEffectH9, useMemo as useMemoH9 } from "react";
+// The app. Sign in with a GLOOBAL ID and PIN, then Chats · Calls · Dial · Me
+// on real data: contacts are the people you have paid or been paid by on
+// GLOOBAL, chats live on the GLOOBAL server and arrive over a live socket,
+// voice notes are recorded on the phone, and Pay in a chat is a real GLOOBAL
+// transfer confirmed with your PIN.
+//
+// Calls, prices for strangers, Share nearby, letters and Activity are the
+// later Release 1 steps (docs/SPEC-v1.md); their screens stay in the bundle
+// but nothing here pretends they work.
+import { useState as useStateH9, useEffect as useEffectH9, useMemo as useMemoH9, useRef as useRefH9, useCallback as useCallbackH9 } from "react";
 
-var HELLOO_ME = { id: "−+×=○□●■−+×=", name: "Sanjeev Santosh", about: "Building GLOOBAL", flag: "🇮🇳", iso: "IN", country: "India", city: "Alwar", currency: "INR", photo: null };
+var HELLOO_PIN_LENGTH = 6;
 
-function hellooSamplePeople() {
-  return {
-    amara: { id: "+×=○□●■−+×=−", name: "Amara Okafor", flag: "🇳🇬", country: "Nigeria", city: "Lagos", currency: "NGN", online: true, about: "Fintech · Lagos", lastPaid: "You paid ₦12,000 · 5 Oct" },
-    lukas: { id: "×=○□●■−+×=−+", name: "Lukas Brandt", flag: "🇩🇪", country: "Germany", city: "Berlin", currency: "EUR", online: false, lastSeen: "today at 02:58", lastPaid: "Paid you €40 · 24 Oct" },
-    rasoi: { id: "=○□●■−+×=−+×", name: "Ramesh Gupta", handle: "rasoi.ghar", flag: "🇮🇳", country: "India", city: "Alwar", currency: "INR", online: true, about: "Chole bhature · open 8–22", lastPaid: "You paid ₹500 · yesterday" },
-    priya: { id: "○□●■−+×=−+×=", name: "Priya Singh", flag: "🇮🇳", country: "India", city: "Jaipur", currency: "INR", online: false, lastSeen: "yesterday", lastPaid: "Paid you ₹2,000 · 29 Oct" },
-    pilot: { id: "", name: "Berlin pilot", group: true, members: 4, flag: "", country: "4 people" }
-  };
+function hellooSignedInUser() {
+  const session = typeof gloobalSessionLoad === "function" ? gloobalSessionLoad() : null;
+  return session && session.user && session.token && gloobalAuthTokenLooksLive(session.token) ? session.user : null;
 }
 
-function hellooSampleChats(P) {
-  const H = 3600e3, now = Date.now();
-  const at = (h) => new Date(now - h * H);
-  return [
-    { id: "c-amara", person: P.amara, unread: 2, pinned: true, messages: [
-      { kind: "system", text: "Verified on GLOOBAL · private to you two" },
-      { kind: "day", text: "Yesterday" },
-      { id: 1, kind: "text", from: "them", text: "Morning! Did the transfer land?", at: at(27) },
-      { id: 2, kind: "text", from: "me", text: "Yes, cleared in seconds. Calling you in a bit", at: at(26.9), read: true },
-      { id: 3, kind: "call", from: "me", seconds: 372, at: at(26) },
-      { kind: "day", text: "Today" },
-      { id: 4, kind: "request", from: "them", amountText: "₦12,000", note: "Deck design, half now", at: at(3), paid: true, paidWhen: "11:20" },
-      { id: 5, kind: "receipt", from: "me", amountText: "12,000 NGN", note: "Deck design", at: at(2.9) },
-      { id: 6, kind: "voice", from: "them", seconds: 14, at: at(0.5) },
-      { id: 7, kind: "text", from: "them", text: "Thanks! Sending the deck tonight 🙏", at: at(0.4) }
-    ] },
-    { id: "c-rasoi", person: P.rasoi, unread: 0, messages: [
-      { kind: "system", text: "A shop on GLOOBAL बाज़ार" },
-      { kind: "day", text: "Yesterday" },
-      { id: 1, kind: "text", from: "me", text: "2 chole bhature, parcel. Coming in 10 min", at: at(20), read: true },
-      { id: 2, kind: "text", from: "them", text: "Ready ji 👍", at: at(19.8) },
-      { id: 3, kind: "order", from: "me", items: [{ qty: 2, name: "Chole bhature", lineText: "120.00₹" }, { qty: 1, name: "Lassi", lineText: "60.00₹" }], totalText: "180.00₹ │ GEU", note: "Parcel · 10 min", paid: true, status: "Ready", at: at(19.6) },
-      { id: 33, kind: "receipt", from: "me", amountText: "180.00₹ │ GEU", note: "Order #412", at: at(19.5) },
-      { id: 4, kind: "photo", from: "them", at: at(19.4), text: "bhature" },
-      { id: 5, kind: "text", from: "them", text: "Fresh samosa @4pm today", at: at(1.2) }
-    ] },
-    { id: "c-pilot", person: P.pilot, unread: 1, messages: [
-      { kind: "system", text: "Berlin pilot · 4 people · you're admin" },
-      { id: 1, kind: "text", from: "them", text: "Lukas: Pilot dates locked — 12 Nov", at: at(5) },
-      { id: 2, kind: "text", from: "them", text: "Priya: Dinner was 1,200 total, who paid what?", at: at(4) },
-      { id: 3, kind: "split", from: "me", totalText: "1,200.00₹ │ GEU", note: "Dinner", shares: [{ name: "You", amountText: "300.00₹", paid: true }, { name: "Amara", amountText: "300.00₹", paid: true }, { name: "Lukas", amountText: "300.00₹" }, { name: "Priya", amountText: "300.00₹" }], at: at(3.5) },
-      { id: 4, kind: "text", from: "them", text: "Amara: Paid ✅", at: at(3.4) }
-    ] },
-    { id: "c-lukas", person: P.lukas, unread: 0, muted: true, messages: [
-      { id: 1, kind: "call", from: "them", video: true, missed: true, at: at(26) },
-      { id: 2, kind: "text", from: "them", text: "Tried you on video, ping me when free", at: at(25.9) }
-    ] },
-    { id: "c-priya", person: P.priya, unread: 0, messages: [
-      { id: 1, kind: "receipt", from: "them", amountText: "2,000.00₹ │ GEU", note: "Rent share", at: at(30) },
-      { id: 2, kind: "text", from: "me", text: "Got it, thanks Priya", at: at(29), read: true }
-    ] }
-  ];
+// Path or query that should open a chat once signed in:
+//   ?chat=<chatId>                       a Helloo notification
+//   /p/<digits>, /u/<digits>, /s/<digits> a GLOOBAL QR or pay link
+function hellooDeepLink() {
+  try {
+    const url = new URL(window.location.href);
+    const chat = url.searchParams.get("chat");
+    if (chat) return { chatId: chat };
+    const parsed = typeof parseGloobalPayPayload === "function" ? parseGloobalPayPayload(`${HELLOO_GLOOBAL_SITE}${url.pathname}`) : null;
+    if (parsed && parsed.gloobalId) return { gloobalId: parsed.gloobalId };
+  } catch (e) { /* no URL API */ }
+  return null;
 }
 
-function hellooSampleCalls(P) {
-  const H = 3600e3, now = Date.now();
-  return [
-    { id: 1, person: P.lukas, video: true, missed: true, at: new Date(now - 1 * H) },
-    { id: 2, person: P.amara, out: true, seconds: 372, at: new Date(now - 26 * H) },
-    { id: 3, person: P.rasoi, out: true, seconds: 41, at: new Date(now - 30 * H) },
-    { id: 4, person: P.lukas, video: true, seconds: 1284, at: new Date(now - 50 * H) }
-  ];
+function hellooClearDeepLink() {
+  try { window.history.replaceState(null, "", "/"); } catch (e) { /* ignore */ }
 }
-
-// The root the preview mounts: a tappable demo on sample people. Sign in
-// → Chats · Calls · Dial · Me, with threads you can type into, pay sheets,
-// letters, priced strangers, a call with its meter, the six themes, Who
-// can reach me, Activity and Share nearby. Nothing leaves the phone: there
-// is no server yet, and every figure is an example.
-var HELLOO_DEMO_IN_KEY = "helloo.demo.signedin.v1";
-function hellooDemoGet(k, d) { try { const v = localStorage.getItem(k); return v == null ? d : v; } catch (e) { return d; } }
-function hellooDemoSet(k, v) { try { localStorage.setItem(k, v); } catch (e) { /* private window */ } }
-function hellooFindLetter(key) { for (const g of HELLOO_LETTER_SETS) { const it = g.items.find((x) => x.key === key); if (it) return it; } return null; }
 
 function HellooRoot() {
+  // ── Theme ────────────────────────────────────────────────────────────
   const [, setThemeTick] = useStateH9(0);
   const [themeKey, setThemeKey] = useStateH9(() => { const k = hellooSavedTheme(); applyHellooTheme(k); return k; });
-  const pickTheme = (k) => { applyHellooTheme(k); hellooDemoSet(HELLOO_THEME_KEY, k); setThemeKey(k); setThemeTick((n) => n + 1); };
-  const [stage, setStage] = useStateH9(() => hellooDemoGet(HELLOO_DEMO_IN_KEY, "") ? "splash-in" : "splash");
-  useEffectH9(() => { if (stage === "splash" || stage === "splash-in") { const t = setTimeout(() => setStage(stage === "splash" ? "welcome" : "app"), 1300); return () => clearTimeout(t); } }, [stage]);
-  const [idValue, setIdValue] = useStateH9("");
-  const signIn = () => { hellooDemoSet(HELLOO_DEMO_IN_KEY, "1"); setStage("back"); };
+  const pickTheme = (k) => { applyHellooTheme(k); try { localStorage.setItem(HELLOO_THEME_KEY, k); } catch (e) { /* private window */ } setThemeKey(k); setThemeTick((n) => n + 1); };
 
-  const P = useMemoH9(() => hellooSamplePeople(), []);
-  const D = useMemoH9(() => hellooDemoData(P, HELLOO_ME), [P]);
-  const [chats, setChats] = useStateH9(() => { const base = hellooSampleChats(P); const sweets = { id: "■−+×=−+×=○□●", name: "Mehta Sweets", handle: "mehta.sweets", flag: "🇮🇳", country: "India", city: "Alwar", business: true }; const offer = { ...D.OFFER_CHAT, id: "c-offer", person: sweets, messages: [{ kind: "system", text: "mehta.sweets paid ₹2 to reach you · 100% yours" }, { kind: "day", text: "Today" }, { id: 1, kind: "offer", from: "them", text: "Diwali boxes are in: kaju katli 500 g ₹399, free delivery within 3 km 🪔", km: "1.1", paidText: "2.00₹", at: new Date(Date.now() - 3600e3) }] }; return [base[0], offer, base[1], D.LETTER_CHAT, base[2], D.BANK_CHAT, base[3], base[4]]; });
+  // ── Sign-in ──────────────────────────────────────────────────────────
+  const [user, setUser] = useStateH9(() => hellooSignedInUser());
+  const [stage, setStage] = useStateH9(() => (hellooSignedInUser() ? "splash-in" : "splash"));
+  const [idValue, setIdValue] = useStateH9("");
+  const [pin, setPin] = useStateH9("");
+  const [pinBusy, setPinBusy] = useStateH9(false);
+  const [pinWaking, setPinWaking] = useStateH9(false);
+  const [pinShown, setPinShown] = useStateH9(false);
+  const pinInFlight = useRefH9(false);
+  const [toast, setToast] = useStateH9("");
+  useEffectH9(() => { if (!toast) return undefined; const t = setTimeout(() => setToast(""), 2600); return () => clearTimeout(t); }, [toast]);
+  useEffectH9(() => {
+    if (stage !== "splash" && stage !== "splash-in") return undefined;
+    if (stage === "splash" && typeof GloobalApi === "object") GloobalApi.warmUp();
+    const t = setTimeout(() => setStage(stage === "splash" ? "welcome" : "app"), 1200);
+    return () => clearTimeout(t);
+  }, [stage]);
+
+  const signOut = useCallbackH9((message) => {
+    try { gloobalSessionClear(); } catch (e) { /* ignore */ }
+    setUser(null);
+    setPin("");
+    setIdValue("");
+    setStage("welcome");
+    if (message) setToast(message);
+  }, []);
+  useEffectH9(() => {
+    const expired = () => signOut("Signed out · sign in again");
+    window.addEventListener(GLOOBAL_SESSION_EXPIRED_EVENT, expired);
+    return () => window.removeEventListener(GLOOBAL_SESSION_EXPIRED_EVENT, expired);
+  }, [signOut]);
+
+  const submitPin = async (value) => {
+    if (pinInFlight.current || String(value || "").length !== HELLOO_PIN_LENGTH) return;
+    pinInFlight.current = true;
+    setPinBusy(true);
+    // Render's free plan sleeps; after a few seconds say so instead of
+    // looking frozen.
+    const waking = setTimeout(() => setPinWaking(true), 5000);
+    try {
+      const { user: signedIn } = await GloobalApi.login(idValue, value);
+      gloobalSessionSave(signedIn, signedIn.mobileNumber || "", false);
+      setUser(signedIn);
+      setPin("");
+      setStage("back");
+    } catch (err) {
+      setPin("");
+      setToast((err && err.message) || "Could not sign in. Try again.");
+    } finally {
+      clearTimeout(waking);
+      pinInFlight.current = false;
+      setPinBusy(false);
+      setPinWaking(false);
+    }
+  };
+
+  // ── Data ─────────────────────────────────────────────────────────────
+  const signedIn = Boolean(user) && stage === "app";
+  const [photos, setPhotos] = useStateH9({});
+  const [contactCards, setContactCards] = useStateH9(null);
+  const [chatRows, setChatRows] = useStateH9(null);
+  const [threads, setThreads] = useStateH9({});
+  const [loadError, setLoadError] = useStateH9("");
+  const photosAsked = useRefH9(new Set());
+
+  const askPhotos = useCallbackH9((cards) => {
+    const ids = cards.filter((c) => c && c.hasPhoto && !photosAsked.current.has(c.accountId)).map((c) => c.accountId);
+    if (user && user.accountId && !photosAsked.current.has(user.accountId)) ids.push(user.accountId);
+    if (!ids.length) return;
+    ids.forEach((id) => photosAsked.current.add(id));
+    for (let i = 0; i < ids.length; i += 40) {
+      hellooApi.photos(ids.slice(i, i + 40)).then((r) => setPhotos((p) => Object.assign({}, p, r.photos || {}))).catch(() => ids.forEach((id) => photosAsked.current.delete(id)));
+    }
+  }, [user]);
+
+  const refreshChats = useCallbackH9(async () => {
+    try {
+      const r = await hellooApi.chats();
+      setChatRows(r.chats || []);
+      askPhotos((r.chats || []).map((c) => c.person));
+      setLoadError("");
+    } catch (err) {
+      if (!gloobalApiIsUnreachable(err)) setLoadError(err.message);
+      else setLoadError("Waking the GLOOBAL server…");
+    }
+  }, [askPhotos]);
+
+  const refreshContacts = useCallbackH9(async () => {
+    try {
+      const r = await hellooApi.contacts();
+      setContactCards(r.contacts || []);
+      askPhotos(r.contacts || []);
+    } catch (err) { /* chats show the error */ }
+  }, [askPhotos]);
+
+  useEffectH9(() => {
+    if (!signedIn) return;
+    refreshChats();
+    refreshContacts();
+  }, [signedIn, refreshChats, refreshContacts]);
+
+  const me = useMemoH9(() => hellooMeFrom(user, user && photos[user.accountId]), [user, photos]);
+  const contacts = useMemoH9(() => (contactCards || []).map((c) => hellooPersonFrom(c, photos)), [contactCards, photos]);
+
+  // ── Navigation ───────────────────────────────────────────────────────
   const [tab, setTab] = useStateH9("chats");
   const [openId, setOpenId] = useStateH9(null);
   const [screen, setScreen] = useStateH9(null);
   const [sheet, setSheet] = useStateH9(null);
-  const [drafts, setDrafts] = useStateH9({});
-  const [modes, setModes] = useStateH9({ "c-pro": "professional" });
-  const [prices, setPrices] = useStateH9(D.PRICES2);
-  const [face, setFace] = useStateH9("time");
   const [filter, setFilter] = useStateH9("all");
-  const [callFilter, setCallFilter] = useStateH9("all");
-  const [dial, setDial] = useStateH9("");
-  const [pay, setPay] = useStateH9({ mode: "send", amount: "500", note: "" });
-  const [letter, setLetter] = useStateH9({ set: "business", template: null, values: {} });
-  const [share, setShare] = useStateH9({ text: D.TXT, radius: 5, maxPer: 2, budget: 500 });
-  const [call, setCall] = useStateH9(null);
-  const [refund, setRefund] = useStateH9(30);
-  const [toast, setToast] = useStateH9("");
-  useEffectH9(() => { if (!toast) return; const t = setTimeout(() => setToast(""), 2200); return () => clearTimeout(t); }, [toast]);
-  useEffectH9(() => {
-    if (!call || call.ended) return;
-    const t = setInterval(() => setCall((c) => c && !c.ended ? (c.state === "ringing" && c.ticks >= 2 ? { ...c, state: "live", ticks: c.ticks + 1 } : { ...c, ticks: c.ticks + 1, seconds: c.state === "live" ? c.seconds + 1 : 0 }) : c), 1000);
-    return () => clearInterval(t);
-  }, [call && call.ended, call && call.person && call.person.id]);
+  const [query, setQuery] = useStateH9("");
+  const openIdRef = useRefH9(null);
+  openIdRef.current = openId;
 
-  const chat = openId && chats.find((c) => c.id === openId);
-  const addMessage = (id, m) => setChats((all) => all.map((c) => c.id === id ? { ...c, unread: 0, messages: [...c.messages, { id: Date.now(), at: new Date(), from: "me", ...m }] } : c));
-  const openChat = (c) => { setChats((all) => all.map((x) => x.id === c.id ? { ...x, unread: 0 } : x)); setOpenId(c.id); };
-  const chatFor = (person) => chats.find((c) => c.person && person && c.person.id === person.id);
-  const startCall = (person, video = false) => { if (person) setCall({ person, video, state: "ringing", seconds: 0, ticks: 0, paid: person.id === D.SPAM.id }); };
-  const badges = { chats: chats.reduce((n, c) => n + (c.unread || 0), 0), calls: 1 };
-  const shell = (children) => <div style={{ position: "absolute", inset: 0, overflow: "hidden", background: T.bg }}>{children}{toast && <div role="status" style={{ position: "absolute", left: "50%", bottom: "calc(96px + env(safe-area-inset-bottom, 0px))", transform: "translateX(-50%)", background: T.ink, color: T.bg, borderRadius: 999, padding: "9px 16px", fontSize: 13, fontWeight: 700, fontFamily: T.fontBody, zIndex: 200, whiteSpace: "nowrap", boxShadow: "0 8px 24px rgba(0,0,0,0.25)" }}>{toast}</div>}</div>;
+  // ── Threads ──────────────────────────────────────────────────────────
+  const mergeMessages = (list, incoming) => {
+    const out = list.slice();
+    for (const m of incoming) {
+      const at = out.findIndex((x) => (m.id && x.id === m.id) || (m.clientId && x.clientId === m.clientId && x.from === m.from));
+      if (at >= 0) out[at] = Object.assign({}, out[at], m, { failed: false });
+      else out.push(m);
+    }
+    return out.sort((a, b) => new Date(a.at) - new Date(b.at));
+  };
+
+  const loadThread = useCallbackH9(async (chatId, older) => {
+    const current = threads[chatId];
+    const before = older && current && current.messages.length ? current.messages.find((m) => m.id) : null;
+    try {
+      const r = await hellooApi.messages(chatId, before ? before.at : null);
+      setThreads((all) => {
+        const prev = all[chatId] || { messages: [] };
+        return Object.assign({}, all, { [chatId]: { chat: r.chat, messages: mergeMessages(prev.messages, r.messages || []), more: older ? r.more : (prev.loaded ? prev.more : r.more), loaded: true } });
+      });
+      askPhotos([r.chat && r.chat.person]);
+    } catch (err) {
+      setToast(gloobalApiIsUnreachable(err) ? "Waking the GLOOBAL server…" : err.message);
+    }
+  }, [threads, askPhotos]);
+
+  const markRead = useCallbackH9((chatId) => {
+    setChatRows((rows) => (rows || []).map((c) => (c.id === chatId ? Object.assign({}, c, { unread: 0 }) : c)));
+    hellooApi.read(chatId).catch(() => {});
+  }, []);
+
+  const openChat = useCallbackH9((chatId) => {
+    setOpenId(chatId);
+    setSheet(null);
+    loadThread(chatId, false);
+    markRead(chatId);
+  }, [loadThread, markRead]);
+
+  const openChatWith = useCallbackH9(async (who) => {
+    try {
+      const r = await hellooApi.open(who);
+      const chat = r.chat;
+      setThreads((all) => (all[chat.id] ? all : Object.assign({}, all, { [chat.id]: { chat, messages: [], more: false, loaded: false } })));
+      setScreen(null);
+      setSheet(null);
+      openChat(chat.id);
+    } catch (err) {
+      setToast(err.message || "Could not open that chat.");
+    }
+  }, [openChat]);
+
+  // Deep links (a notification, a scanned QR) once signed in.
+  useEffectH9(() => {
+    if (!signedIn) return;
+    const link = hellooDeepLink();
+    if (!link) return;
+    hellooClearDeepLink();
+    if (link.chatId) openChat(link.chatId);
+    else if (link.gloobalId && link.gloobalId !== user.symbolId) openChatWith(link.gloobalId);
+  }, [signedIn]);
+
+  // ── Live ─────────────────────────────────────────────────────────────
+  const live = useHellooLive(signedIn, (frame) => {
+    if (frame.type === "ready") {
+      // Back after a drop: pick up whatever arrived meanwhile.
+      refreshChats();
+      if (openIdRef.current) loadThread(openIdRef.current, false);
+      return;
+    }
+    if (frame.type === "message" && frame.message) {
+      const m = frame.message;
+      setThreads((all) => (all[m.chatId] ? Object.assign({}, all, { [m.chatId]: Object.assign({}, all[m.chatId], { messages: mergeMessages(all[m.chatId].messages, [m]) }) }) : all));
+      const theirs = user && m.from !== user.accountId;
+      if (theirs && openIdRef.current === m.chatId && document.visibilityState === "visible") hellooApi.read(m.chatId).catch(() => {});
+      refreshChats();
+      return;
+    }
+    if (frame.type === "read") {
+      const patch = (c) => (c && c.id === frame.chatId ? Object.assign({}, c, { theyReadAt: frame.at }) : c);
+      setChatRows((rows) => (rows || []).map(patch));
+      setThreads((all) => (all[frame.chatId] ? Object.assign({}, all, { [frame.chatId]: Object.assign({}, all[frame.chatId], { chat: patch(all[frame.chatId].chat) }) }) : all));
+    }
+  });
+
+  // ── Sending ──────────────────────────────────────────────────────────
+  const [drafts, setDrafts] = useStateH9({});
+
+  const sendMessage = useCallbackH9(async (chatId, body) => {
+    const clientId = body.clientId || hellooClientId();
+    const optimistic = Object.assign({ clientId, from: user.accountId, at: new Date().toISOString(), chatId }, body.kind === "voice" ? { kind: "voice", voice: { seconds: body.seconds } } : body.kind === "text" ? { kind: "text", text: body.text } : { kind: body.kind });
+    if (body.kind !== "payment") {
+      setThreads((all) => Object.assign({}, all, { [chatId]: Object.assign({ messages: [] }, all[chatId], { messages: mergeMessages((all[chatId] || { messages: [] }).messages, [optimistic]) }) }));
+    }
+    try {
+      const r = await hellooApi.send(chatId, Object.assign({}, body, { clientId }));
+      setThreads((all) => Object.assign({}, all, { [chatId]: Object.assign({ messages: [] }, all[chatId], { messages: mergeMessages((all[chatId] || { messages: [] }).messages, [r.message]) }) }));
+      refreshChats();
+      return r.message;
+    } catch (err) {
+      setThreads((all) => {
+        const t = all[chatId];
+        if (!t) return all;
+        return Object.assign({}, all, { [chatId]: Object.assign({}, t, { messages: t.messages.map((m) => (m.clientId === clientId && !m.id ? Object.assign({}, m, { failed: true, retryBody: Object.assign({}, body, { clientId }) }) : m)) }) });
+      });
+      if (body.kind === "payment") throw err;
+      setToast(gloobalApiIsUnreachable(err) ? "Not sent yet · the server is waking up" : err.message);
+      return null;
+    }
+  }, [user, refreshChats]);
+
+  const retryFailed = (chatId) => {
+    const t = threads[chatId];
+    if (!t) return;
+    t.messages.filter((m) => m.failed && m.retryBody).forEach((m) => sendMessage(chatId, m.retryBody));
+  };
+
+  // ── Voice ────────────────────────────────────────────────────────────
+  const [recording, setRecording] = useStateH9(null);
+  const recorderRef = useRefH9(null);
+  const stopAndSend = async () => {
+    const rec = recorderRef.current;
+    recorderRef.current = null;
+    setRecording(null);
+    if (!rec) return;
+    const result = await rec.stop();
+    if (result && openIdRef.current) sendMessage(openIdRef.current, { kind: "voice", audio: result.audio, mime: result.mime, seconds: Math.round(result.seconds * 10) / 10 });
+  };
+  const startRecording = async () => {
+    const rec = hellooVoiceRecorder((s) => setRecording({ seconds: s }), () => stopAndSend());
+    try {
+      await rec.start();
+      recorderRef.current = rec;
+      setRecording({ seconds: 0 });
+    } catch (err) {
+      setToast(err && err.name === "NotAllowedError" ? "Allow the microphone to send voice notes" : (err && err.message) || "Could not start recording");
+    }
+  };
+  const cancelRecording = () => {
+    if (recorderRef.current) recorderRef.current.cancel();
+    recorderRef.current = null;
+    setRecording(null);
+  };
+
+  const [voicePlay, setVoicePlay] = useStateH9({ id: null, progress: 0 });
+  const audioRef = useRefH9(null);
+  const voiceUrls = useRefH9({});
+  const playVoice = async (messageId) => {
+    if (!audioRef.current) {
+      audioRef.current = new Audio();
+      audioRef.current.ontimeupdate = () => { const a = audioRef.current; if (a && a.duration) setVoicePlay((v) => Object.assign({}, v, { progress: a.currentTime / a.duration })); };
+      audioRef.current.onended = () => setVoicePlay({ id: null, progress: 0 });
+    }
+    const a = audioRef.current;
+    if (voicePlay.id === messageId && !a.paused) { a.pause(); setVoicePlay({ id: null, progress: 0 }); return; }
+    try {
+      if (!voiceUrls.current[messageId]) {
+        const r = await hellooApi.voice(messageId);
+        const bytes = hellooB64ToBytes(r.audio);
+        voiceUrls.current[messageId] = URL.createObjectURL(new Blob([bytes], { type: r.mime }));
+      }
+      a.src = voiceUrls.current[messageId];
+      setVoicePlay({ id: messageId, progress: 0 });
+      await a.play();
+    } catch (err) {
+      setVoicePlay({ id: null, progress: 0 });
+      setToast("Could not play that voice note");
+    }
+  };
+
+  // ── Pay ──────────────────────────────────────────────────────────────
+  const [pay, setPay] = useStateH9({ amount: "", note: "", busy: false, error: "" });
+  const [payPinOpen, setPayPinOpen] = useStateH9(false);
+  const payNow = async (person, chatId, pinValue) => {
+    setPayPinOpen(false);
+    setPay((p) => Object.assign({}, p, { busy: true, error: "" }));
+    try {
+      const amount = Number(pay.amount);
+      const result = await GloobalApi.sendTransaction({
+        senderSymbolId: user.symbolId,
+        receiverSymbolId: person.gloobalId,
+        amountBasis: "source",
+        sourceAmount: amount,
+        amount,
+        note: pay.note,
+        pin: pinValue,
+        payMethod: "helloo",
+        idempotencyKey: `helloo-${hellooClientId()}`
+      });
+      const referenceId = result && result.transaction && result.transaction.referenceId;
+      if (referenceId) {
+        try { await sendMessage(chatId, { kind: "payment", referenceId }); } catch (e) { /* the money moved; the bubble can follow on refresh */ }
+      }
+      setPay({ amount: "", note: "", busy: false, error: "" });
+      setSheet(null);
+      setToast(`Paid ${hellooMoneyText(amount, me.currency)} on GLOOBAL`);
+    } catch (err) {
+      setPay((p) => Object.assign({}, p, { busy: false, error: gloobalApiIsUnreachable(err) ? "The GLOOBAL server is waking up. Try again in a moment." : err.message }));
+    }
+  };
+
+  // ── Push ─────────────────────────────────────────────────────────────
+  const [push, setPush] = useStateH9(() => (hellooPushSupported() ? (Notification.permission === "granted" ? "on" : Notification.permission === "denied" ? "blocked" : "off") : "unsupported"));
+  useEffectH9(() => { if (signedIn && push === "on") hellooPushSync(false).then(setPush).catch(() => {}); }, [signedIn]);
+  const turnOnPush = async () => {
+    try {
+      const state = await hellooPushSync(true);
+      setPush(state);
+      setToast(state === "on" ? "Notifications on" : state === "blocked" ? "Notifications are blocked in your browser settings" : state === "unsupported" ? "Install Helloo to your home screen for notifications" : "Notifications are off");
+    } catch (err) {
+      setToast("Could not turn notifications on");
+    }
+  };
+
+  // ── Dial ─────────────────────────────────────────────────────────────
+  const [dial, setDial] = useStateH9({ value: "", status: "", match: null });
+  useEffectH9(() => {
+    if (dial.value.length !== 12) { if (dial.status) setDial((d) => Object.assign({}, d, { status: "", match: null })); return undefined; }
+    let gone = false;
+    setDial((d) => Object.assign({}, d, { status: "looking" }));
+    hellooApi.lookup(dial.value)
+      .then((r) => { if (!gone) setDial((d) => Object.assign({}, d, { status: "found", match: hellooPersonFrom(r.person, photos) })); askPhotos([r.person]); })
+      .catch((err) => { if (!gone) { setDial((d) => Object.assign({}, d, { status: "none", match: null })); if (err && err.body && err.body.code === "person_is_you") setToast("That is your own GLOOBAL ID"); } });
+    return () => { gone = true; };
+  }, [dial.value]);
+
+  // ── Scan ─────────────────────────────────────────────────────────────
+  const onScanned = (text) => {
+    const parsed = typeof parseGloobalPayPayload === "function" ? parseGloobalPayPayload(String(text || "")) : null;
+    if (!parsed || !parsed.gloobalId) { setToast("That is not a GLOOBAL code"); return; }
+    setScreen(null);
+    if (parsed.gloobalId === user.symbolId) { setToast("That is your own code"); return; }
+    openChatWith(parsed.gloobalId);
+  };
+
+  // ── Shell ────────────────────────────────────────────────────────────
+  const shell = (children) => <div style={{ position: "absolute", inset: 0, overflow: "hidden", background: T.bg }}>{children}{toast && <div role="status" style={{ position: "absolute", left: 16, right: 16, bottom: "calc(96px + env(safe-area-inset-bottom, 0px))", display: "flex", justifyContent: "center", zIndex: 300, pointerEvents: "none" }}><span style={{ background: T.ink, color: T.bg, borderRadius: 18, padding: "9px 16px", fontSize: 13, fontWeight: 700, fontFamily: T.fontBody, boxShadow: "0 8px 24px rgba(0,0,0,0.25)", textAlign: "center", maxWidth: "100%" }}>{toast}</span></div>}</div>;
 
   if (stage === "splash" || stage === "splash-in") return shell(<HellooSplash />);
-  if (stage === "welcome") return shell(<HellooWelcome onContinueWithGloobal={() => setStage("allow")} onEnterId={() => setStage("id")} />);
-  if (stage === "allow") return shell(<GloobalLetHellooIn me={HELLOO_ME} onAllow={signIn} onDeny={() => setStage("welcome")} />);
-  if (stage === "id") return shell(<HellooIdScreen value={idValue} onChange={setIdValue} status={idValue.length === 12 ? "found" : ""} onBack={() => setStage("welcome")} onNext={signIn} />);
-  if (stage === "back") return shell(<HellooWelcomeBack me={HELLOO_ME} onDone={() => setStage("app")} />);
+  if (stage === "welcome") return shell(<HellooWelcome hasGloobal={false} onEnterId={() => setStage("id")} />);
+  if (stage === "id") return shell(<HellooIdScreen value={idValue} onChange={setIdValue} status={idValue.length === 12 ? "ready" : ""} onBack={() => setStage("welcome")} onNext={() => { setPin(""); setStage("pin"); }} />);
+  if (stage === "pin") return shell(<LoginAuthScreen value={pin} length={HELLOO_PIN_LENGTH} onChange={setPin} onSubmit={() => submitPin(pin)} onBack={() => setStage("id")} revealed={pinShown} onToggleReveal={() => setPinShown((v) => !v)} waking={pinWaking} busy={pinBusy} />);
+  if (stage === "back" && me) return shell(<HellooWelcomeBack me={me} onDone={() => setStage("app")} />);
+  if (!me) return shell(<HellooSplash />);
 
-  // A call fills the screen; a paid one ends on what it earned.
-  if (call) {
-    if (call.ended && call.paid) {
-      const minutes = Math.max(1, Math.ceil(call.seconds / 60)), earned = minutes * 3;
-      return shell(<>{<HellooPaidCallEnded person={call.person} minutes={minutes} earnedText={`${earned}.00₹ │ GEU`} perMinuteText="3.00₹" onGiveBack={() => setSheet("refund")} onDone={() => { setCall(null); setSheet(null); }} />}{sheet === "refund" && <HellooRefundSheet person={call.person} earnedValue={earned} earnedText={`${earned}.00₹`} currency="₹" minutes={minutes} percent={refund} onPercent={setRefund} onRefund={() => { setSheet(null); setCall(null); setToast(`Gave back ${refund}% to ${hellooName(call.person).split(" ")[0]}`); }} onClose={() => setSheet(null)} />}</>);
-    }
-    const meter = call.paid && call.state === "live" ? <HellooCallMeter perMinuteText="3.00₹" soFarText={`${Math.max(0, Math.ceil((call.seconds - 10) / 60)) * 3}.00₹`} minutes={Math.ceil(call.seconds / 60)} payer={false} /> : null;
-    return shell(<HellooCallScreen person={call.person} video={call.video} state={call.state} seconds={call.seconds} meter={meter} muted={!!call.muted} speaker={!!call.speaker} onMute={() => setCall({ ...call, muted: !call.muted })} onSpeaker={() => setCall({ ...call, speaker: !call.speaker })} onEnd={() => call.paid ? setCall({ ...call, ended: true, seconds: Math.max(call.seconds, 600) }) : (setCall(null), call.seconds && setToast(`Call ended · ${hellooDuration(call.seconds)} · free`))} onMinimise={() => setCall(null)} onChat={() => { const c = chatFor(call.person); setCall(null); if (c) openChat(c); }} />);
-  }
-
-  if (chat) {
-    const isPro = (modes[chat.id] || "personal") === "professional";
-    const strip = chat.id === "c-bank" ? <HellooPaidMessageStrip person={chat.person} earnedText="4.00₹" isBusiness onAllow={() => setToast("Axis Bank can now reach you free")} onBlock={() => setToast("Axis Bank blocked")} /> : null;
-    const draft = drafts[chat.id] || "";
-    const send = () => { if (!draft.trim()) return; addMessage(chat.id, { kind: "text", text: draft.trim(), delivered: true }); setDrafts({ ...drafts, [chat.id]: "" }); };
-    return shell(<HellooThreadScreen me={isPro ? D.PRO_ME : HELLOO_ME} chat={chat} strip={strip} draft={draft} onDraft={(v) => setDrafts({ ...drafts, [chat.id]: v })} onSend={send} mode={modes[chat.id] || "personal"} onMode={(k) => setModes({ ...modes, [chat.id]: k })} onWriteLetter={() => setSheet("letter")} onBack={() => { setOpenId(null); setSheet(null); }} onCall={() => startCall(chat.person)} onVideo={() => startCall(chat.person, true)} onPay={() => setSheet("pay")} onAttach={() => setSheet("attach")} onMenu={() => setSheet("menu")}>
-      {sheet === "pay" && <HellooPaySheet person={chat.person} me={HELLOO_ME} mode={pay.mode} onMode={(m) => setPay({ ...pay, mode: m })} amount={pay.amount} onAmount={(a) => setPay({ ...pay, amount: a })} note={pay.note} onNote={(n) => setPay({ ...pay, note: n })} onClose={() => setSheet(null)} onSend={() => { addMessage(chat.id, { kind: "receipt", amountText: `${pay.amount}.00₹ │ GEU`, note: pay.note || "Sent on GLOOBAL" }); setSheet(null); setToast("Paid on GLOOBAL · sample"); }} onRequest={() => { addMessage(chat.id, { kind: "request", amountText: `${pay.amount}.00₹`, note: pay.note || "Request" }); setSheet(null); }} />}
-      {sheet === "letter" && <HellooLetterComposer me={D.PRO_ME} person={chat.person} set={letter.set} onSet={(k) => setLetter({ ...letter, set: k })} template={letter.template} onTemplate={(t) => setLetter({ ...letter, template: t })} values={letter.values} onValue={(f, v) => setLetter({ ...letter, values: { ...letter.values, [f]: v } })} onClose={() => setSheet(null)} onSend={() => { const it = hellooFindLetter(letter.template) || { title: "Letter", subject: letter.values.subject || "Letter", body: letter.values.body || "" }; addMessage(chat.id, { kind: "letter", template: it.title, subject: hellooFill(it.subject, letter.values), date: new Date().toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" }), greeting: `Dear ${hellooName(chat.person).split(" ")[0]},`, body: hellooFill(it.body, letter.values), signoff: "Regards,", signName: HELLOO_ME.name, signTitle: D.PRO_ME.signTitle }); setLetter({ ...letter, template: null, values: {} }); setSheet(null); }} />}
-      {sheet === "attach" && <HellooAttachSheet onClose={() => setSheet(null)} />}
-      {sheet === "menu" && <HellooThreadMenu chat={chat} onClose={() => setSheet(null)} />}
+  // ── A chat ───────────────────────────────────────────────────────────
+  const thread = openId ? threads[openId] : null;
+  if (openId) {
+    const serverChat = (thread && thread.chat) || (chatRows || []).find((c) => c.id === openId) || null;
+    const person = serverChat ? hellooPersonFrom(serverChat.person, photos) : { id: "", name: "…", country: "" };
+    const msgs = thread ? thread.messages : [];
+    const bubbles = hellooThreadBubbles(msgs, user.accountId, serverChat && serverChat.theyReadAt, (m) => (m.kind === "voice" && m.id ? { playing: voicePlay.id === m.id, progress: voicePlay.id === m.id ? voicePlay.progress : 0, onPlay: () => playVoice(m.id) } : null));
+    const failed = msgs.filter((m) => m.failed).length;
+    const strip = failed ? <button onClick={() => retryFailed(openId)} className="v2-tap" style={{ alignSelf: "center", display: "inline-flex", alignItems: "center", gap: 6, border: "none", borderRadius: 999, background: T.negative, color: "#fff", fontSize: 12, fontWeight: 800, padding: "6px 13px", margin: "4px 0 8px", cursor: "pointer", fontFamily: T.fontBody }}><HlRetry size={13} />{failed} not sent · Retry</button> : (thread && !thread.loaded ? <div style={{ alignSelf: "center", fontSize: 12, fontWeight: 700, color: T.inkFaint, margin: "10px 0" }}>Loading…</div> : null);
+    const draft = drafts[openId] || "";
+    const sendText = () => {
+      const text = draft.trim();
+      if (!text) return;
+      setDrafts((d) => Object.assign({}, d, { [openId]: "" }));
+      sendMessage(openId, { kind: "text", text });
+    };
+    return shell(<HellooThreadScreen me={me} chat={{ id: openId, person, messages: bubbles }} strip={strip} draft={draft} onDraft={(v) => setDrafts((d) => Object.assign({}, d, { [openId]: v }))} onSend={sendText} recording={recording} onMic={recording ? stopAndSend : startRecording} onCancelRecording={cancelRecording} hasOlder={Boolean(thread && thread.more)} onLoadOlder={() => loadThread(openId, true)} onPay={person.gloobalId ? () => { setPay({ amount: "", note: "", busy: false, error: "" }); setSheet("pay"); } : undefined} onBack={() => { cancelRecording(); setOpenId(null); setSheet(null); refreshChats(); }}>
+      {sheet === "pay" && <HellooPaySheet person={person} me={me} amount={pay.amount} onAmount={(a) => setPay((p) => Object.assign({}, p, { amount: a.replace(/^0+/, ""), error: "" }))} note={pay.note} onNote={(n) => setPay((p) => Object.assign({}, p, { note: n }))} busy={pay.busy} error={pay.error} onClose={() => { if (!pay.busy) setSheet(null); }} onSend={() => setPayPinOpen(true)} />}
+      <PayPinModal open={payPinOpen} onClose={() => setPayPinOpen(false)} amountLabel={hellooMoneyText(Number(pay.amount) || 0, me.currency)} onVerified={(pinValue) => payNow(person, openId, pinValue)} />
     </HellooThreadScreen>);
   }
 
-  if (screen === "reach") return shell(<HellooReachScreen me={HELLOO_ME} prices={prices} onChange={setPrices} earnings={{ monthText: "214.00₹ │ GEU", turnedAway: "37" }} allowed={[P.amara, P.priya]} onBack={() => setScreen(null)} />);
-  if (screen === "activity") return shell(<HellooActivityScreen me={HELLOO_ME} face={face} onFace={setFace} month="October 2026" time={D.TIME} earned={D.EARNED} spent={D.SPENT} onBack={() => setScreen(null)} />);
+  // ── Full screens ─────────────────────────────────────────────────────
   if (screen === "theme") return shell(<HellooThemeScreen current={themeKey} onPick={pickTheme} onBack={() => setScreen(null)} />);
-  if (screen === "qr") return shell(<HellooMyQrScreen me={HELLOO_ME} onBack={() => setScreen(null)} />);
-  if (screen === "requests") return shell(<HellooRequestsScreen me={HELLOO_ME} requests={D.REQS} onBack={() => setScreen(null)} />);
-  if (screen === "share") return shell(<HellooShareNearbyScreen me={HELLOO_ME} shop={D.SHOP} text={share.text} onText={(t) => setShare({ ...share, text: t })} radius={share.radius} onRadius={(r) => setShare({ ...share, radius: r })} maxPer={share.maxPer} onMaxPer={(m) => setShare({ ...share, maxPer: m })} budget={share.budget} onBudget={(b) => setShare({ ...share, budget: b })} estimate={D.EST} onShare={() => setScreen("shareResults")} onBack={() => setScreen(null)} />);
-  if (screen === "shareResults") return shell(<HellooShareResultsScreen me={HELLOO_ME} shop={D.SHOP} share={{ ...D.SHARE, text: share.text, radius: share.radius }} onBack={() => setScreen(null)} onGiveMore={() => setScreen("share")} />);
-  if (screen && screen.contact) return shell(<HellooContactScreen person={screen.contact} onBack={() => setScreen(null)} onMessage={() => { const c = chatFor(screen.contact); setScreen(null); if (c) openChat(c); }} onCall={() => startCall(screen.contact)} onVideo={() => startCall(screen.contact, true)} onPay={() => { const c = chatFor(screen.contact); setScreen(null); if (c) { openChat(c); setSheet("pay"); } }} />);
+  if (screen === "qr") {
+    const shareQr = async (value) => {
+      try {
+        if (navigator.share) await navigator.share({ title: "Message me on Helloo", text: `Message ${me.name} on Helloo`, url: value });
+        else { await navigator.clipboard.writeText(value); setToast("Link copied"); }
+      } catch (e) { /* closed the share sheet */ }
+    };
+    const saveQr = async (value) => {
+      try {
+        const blob = await gloobalQrToPngBlob(value, {});
+        const a = document.createElement("a");
+        a.href = URL.createObjectURL(blob);
+        a.download = "helloo-qr.png";
+        a.click();
+      } catch (e) { setToast("Could not save the code"); }
+    };
+    return shell(<HellooMyQrScreen me={me} onBack={() => setScreen(null)} onSave={saveQr} onShare={shareQr} />);
+  }
+  if (screen === "scan") {
+    return shell(<div style={{ position: "absolute", inset: 0, background: "#000" }}><QrCameraScanner onDetected={onScanned} active fullScreen quiet /><div style={{ position: "absolute", top: "calc(14px + env(safe-area-inset-top, 0px))", left: 14, zIndex: 400 }}><NavBackButton onClick={() => setScreen(null)} /></div></div>);
+  }
 
-  const dialMatch = dial.length === 12 ? P.amara : null;
-  const onMeRow = (title) => { if (title === "Who can reach me") setScreen("reach"); else if (title === "Activity") setScreen("activity"); else if (title === "App theme") setScreen("theme"); else setToast(`${title} · coming with the server`); };
+  // ── Tabs ─────────────────────────────────────────────────────────────
+  const rows = (chatRows || []).map((c) => hellooChatRowFrom(c, photos));
+  const q = query.trim().toLowerCase();
+  const shownRows = q ? rows.filter((c) => (c.person.name || "").toLowerCase().includes(q) || (c.person.gloobalId || "").includes(query.trim())) : rows;
+  const unread = rows.reduce((n, c) => n + (c.unread || 0), 0);
+  const banner = loadError
+    ? <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 10, padding: "10px 14px", borderRadius: 16, background: T.surfaceSunk, color: T.inkSoft, fontSize: 12.5, fontWeight: 700 }}><HlRetry size={14} /><span style={{ flex: 1 }}>{loadError}</span><button onClick={refreshChats} style={{ border: "none", background: "none", color: T.accent, fontWeight: 800, cursor: "pointer", fontFamily: T.fontBody }}>Retry</button></div>
+    : live === "offline" && chatRows !== null ? <div style={{ marginBottom: 10, padding: "8px 14px", borderRadius: 16, background: T.surfaceSunk, color: T.inkSoft, fontSize: 12, fontWeight: 700 }}>Reconnecting… new messages will arrive in a moment</div> : null;
+  const contactPick = (p) => openChatWith(p.accountId);
+  const empty = chatRows === null
+    ? <HellooCard style={{ padding: "22px 16px", textAlign: "center", fontSize: 13, color: T.inkFaint, fontWeight: 700 }}>Loading your chats…</HellooCard>
+    : q ? <HellooCard style={{ padding: "22px 16px", textAlign: "center", fontSize: 13, color: T.inkSoft }}>No chat matches “{query}”.</HellooCard>
+    : <><HellooCard style={{ padding: "18px 16px" }}><div style={{ fontSize: 16, fontWeight: 800, color: T.ink, fontFamily: T.fontDisplay }}>No chats yet</div><div style={{ fontSize: 13, color: T.inkSoft, marginTop: 4, lineHeight: 1.45 }}>{contacts.length ? "Start with someone you have paid on GLOOBAL, or dial any GLOOBAL ID." : "Dial a GLOOBAL ID or scan someone's GLOOBAL QR to start."}</div><div style={{ display: "flex", gap: 8, marginTop: 12 }}><HellooSecondary Icon={HlHash} onClick={() => setTab("dial")}>Dial an ID</HellooSecondary><HellooSecondary Icon={HlScan} onClick={() => setScreen("scan")}>Scan</HellooSecondary></div></HellooCard>{contacts.length > 0 && <HellooSection title="People you've paid" hint="free to message"><HellooCard>{contacts.slice(0, 12).map((p, i) => <button key={p.id} onClick={() => contactPick(p)} className="v2-tap" style={{ width: "100%", display: "flex", alignItems: "center", gap: 12, padding: "10px 14px", border: "none", borderTop: i ? `1px solid ${T.line}` : "none", background: "none", cursor: "pointer", textAlign: "left", fontFamily: T.fontBody }}><HellooAvatar person={p} size={42} /><span style={{ flex: 1, minWidth: 0 }}><span style={{ display: "block", fontSize: 14.5, fontWeight: 800, color: T.ink }}>{p.name}</span><span style={{ display: "block", fontSize: 12, color: T.inkSoft, marginTop: 2, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{p.lastPaid}</span></span><HlChat size={18} color={T.accent} /></button>)}</HellooCard></HellooSection>}</>;
+
+  const soon = (what) => setToast(`${what} come in the next Helloo update`);
+  const themeName = (HELLOO_THEMES.find((x) => x.key === themeKey) || HELLOO_THEMES[0]).name;
+  const meRows = [
+    [HlBell, "Notifications", push === "on" ? "On" : push === "blocked" ? "Blocked" : push === "unsupported" ? "Not on this browser" : "Off", "#EA580C"],
+    [HlPalette, "App theme", themeName, "#9333EA"]
+  ];
+  const onMeRow = (title) => {
+    if (title === "App theme") setScreen("theme");
+    else if (title === "Notifications") turnOnPush();
+  };
+  const shareHelloo = async () => {
+    const url = typeof buildGloobalPayUrl === "function" ? buildGloobalPayUrl(me.gloobalId, "person") : HELLOO_SITE;
+    try {
+      if (navigator.share) await navigator.share({ title: "Helloo", text: `Message me on Helloo with my GLOOBAL ID`, url: HELLOO_SITE });
+      else { await navigator.clipboard.writeText(HELLOO_SITE); setToast("Link copied"); }
+    } catch (e) { /* closed */ }
+    return url;
+  };
+
   return shell(<div style={{ position: "absolute", inset: 0, display: "flex", flexDirection: "column" }}><div style={{ flex: 1, minHeight: 0, position: "relative" }}>
-    {tab === "chats" && <HellooChatsScreen me={HELLOO_ME} chats={filter === "unread" ? chats.filter((c) => c.unread) : chats} filter={filter} onFilter={setFilter} onOpen={openChat} requests={D.REQS} onRequests={() => setScreen("requests")} onStart={() => setTab("dial")} onScan={() => setToast("Scan opens the camera in the real app")} />}
-    {tab === "calls" && <HellooCallsScreen calls={[{ id: 9, person: D.SPAM, seconds: 3000, at: new Date(Date.now() - 1800e3) }, ...hellooSampleCalls(P)]} favourites={[P.amara, P.lukas, P.rasoi]} filter={callFilter} onFilter={setCallFilter} onCall={(p) => startCall(p)} onVideo={(p) => startCall(p, true)} onOpen={(c) => setScreen({ contact: c.person })} onPad={() => setTab("dial")} />}
-    {tab === "dial" && <HellooDialScreen value={dial} onChange={setDial} match={dialMatch} status={dial.length === 12 ? "found" : ""} onMessage={() => { const c = chatFor(P.amara); if (c) openChat(c); }} onCall={() => dialMatch && startCall(dialMatch)} onVideo={() => dialMatch && startCall(dialMatch, true)} />}
-    {tab === "me" && <HellooMeScreen me={HELLOO_ME} stats={{ feesText: "₹0 in fees", minutes: 31 }} onQr={() => setScreen("qr")} onCopy={() => setToast("ID copied")} onRow={onMeRow}><HellooCreatorShareRow shop={D.SHOP} last={D.SHARE} onOpen={() => setScreen("share")} /></HellooMeScreen>}
-  </div><HellooTabBar active={tab} onChange={setTab} badges={badges} /></div>);
+    {tab === "chats" && <HellooChatsScreen me={me} chats={shownRows} query={query} onSearch={setQuery} filter={filter} onFilter={setFilter} onOpen={(c) => openChat(c.id)} onStart={() => setSheet("start")} onScan={() => setScreen("scan")} banner={banner} empty={empty} />}
+    {tab === "calls" && <HellooCallsScreen calls={[]} favourites={contacts.slice(0, 4)} onCall={() => soon("Calls")} onVideo={() => soon("Video calls")} onOpen={() => soon("Calls")} onPad={() => setTab("dial")} />}
+    {tab === "dial" && <HellooDialScreen value={dial.value} onChange={(v) => setDial((d) => Object.assign({}, d, { value: v }))} match={dial.match} status={dial.status} onMessage={() => dial.match && openChatWith(dial.match.gloobalId)} onCall={() => soon("Calls")} onScan={() => setScreen("scan")} />}
+    {tab === "me" && <HellooMeScreen me={me} stats={{ text: `${contacts.length} ${contacts.length === 1 ? "person" : "people"} from GLOOBAL · ${rows.length} ${rows.length === 1 ? "chat" : "chats"} · no fees` }} rows={meRows} onRow={onMeRow} onQr={() => setScreen("qr")} onCopy={async () => { try { await navigator.clipboard.writeText(me.gloobalId); setToast("GLOOBAL ID copied"); } catch (e) { setToast("Could not copy"); } }} onShare={shareHelloo} onOpenGloobal={() => window.open(HELLOO_GLOOBAL_SITE, "_blank", "noopener")} onSignOut={() => signOut("Signed out")} />}
+    {sheet === "start" && <HellooStartSheet suggested={contacts.slice(0, 8)} onPick={contactPick} onPad={() => { setSheet(null); setTab("dial"); }} onScan={() => { setSheet(null); setScreen("scan"); }} onGroup={() => soon("Groups")} onClose={() => setSheet(null)} />}
+  </div><HellooTabBar active={tab} onChange={(t) => { setTab(t); setSheet(null); }} badges={{ chats: unread }} /></div>);
 }

@@ -1,0 +1,340 @@
+// frontend/hellooClient.jsx
+//
+// Helloo talking to the real GLOOBAL API: the /api/helloo routes, the live
+// socket, push, voice notes, and the adapters that turn what the server
+// sends into the shapes the screens draw.
+//
+// Everything rides on Gloobal's own client (gloobalApiClient, the session
+// store, the sliding token), which is in this bundle because Helloo is
+// built on top of Gloobal's. Same ID, same PIN, same token.
+import { useState as useStateH11, useEffect as useEffectH11, useRef as useRefH11 } from "react";
+
+var HELLOO_SITE = "https://gloobalhelloo.netlify.app";
+var HELLOO_GLOOBAL_SITE = "https://gloobalv3.netlify.app";
+
+var hellooApi = {
+  contacts: () => gloobalApiClient.get("/api/helloo/contacts"),
+  lookup: (id) => gloobalApiClient.get(`/api/helloo/people/lookup?id=${encodeURIComponent(id)}`),
+  photos: (ids) => gloobalApiClient.post("/api/helloo/photos", { ids }),
+  chats: () => gloobalApiClient.get("/api/helloo/chats"),
+  open: (withId) => gloobalApiClient.post("/api/helloo/chats", { with: withId }),
+  messages: (chatId, before) =>
+    gloobalApiClient.get(`/api/helloo/chats/${encodeURIComponent(chatId)}/messages?limit=50${before ? `&before=${encodeURIComponent(before)}` : ""}`),
+  send: (chatId, body) =>
+    gloobalApiClient.post(`/api/helloo/chats/${encodeURIComponent(chatId)}/messages`, body, { timeoutMs: GLOOBAL_API_COLD_START_TIMEOUT_MS }),
+  read: (chatId) => gloobalApiClient.post(`/api/helloo/chats/${encodeURIComponent(chatId)}/read`, {}),
+  voice: (messageId) => gloobalApiClient.get(`/api/helloo/voice/${encodeURIComponent(messageId)}`)
+};
+
+function hellooClientId() {
+  return `${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 10)}`;
+}
+
+// ── People ──────────────────────────────────────────────────────────────
+
+function hellooCountry(iso) {
+  const code = String(iso || "").toUpperCase();
+  const c = typeof COUNTRY_BY_ISO === "object" && COUNTRY_BY_ISO ? COUNTRY_BY_ISO[code] : null;
+  return { iso: code, name: (c && c.name) || code, flag: code.length === 2 ? isoToFlag(code) : "" };
+}
+
+function hellooMoneyText(amount, currency) {
+  return typeof fmtMoney === "function" ? fmtMoney(Number(amount) || 0, currency) : `${amount} ${currency}`;
+}
+
+function hellooShortDate(at) {
+  const d = new Date(at);
+  return Number.isNaN(d.getTime()) ? "" : d.toLocaleDateString("en-GB", { day: "numeric", month: "short" });
+}
+
+// A contact card from the server → the person object the screens draw.
+function hellooPersonFrom(card, photos) {
+  if (!card) return null;
+  const country = hellooCountry(card.countryIso);
+  const paid = card.lastPaid;
+  return {
+    id: card.accountId,
+    accountId: card.accountId,
+    gloobalId: card.gloobalId,
+    name: card.name || card.gloobalId || "",
+    handle: card.handle || null,
+    iso: country.iso,
+    flag: country.flag,
+    country: country.name,
+    hasPhoto: Boolean(card.hasPhoto),
+    photo: (photos && photos[card.accountId]) || null,
+    lastPaid: paid
+      ? `${paid.direction === "sent" ? "You paid" : "Paid you"} ${hellooMoneyText(paid.amount, paid.currency)} · ${hellooShortDate(paid.at)}`
+      : card.chatted ? "Chatted on Helloo" : ""
+  };
+}
+
+// The signed-in account → the "me" object the screens draw.
+function hellooMeFrom(user, photo) {
+  if (!user) return null;
+  const country = hellooCountry(user.countryIso);
+  return {
+    id: user.symbolId,
+    gloobalId: user.symbolId,
+    accountId: user.accountId || "",
+    name: user.fullName || user.symbolId,
+    about: "",
+    iso: country.iso,
+    flag: country.flag,
+    country: country.name,
+    city: "",
+    currency: (typeof COUNTRY_CURRENCY === "object" && COUNTRY_CURRENCY[country.iso]) || "INR",
+    photo: photo || null
+  };
+}
+
+// ── Messages ────────────────────────────────────────────────────────────
+
+function hellooDayLabel(d) {
+  const now = new Date();
+  const start = (x) => new Date(x.getFullYear(), x.getMonth(), x.getDate()).getTime();
+  const days = Math.round((start(now) - start(d)) / 86400e3);
+  if (days === 0) return "Today";
+  if (days === 1) return "Yesterday";
+  return d.toLocaleDateString("en-GB", { day: "numeric", month: "short", year: d.getFullYear() === now.getFullYear() ? undefined : "numeric" });
+}
+
+// A server message → a bubble. `theyReadAt` turns my ticks blue; a message
+// still on its way (no server id yet) shows one grey tick.
+function hellooBubbleFrom(m, meAccountId, theyReadAt, voiceState) {
+  const mine = m.from === meAccountId || m.from === "me";
+  const at = new Date(m.at || Date.now());
+  const base = {
+    id: m.id || m.clientId,
+    clientId: m.clientId,
+    from: mine ? "me" : "them",
+    at,
+    delivered: Boolean(m.id),
+    read: Boolean(mine && m.id && theyReadAt && new Date(theyReadAt) >= at),
+    pending: !m.id
+  };
+  if (m.kind === "voice") {
+    const v = voiceState || {};
+    return Object.assign(base, { kind: "voice", seconds: Math.round((m.voice && m.voice.seconds) || 0), playing: Boolean(v.playing), progress: v.progress, onPlay: v.onPlay });
+  }
+  if (m.kind === "payment") {
+    const p = m.payment || {};
+    return Object.assign(base, {
+      kind: "receipt",
+      amountText: mine ? hellooMoneyText(p.amount, p.currency) : hellooMoneyText(p.destAmount || p.amount, p.destCurrency || p.currency),
+      note: p.note || "",
+      referenceId: p.referenceId
+    });
+  }
+  return Object.assign(base, { kind: "text", text: m.text || "" });
+}
+
+function hellooThreadBubbles(messages, meAccountId, theyReadAt, voiceFor) {
+  const out = [{ kind: "system", text: "Private to you two · same GLOOBAL account" }];
+  let lastDay = "";
+  for (const m of messages) {
+    const bubble = hellooBubbleFrom(m, meAccountId, theyReadAt, voiceFor ? voiceFor(m) : null);
+    const day = hellooDayLabel(bubble.at);
+    if (day !== lastDay) {
+      out.push({ kind: "day", text: day });
+      lastDay = day;
+    }
+    out.push(bubble);
+  }
+  return out;
+}
+
+// A chat-list row from the server → the chat object HellooChatRow reads
+// (it draws the last element of `messages`).
+function hellooChatRowFrom(chat, photos) {
+  const person = hellooPersonFrom(chat.person, photos);
+  const last = chat.last
+    ? {
+        kind: "text",
+        text: chat.last.preview,
+        from: chat.last.from === chat.person.accountId ? "them" : "me",
+        at: new Date(chat.lastAt),
+        read: Boolean(chat.theyReadAt && new Date(chat.theyReadAt) >= new Date(chat.lastAt))
+      }
+    : null;
+  return { id: chat.id, person, unread: chat.unread || 0, messages: last ? [last] : [], lastAt: chat.lastAt, theyReadAt: chat.theyReadAt };
+}
+
+// ── Live socket ─────────────────────────────────────────────────────────
+//
+// One socket while signed in. It authenticates with the first frame, comes
+// back by itself (1 s, 2 s, 4 s … 30 s) after a drop or a Render cold
+// start, and reconnects at once when the app returns to the foreground.
+function hellooLiveUrl() {
+  return `${GLOOBAL_API_BASE.replace(/^http/i, "ws")}/api/helloo/live`;
+}
+
+function useHellooLive(enabled, onEvent) {
+  const [status, setStatus] = useStateH11("offline");
+  const handler = useRefH11(onEvent);
+  handler.current = onEvent;
+  useEffectH11(() => {
+    if (!enabled || typeof WebSocket === "undefined") return undefined;
+    let ws = null;
+    let stopped = false;
+    let retry = 0;
+    let timer = null;
+    const connect = () => {
+      if (stopped) return;
+      const token = gloobalAuthToken();
+      if (!token) { setStatus("offline"); return; }
+      setStatus("connecting");
+      try { ws = new WebSocket(hellooLiveUrl()); } catch (e) { schedule(); return; }
+      ws.onopen = () => ws.send(JSON.stringify({ type: "auth", token }));
+      ws.onmessage = (e) => {
+        let frame;
+        try { frame = JSON.parse(e.data); } catch (err) { return; }
+        if (frame.type === "ready") {
+          retry = 0;
+          setStatus("live");
+          if (handler.current) handler.current({ type: "ready" });
+          return;
+        }
+        if (handler.current) handler.current(frame);
+      };
+      ws.onclose = (e) => {
+        ws = null;
+        if (stopped) return;
+        setStatus("offline");
+        if (e && e.code === 4401) return; // token refused: the session-expired path takes over
+        schedule();
+      };
+      ws.onerror = () => {};
+    };
+    const schedule = () => {
+      if (stopped) return;
+      clearTimeout(timer);
+      const wait = Math.min(30000, 1000 * Math.pow(2, retry));
+      retry += 1;
+      timer = setTimeout(connect, wait);
+    };
+    const wake = () => {
+      if (document.visibilityState === "visible" && !ws) { retry = 0; clearTimeout(timer); connect(); }
+    };
+    connect();
+    document.addEventListener("visibilitychange", wake);
+    window.addEventListener("online", wake);
+    return () => {
+      stopped = true;
+      clearTimeout(timer);
+      document.removeEventListener("visibilitychange", wake);
+      window.removeEventListener("online", wake);
+      if (ws) try { ws.close(); } catch (e) { /* closing */ }
+    };
+  }, [enabled]);
+  return status;
+}
+
+// ── Voice notes ─────────────────────────────────────────────────────────
+
+var HELLOO_VOICE_MAX_SECONDS = 120;
+
+function hellooVoiceMime() {
+  if (typeof MediaRecorder === "undefined") return null;
+  const options = ["audio/webm;codecs=opus", "audio/webm", "audio/mp4", "audio/ogg;codecs=opus", "audio/aac"];
+  for (const o of options) {
+    try { if (MediaRecorder.isTypeSupported(o)) return o; } catch (e) { /* older browser */ }
+  }
+  return "";
+}
+
+// start() asks for the microphone and records; stop() resolves with
+// { audio (base64), mime, seconds }; cancel() throws it away. Stops by
+// itself at two minutes.
+function hellooVoiceRecorder(onTick, onAutoStop) {
+  let recorder = null;
+  let stream = null;
+  let chunks = [];
+  let startedAt = 0;
+  let tick = null;
+  let cancelled = false;
+  let resolveStop = null;
+  const cleanup = () => {
+    clearInterval(tick);
+    if (stream) stream.getTracks().forEach((t) => t.stop());
+    stream = null;
+  };
+  return {
+    async start() {
+      const mime = hellooVoiceMime();
+      if (mime === null) throw new Error("This browser cannot record audio.");
+      stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      recorder = mime ? new MediaRecorder(stream, { mimeType: mime, audioBitsPerSecond: 24000 }) : new MediaRecorder(stream);
+      chunks = [];
+      recorder.ondataavailable = (e) => { if (e.data && e.data.size) chunks.push(e.data); };
+      recorder.onstop = async () => {
+        const seconds = (Date.now() - startedAt) / 1000;
+        cleanup();
+        if (cancelled || !resolveStop) { if (resolveStop) resolveStop(null); return; }
+        const type = (recorder.mimeType || mime || "audio/webm").split(";")[0];
+        const blob = new Blob(chunks, { type });
+        const buf = new Uint8Array(await blob.arrayBuffer());
+        let bin = "";
+        for (let i = 0; i < buf.length; i += 0x8000) bin += String.fromCharCode.apply(null, buf.subarray(i, i + 0x8000));
+        resolveStop({ audio: btoa(bin), mime: type, seconds: Math.max(1, Math.min(HELLOO_VOICE_MAX_SECONDS, seconds)) });
+      };
+      startedAt = Date.now();
+      recorder.start(250);
+      tick = setInterval(() => {
+        const s = (Date.now() - startedAt) / 1000;
+        if (onTick) onTick(s);
+        if (s >= HELLOO_VOICE_MAX_SECONDS && onAutoStop) onAutoStop();
+      }, 250);
+    },
+    stop() {
+      return new Promise((resolve) => {
+        resolveStop = resolve;
+        if (recorder && recorder.state !== "inactive") recorder.stop();
+        else resolve(null);
+      });
+    },
+    cancel() {
+      cancelled = true;
+      if (recorder && recorder.state !== "inactive") recorder.stop();
+      cleanup();
+    }
+  };
+}
+
+// ── Push ────────────────────────────────────────────────────────────────
+
+function hellooB64ToBytes(b64) {
+  const padded = (b64 + "===".slice((b64.length + 3) % 4)).replace(/-/g, "+").replace(/_/g, "/");
+  const raw = atob(padded);
+  return Uint8Array.from(raw, (c) => c.charCodeAt(0));
+}
+
+function hellooPushSupported() {
+  return typeof window !== "undefined" && "serviceWorker" in navigator && "PushManager" in window && typeof Notification !== "undefined";
+}
+
+// Subscribes this device for Helloo message notifications (app: "helloo",
+// so Gloobal's payment pushes are never sent here). `ask` = false only
+// re-syncs a permission already given; it never prompts.
+async function hellooPushSync(ask) {
+  if (!hellooPushSupported()) return "unsupported";
+  if (Notification.permission === "denied") return "blocked";
+  if (Notification.permission !== "granted") {
+    if (!ask) return "off";
+    const answer = await Notification.requestPermission();
+    if (answer !== "granted") return answer === "denied" ? "blocked" : "off";
+  }
+  const key = await GloobalApi.getPushPublicKey();
+  if (!key.enabled || !key.publicKey) return "unavailable";
+  const reg = await navigator.serviceWorker.ready;
+  let sub = await reg.pushManager.getSubscription();
+  if (!sub) sub = await reg.pushManager.subscribe({ userVisibleOnly: true, applicationServerKey: hellooB64ToBytes(key.publicKey) });
+  const json = sub.toJSON();
+  await gloobalApiClient.post("/api/push/subscribe", {
+    endpoint: json.endpoint,
+    keys: json.keys || {},
+    userAgent: navigator.userAgent,
+    app: "helloo"
+  });
+  return "on";
+}

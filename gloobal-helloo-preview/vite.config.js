@@ -5,10 +5,15 @@ import { VitePWA } from "vite-plugin-pwa";
 // Helloo installs like Gloobal does: a manifest, its own icons, and a
 // service worker that keeps the app shell offline and swaps in a new
 // build the next time the app is opened (no "update available" prompt).
+// The worker is our own file (src/sw.js, "injectManifest") because it has
+// to show message notifications; the plugin only injects the precache list.
 export default defineConfig({
   plugins: [
     react(),
     VitePWA({
+      strategies: "injectManifest",
+      srcDir: "src",
+      filename: "sw.js",
       registerType: "autoUpdate",
       includeAssets: ["icons/helloo.svg", "icons/helloo-180.png", "icons/helloo-32.png"],
       manifest: {
@@ -30,11 +35,11 @@ export default defineConfig({
           { src: "/icons/helloo-maskable-512.png", sizes: "512x512", type: "image/png", purpose: "maskable" },
         ],
       },
-      workbox: {
+      injectManifest: {
         globPatterns: ["**/*.{js,css,html,png,svg,ico}"],
         maximumFileSizeToCacheInBytes: 6 * 1024 * 1024,
-        navigateFallback: "/index.html",
       },
+      devOptions: { enabled: false },
     }),
   ],
 });
