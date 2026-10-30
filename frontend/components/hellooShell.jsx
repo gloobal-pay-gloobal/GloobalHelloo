@@ -22,7 +22,7 @@ import {
 var HELLOO_TABS = [
   { key: "chats", label: "Chats", Icon: HlChat },
   { key: "calls", label: "Calls", Icon: HlPhone },
-  { key: "pad", label: "Pad", Icon: HlHash },
+  { key: "dial", label: "Dial", Icon: HlHash },
   { key: "me", label: "Me", Icon: HlUser }
 ];
 

@@ -15,6 +15,20 @@ Decided with the founder on 30 Oct 2026. The prototype in
 - Communities, broadcast lists, linked devices and scheduled calls: KEPT in
   the plan (founder did not cut them); build after the core, before calls.
 
+## Added 30 Oct (afternoon), all accepted
+- "Message on Helloo" inside Gloobal: on receipts, shop pages, Pay & Services search.
+- Requests also land in Gloobal (notification + history, same Pay button). One record, two apps.
+- Shop ordering in the thread: Menu button → items → basket → Pay on GLOOBAL; order card
+  both sides see; owner quick replies (Order received / Ready in 10 min / Ready / Sold out).
+- Split a bill in groups: one card, a request per person, each pays on GLOOBAL. Groups ≤ 50.
+- Calls: voice only in v1 (WebRTC + relay); video a release later.
+- Voice notes first (hold-to-record, ≤ 2 min), photos next, then documents/location.
+- Tab renamed Pad → Dial. Me shows one line ("₹0 in fees · 31 free minutes this month").
+- Presence: Online only while open, Last seen otherwise, switchable off; typing only 1-to-1.
+- Server: one Helloo service on Render accepting only a Gloobal token; messages in Mongo
+  (90-day retention option), presence in memory, push via Gloobal's subscriptions; every
+  money card read from Gloobal's API by transaction id, never copied.
+
 ## Entry
 - Splash → symbol pad. GLOOBAL ID (or mobile number) + Gloobal PIN, against
   the Gloobal API. Same token, same App lock (5 min away → PIN).

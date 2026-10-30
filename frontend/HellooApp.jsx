@@ -37,12 +37,17 @@ function hellooSampleChats(P) {
       { kind: "day", text: "Yesterday" },
       { id: 1, kind: "text", from: "me", text: "2 chole bhature, parcel. Coming in 10 min", at: at(20), read: true },
       { id: 2, kind: "text", from: "them", text: "Ready ji 👍", at: at(19.8) },
-      { id: 3, kind: "receipt", from: "me", amountText: "500.00₹ │ GEU", note: "2 plates", at: at(19.5) },
+      { id: 3, kind: "order", from: "me", items: [{ qty: 2, name: "Chole bhature", lineText: "120.00₹" }, { qty: 1, name: "Lassi", lineText: "60.00₹" }], totalText: "180.00₹ │ GEU", note: "Parcel · 10 min", paid: true, status: "Ready", at: at(19.6) },
+      { id: 33, kind: "receipt", from: "me", amountText: "180.00₹ │ GEU", note: "Order #412", at: at(19.5) },
       { id: 4, kind: "photo", from: "them", at: at(19.4), text: "bhature" },
       { id: 5, kind: "text", from: "them", text: "Fresh samosa @4pm today", at: at(1.2) }
     ] },
     { id: "c-pilot", person: P.pilot, unread: 1, messages: [
-      { id: 1, kind: "text", from: "them", text: "Lukas: Pilot dates locked — 12 Nov", at: at(5) }
+      { kind: "system", text: "Berlin pilot · 4 people · you're admin" },
+      { id: 1, kind: "text", from: "them", text: "Lukas: Pilot dates locked — 12 Nov", at: at(5) },
+      { id: 2, kind: "text", from: "them", text: "Priya: Dinner was 1,200 total, who paid what?", at: at(4) },
+      { id: 3, kind: "split", from: "me", totalText: "1,200.00₹ │ GEU", note: "Dinner", shares: [{ name: "You", amountText: "300.00₹", paid: true }, { name: "Amara", amountText: "300.00₹", paid: true }, { name: "Lukas", amountText: "300.00₹" }, { name: "Priya", amountText: "300.00₹" }], at: at(3.5) },
+      { id: 4, kind: "text", from: "them", text: "Amara: Paid ✅", at: at(3.4) }
     ] },
     { id: "c-lukas", person: P.lukas, unread: 0, muted: true, messages: [
       { id: 1, kind: "call", from: "them", video: true, missed: true, at: at(26) },
@@ -74,5 +79,5 @@ function HellooRoot() {
   const badges = { chats: chats.reduce((n, c) => n + (c.unread || 0), 0), calls: 1 };
   const chat = open && chats.find((c) => c.id === open);
   if (chat) return <HellooThreadScreen me={HELLOO_ME} chat={chat} onBack={() => setOpen(null)} />;
-  return <div style={{ position: "absolute", inset: 0, display: "flex", flexDirection: "column" }}><div style={{ flex: 1, position: "relative" }}>{tab === "chats" && <HellooChatsScreen me={HELLOO_ME} chats={chats} onOpen={(c) => setOpen(c.id)} />}{tab === "calls" && <HellooCallsScreen calls={hellooSampleCalls(P)} favourites={[P.amara, P.lukas, P.rasoi]} />}{tab === "pad" && <HellooPadScreen value="" status="" />}{tab === "me" && <HellooMeScreen me={HELLOO_ME} stats={[["5", "Chats", HlChat, T.accent], ["31", "Call min", HlPhone, HT.free], ["₹0", "Fees", HlWallet, "#EA580C"]]} />}</div><HellooTabBar active={tab} onChange={setTab} badges={badges} /></div>;
+  return <div style={{ position: "absolute", inset: 0, display: "flex", flexDirection: "column" }}><div style={{ flex: 1, position: "relative" }}>{tab === "chats" && <HellooChatsScreen me={HELLOO_ME} chats={chats} onOpen={(c) => setOpen(c.id)} />}{tab === "calls" && <HellooCallsScreen calls={hellooSampleCalls(P)} favourites={[P.amara, P.lukas, P.rasoi]} />}{tab === "dial" && <HellooDialScreen value="" status="" />}{tab === "me" && <HellooMeScreen me={HELLOO_ME} stats={{ feesText: "₹0 in fees", minutes: 31 }} />}</div><HellooTabBar active={tab} onChange={setTab} badges={badges} /></div>;
 }
