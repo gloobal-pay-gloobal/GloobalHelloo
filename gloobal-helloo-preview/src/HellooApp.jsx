@@ -253,7 +253,7 @@ import { useState as useState57, useEffect as useEffect52, useRef as useRef32 } 
 import { useState as useState55, useEffect as useEffect57, useRef as useRef38 } from "react";
 import { Check as Check10, Undo2 as Undo2Look, Maximize2 as Maximize2Look, X as X21 } from "lucide-react";
 import { useState as useState67, useRef as useRef39, useEffect as useEffect64 } from "react";
-import { ArrowRight as ArrowRight4, Loader as Loader8, X as X22, ClipboardPaste as PasteQuick, ChevronDown as ChevronDown7, Delete as BackQuick } from "lucide-react";
+import { ArrowRight as ArrowRight4, Loader as Loader8, X as X22, ClipboardPaste as PasteQuick, ChevronDown as ChevronDown7, Delete as BackQuick, Smartphone as MobileQuick } from "lucide-react";
 import React3, { useState as useState14, useEffect as useEffect12, useRef as useRef10, useMemo as useMemo5 } from "react";
 import {
   Search as Search3,
@@ -14003,7 +14003,11 @@ function SymbolChipRow({ length, value, masked, boxSize = 21, justify = "flex-st
     }}
   >{chars[i] ? masked ? "\u2022" : chars[i] : ""}</span>)}</div></div>;
 }
-function SymbolDialPad({ value, onChange, length, showLogo = true }) {
+// `soundWhileTyping`: the sound (ear) button stays hidden until the first
+// symbol is in, and goes again when the box is cleared — the pay pad wants
+// nothing but the dial until somebody starts dialling. Everywhere else it
+// is always shown, as before.
+function SymbolDialPad({ value, onChange, length, showLogo = true, soundWhileTyping = false }) {
   // Same symbol set as DIAL_SYMBOLS (the module-level constant Secure
   // ID/general ID generation actually use) — this used to be its own
   // separate, independently-hardcoded copy, which is exactly how it
@@ -14256,7 +14260,7 @@ function SymbolDialPad({ value, onChange, length, showLogo = true }) {
       boxShadow: i < value.length ? "0 2px 6px rgba(124,58,237,0.35)" : "none",
       transition: "background 0.15s ease, box-shadow 0.15s ease"
     }}
-  />)}</div><button
+  />)}</div>{(!soundWhileTyping || value.length > 0) && <button
     type="button"
     onClick={() => {
       const next = !soundOn;
@@ -14300,7 +14304,7 @@ function SymbolDialPad({ value, onChange, length, showLogo = true }) {
     }}
   >{soundOn
     ? <DialSoundOnIcon size={16} strokeWidth={2.2} />
-    : <DialSoundOffIcon size={16} strokeWidth={2.2} />}</button></div>{
+    : <DialSoundOffIcon size={16} strokeWidth={2.2} />}</button>}</div>{
     /* The housing is a literal two-sided coin: one face is the dial pad,
        the other is the brand mark. Whenever the dial has sat idle for a
        random stretch of time, it's the whole white circle that flips
@@ -42859,24 +42863,29 @@ function ShopThemeEditor({ shop, cover, symbolId, creator = null, ccyCode = "USD
 // The globe on the left still opens Gloobal Coverage, which is what the
 // whole bar used to do.
 
-// ── ONE SMART PAD ───────────────────────────────────────────────────────
+// ── ONE ROW, THREE CHOICES ──────────────────────────────────────────────
 //
-// It was three pads behind three tabs (ID, Mobile, Name) and the founder
-// found that confusing. Now there is one pad: the digits on the left, the
-// eight ID symbols on the right in their own tint, and the box works out
-// from what was typed whether it is a mobile number or a GLOOBAL ID. The
-// letters keyboard comes up only from its own key (अA), for a creator
-// name, and goes back with "123".
+// The pad opens with one row on top: the flag, then GLOOBAL ID, then
+// Mobile. The founder's words: "a row of three options — just the flag
+// (tap it for the country list, no dial code on screen), then our dial,
+// then the mobile pad".
 //
-// A number in another country: the flag chip at the top of the pad says
-// which country's code a number without one is read in — your own to
-// start with; tap it to pick another. Starting with + works too.
+//   flag       which country a mobile number without a code is read in.
+//              Your own to start with; tap it for the list. The code
+//              itself is not printed — the flag says it.
+//   GLOOBAL ID the round symbol dial, the same one the ID is typed on at
+//              sign-in. Twelve symbols check themselves.
+//   Mobile     a plain number pad. Its bottom-left key (अA) still opens the
+//              letters keyboard for a creator name.
+//
+// Above the pad, while it is up: the last five people you paid and your
+// favourite shops (the ones pinned in Pay & Services), one tap each.
 var QUICK_PAY_ID_LENGTH = 12;
-var QUICK_PAY_PAD_ROWS = [
-  ["1", "2", "3", "\u2212", "+"],
-  ["4", "5", "6", "\xD7", "="],
-  ["7", "8", "9", "\u25CB", "\u25A1"],
-  ["name", "0", "back", "\u25CF", "\u25A0"]
+var QUICK_PAY_MOBILE_ROWS = [
+  ["1", "2", "3"],
+  ["4", "5", "6"],
+  ["7", "8", "9"],
+  ["name", "0", "back"]
 ];
 
 // ── WHAT WAS TYPED ──────────────────────────────────────────────────────
@@ -42906,8 +42915,10 @@ function quickPayMobile(value, dialCode) {
   return `${dialCode}${digits}`;
 }
 
-function QuickPayBar({ myGloobalId = "", dialCode = "", countryIso = "", onOpenCoverage, onPayPerson, onPayCreator }) {
+function QuickPayBar({ myGloobalId = "", dialCode = "", countryIso = "", onOpenCoverage, onPayPerson, onPayCreator, recent = [], favourites = [] }) {
   const [text, setText] = useState67("");
+  // Which pad is up: the round GLOOBAL ID dial or the mobile number pad.
+  const [padKind, setPadKind] = useState67("id");
   // The smart pad, and the letters keyboard for a creator name.
   const [padOpen, setPadOpen] = useState67(false);
   const [nameMode, setNameMode] = useState67(false);
@@ -42973,6 +42984,22 @@ function QuickPayBar({ myGloobalId = "", dialCode = "", countryIso = "", onOpenC
   const nameFirst = nameMode ? text.split(".")[0] || "" : "";
   const nameLast = nameMode ? text.split(".").slice(1).join("") : "";
   const setName = (first, last) => setText(last ? `${first}.${last}` : first);
+
+  const switchPad = (kind) => {
+    if (kind === padKind) return;
+    setPadKind(kind);
+    setText("");
+    reset();
+  };
+
+  // The round dial hands back the whole value; twelve symbols check
+  // themselves, as typing them on the old pad did.
+  const dialChange = (next) => {
+    if (error || suggest) reset();
+    const value = Array.from(String(next || "")).slice(0, QUICK_PAY_ID_LENGTH).join("");
+    setText(value);
+    if (Array.from(value).length === QUICK_PAY_ID_LENGTH) lookUp(value);
+  };
 
   const press = (key) => {
     if (error || suggest) reset();
@@ -43203,12 +43230,12 @@ function QuickPayBar({ myGloobalId = "", dialCode = "", countryIso = "", onOpenC
     display: "block", fontSize: 13.5, fontWeight: 800, color: T.ink, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap"
   }}>{creatorDisplayName(shop)}</span><span style={{
     display: "block", fontSize: 11, fontWeight: 600, color: T.inkFaint, marginTop: 1
-  }}>{(typeof bazaarCategoryInfo === "function" && bazaarCategoryInfo(shop.category) || {}).label || "Shop"}</span></span><ArrowRight4 size={15} color={T.inkFaint} /></button>)}</div> : null}{padOpen && !nameMode ? quickPaySmartPad() : null}{nameMode ? <CreatorNameKeyboard
+  }}>{(typeof bazaarCategoryInfo === "function" && bazaarCategoryInfo(shop.category) || {}).label || "Shop"}</span></span><ArrowRight4 size={15} color={T.inkFaint} /></button>)}</div> : null}{padOpen && !nameMode && !error && !suggest && !busy ? quickPayShortcuts() : null}{padOpen && !nameMode ? quickPaySmartPad() : null}{nameMode ? <CreatorNameKeyboard
     open
     header={<div style={{ display: "flex", alignItems: "center", gap: 8, padding: "10px 10px 9px", borderBottom: `1px solid ${T.line}` }}><button
       type="button"
       onPointerDown={(e) => e.preventDefault()}
-      onClick={() => { setNameMode(false); setText(""); setPadOpen(true); }}
+      onClick={() => { setNameMode(false); setText(""); setPadKind("mobile"); setPadOpen(true); }}
       style={quickPayBarChip(false)}
     ><span aria-hidden="true" style={{ fontWeight: 900 }}>123</span>Numbers &amp; ID</button><span style={{ flex: 1, fontSize: 11.5, fontWeight: 700, color: T.inkFaint, textAlign: "center" }}>Type a creator name</span><button
       type="button"
@@ -43237,32 +43264,79 @@ function QuickPayBar({ myGloobalId = "", dialCode = "", countryIso = "", onOpenC
     onClose={() => { setPicking(false); setCountrySearch(""); }}
   /></div> : null}</div>;
 
-  // ── THE SMART PAD ─────────────────────────────────────────────────────
+  // ── RECENT AND FAVOURITES ─────────────────────────────────────────────
+  // Under the box while the pad is up: the last five people paid and the
+  // pinned shops. A tap looks them up exactly as typing them would, so it
+  // lands on the same Send screen with them already filled in.
+  function quickPayShortcuts() {
+    const people = (recent || []).slice(0, 5);
+    const shops = (favourites || []).slice(0, 5);
+    if (!people.length && !shops.length) return null;
+    const row = (title, items, draw) => items.length ? <div style={{ marginTop: 14 }}><div style={{
+      fontSize: 11, fontWeight: 800, letterSpacing: 0.8, textTransform: "uppercase", color: T.inkFaint, padding: "0 4px 8px"
+    }}>{title}</div><div style={{ display: "grid", gridTemplateColumns: "repeat(5, minmax(0, 1fr))", gap: 6 }}>{items.map(draw)}</div></div> : null;
+    const tile = (key, label, face, onClick) => <button
+      key={key}
+      type="button"
+      onPointerDown={(e) => e.preventDefault()}
+      onClick={onClick}
+      className="v2-tap"
+      style={{
+        display: "flex", flexDirection: "column", alignItems: "center", gap: 6, minWidth: 0, padding: "6px 2px",
+        border: "none", background: "none", cursor: "pointer", fontFamily: "inherit"
+      }}
+    >{face}<span style={{
+      maxWidth: "100%", fontSize: 11.5, fontWeight: 700, color: T.ink, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap"
+    }}>{label}</span></button>;
+    return <div data-quickpay-shortcuts="" style={{
+      position: "absolute", left: 0, right: 0, top: "100%", zIndex: 10, padding: "4px 2px 0", animation: "quickPayIn 0.22s ease"
+    }}>{row("Recent", people, (p) => tile(p.key, String(p.name || "").split(/\s+/)[0] || p.name, <span style={{ position: "relative", display: "inline-block" }}>{p.photo ? <ProfileAvatar photo={p.photo} name={p.name} size={48} /> : quickPayInitials(p.name, p.key)}{p.flag ? <span style={{
+      position: "absolute", right: -2, bottom: -2, width: 20, height: 20, borderRadius: "50%", background: T.surface,
+      display: "flex", alignItems: "center", justifyContent: "center", boxShadow: "0 1px 3px rgba(0,0,0,0.18)"
+    }}><FlagEmoji flag={p.flag} size={14} shape="circle" border="none" /></span> : null}</span>, () => {
+      const target = p.handle || p.gloobalId;
+      if (!target) return;
+      setText(target);
+      lookUp(target);
+    }))}{row("Favourites", shops, (c) => tile(c.key, c.label || c.handle, <BusinessMark name={c.handle || c.label || ""} logo={c.logo} size={48} radius={16} />, () => {
+      if (!c.handle) return;
+      setText(c.handle);
+      lookUp(c.handle);
+    }))}</div>;
+  }
+
+  // ── THE PAD ───────────────────────────────────────────────────────────
   function quickPaySmartPad() {
-    const digitsOnly = /^\+?\d*$/.test(text);
+    const option = (on) => ({
+      flex: 1, height: 40, borderRadius: 999, border: "none", cursor: "pointer", fontFamily: "inherit",
+      display: "inline-flex", alignItems: "center", justifyContent: "center", gap: 7,
+      fontSize: 13.5, fontWeight: 800,
+      background: on ? T.accent : T.surface, color: on ? "#fff" : T.ink,
+      boxShadow: on ? "0 4px 12px rgba(124,58,237,0.28)" : "0 1px 3px rgba(20,18,43,0.12)",
+      transition: "background 0.15s ease, color 0.15s ease"
+    });
     const key = (k) => {
-      const isSymbol = DIAL_SYMBOLS.indexOf(k) >= 0;
       const label = k === "back" ? <BackQuick size={20} /> : k === "name" ? <span style={{ fontSize: 15, fontWeight: 900 }}>अA</span> : k;
       return <button
         key={k}
         type="button"
         onPointerDown={(e) => e.preventDefault()}
         onClick={() => press(k)}
-        aria-label={k === "back" ? "Delete" : k === "name" ? "Type a creator name" : isSymbol ? `Symbol ${k}` : k}
+        aria-label={k === "back" ? "Delete" : k === "name" ? "Type a creator name" : k}
         className="v2-tap"
         style={{
-          height: 52, borderRadius: 14, border: "none", cursor: "pointer", fontFamily: "inherit",
+          height: 54, borderRadius: 14, border: "none", cursor: "pointer", fontFamily: "inherit",
           display: "flex", alignItems: "center", justifyContent: "center",
-          fontSize: isSymbol ? 22 : 22, fontWeight: isSymbol ? 800 : 700,
-          background: isSymbol ? T.accentSoft : k === "name" ? T.surfaceAlt : T.surface,
-          color: isSymbol ? T.accent : T.ink,
-          boxShadow: isSymbol || k === "name" ? "none" : "0 1px 2px rgba(20,18,43,0.12)"
+          fontSize: 23, fontWeight: 700,
+          background: k === "name" || k === "back" ? "transparent" : T.surface,
+          color: T.ink,
+          boxShadow: k === "name" || k === "back" ? "none" : "0 1px 2px rgba(20,18,43,0.10)"
         }}
       >{label}</button>;
     };
     return <div
       role="group"
-      aria-label="Number and GLOOBAL ID pad"
+      aria-label={padKind === "id" ? "GLOOBAL ID dial" : "Mobile number pad"}
       data-quickpay-pad=""
       style={{
         position: "fixed", left: 0, right: 0, bottom: 0, zIndex: 430, background: T.bg,
@@ -43272,31 +43346,35 @@ function QuickPayBar({ myGloobalId = "", dialCode = "", countryIso = "", onOpenC
         animation: "quickPayPadIn 0.22s ease"
       }}
     ><style>{"@keyframes quickPayPadIn { from { transform: translateY(24px); opacity: 0; } to { transform: none; opacity: 1; } }"}</style><div style={{
-      display: "flex", alignItems: "center", gap: 8, padding: "10px 12px 8px"
+      display: "flex", alignItems: "center", gap: 8, padding: "12px 12px 8px"
     }}><button
       type="button"
       onPointerDown={(e) => e.preventDefault()}
       onClick={() => setPicking(true)}
-      aria-label={dialCountry ? `Country code ${dialCountry.dialCode}, ${dialCountry.name}. Change` : "Pick a country code"}
+      aria-label={dialCountry ? `Mobile numbers are read as ${dialCountry.name}. Change country` : "Pick a country"}
       data-quickpay-country=""
-      style={{ ...quickPayBarChip(false), gap: 6, padding: "0 10px 0 6px" }}
-    >{dialCountry ? <FlagEmoji flag={dialCountry.flag} shape="circle" size={22} /> : null}<span style={{ fontWeight: 800 }}>{dialCountry ? dialCountry.dialCode : "+ Code"}</span><ChevronDown7 size={14} color={T.inkSoft} /></button><span style={{
-      flex: 1, minWidth: 0, fontSize: 11.5, fontWeight: 700, color: T.inkFaint, lineHeight: 1.3
-    }}>{digitsOnly ? "Mobile number, or the ID's symbols" : "GLOOBAL ID: 12 symbols"}</span><button
+      className="v2-tap"
+      style={{
+        width: 40, height: 40, flexShrink: 0, borderRadius: "50%", border: "none", padding: 0, cursor: "pointer",
+        background: T.surface, boxShadow: "0 1px 3px rgba(20,18,43,0.12)", display: "flex", alignItems: "center", justifyContent: "center"
+      }}
+    >{dialCountry ? <FlagEmoji flag={dialCountry.flag} shape="circle" size={28} border="none" /> : <ChevronDown7 size={16} color={T.inkSoft} />}</button><button
       type="button"
       onPointerDown={(e) => e.preventDefault()}
-      onClick={pasteNow}
-      aria-label="Paste"
-      style={quickPayBarChip(false)}
-    ><PasteQuick size={15} /></button><button
+      onClick={() => switchPad("id")}
+      aria-pressed={padKind === "id"}
+      style={option(padKind === "id")}
+    >GLOOBAL ID</button><button
       type="button"
       onPointerDown={(e) => e.preventDefault()}
-      onClick={() => setPadOpen(false)}
-      aria-label="Hide"
-      style={{ ...quickPayBarChip(false), width: 36, padding: 0, justifyContent: "center" }}
-    ><ChevronDown7 size={18} color={T.inkSoft} /></button></div><div style={{
-      display: "grid", gridTemplateColumns: "repeat(3, minmax(0, 1fr)) 10px repeat(2, minmax(0, 1fr))", gap: 8, padding: "4px 12px 10px"
-    }}>{QUICK_PAY_PAD_ROWS.map((row) => [key(row[0]), key(row[1]), key(row[2]), <span key={`gap-${row[0]}`} aria-hidden="true" />, key(row[3]), key(row[4])])}</div><div style={{
+      onClick={() => switchPad("mobile")}
+      aria-pressed={padKind === "mobile"}
+      style={option(padKind === "mobile")}
+    ><MobileQuick size={16} />Mobile</button></div>{padKind === "id" ? <div style={{
+      display: "flex", justifyContent: "center", padding: "2px 12px 6px"
+    }}><SymbolDialPad value={text} onChange={dialChange} length={QUICK_PAY_ID_LENGTH} showLogo={false} soundWhileTyping /></div> : <div style={{
+      display: "grid", gridTemplateColumns: "repeat(3, minmax(0, 1fr))", gap: 8, padding: "4px 12px 10px"
+    }}>{QUICK_PAY_MOBILE_ROWS.map((row) => row.map(key))}</div>}<div style={{
       padding: "0 12px 12px"
     }}><button
       type="button"
@@ -43310,6 +43388,20 @@ function QuickPayBar({ myGloobalId = "", dialCode = "", countryIso = "", onOpenC
       }}
     >Find and pay<ArrowRight4 size={17} strokeWidth={2.5} /></button></div></div>;
   }
+}
+
+// A person with no photo: their initials on a tint picked from their ID, so
+// the same person is the same colour every time.
+var QUICK_PAY_TINTS = ["#7C3AED", "#2563EB", "#059669", "#EA580C", "#DB2777", "#0E7490"];
+function quickPayInitials(name, key) {
+  let h = 7;
+  for (const ch of String(key || name || "")) h = (h * 31 + ch.charCodeAt(0)) >>> 0;
+  const hue = QUICK_PAY_TINTS[h % QUICK_PAY_TINTS.length];
+  const letters = String(name || "?").split(/\s+/).filter(Boolean).slice(0, 2).map((w) => Array.from(w)[0].toUpperCase()).join("");
+  return <span style={{
+    width: 48, height: 48, borderRadius: "50%", background: hue + "22", color: hue, display: "flex", alignItems: "center",
+    justifyContent: "center", fontSize: 17, fontWeight: 800, fontFamily: T.fontDisplay
+  }}>{letters}</span>;
 }
 
 function quickPayBarChip(on) {
@@ -45462,6 +45554,20 @@ function DashboardScreen({ dialCountry, onLogout, onOpenSend, onPayCreator, onPa
     () => sortTransactionsNewestFirst(sendHistory.filter((t) => (t.role || "user") === shareRole)),
     [sendHistory, shareRole]
   );
+  // The pay box's "Recent": the last five different people or shops paid
+  // from this side of the account, newest first, one tile each.
+  const quickPayRecent = useMemo5(() => {
+    const seen = new Set();
+    const out = [];
+    for (const t of roleSendHistory) {
+      const id = t && t.id;
+      if (!id || id === myGloobalId || seen.has(id) || t.direction === "received") continue;
+      seen.add(id);
+      out.push({ key: id, gloobalId: id, name: t.personName || t.name || id, handle: t.creatorHandle || "", flag: t.flag || "" });
+      if (out.length === 5) break;
+    }
+    return out;
+  }, [roleSendHistory, myGloobalId]);
   // `ccyCode` is passed because the chart is LABELLED in it: every bar and
   // both week totals are printed with this one symbol, so a row in another
   // currency has to be left out rather than added in as though it were this
@@ -45599,6 +45705,8 @@ function DashboardScreen({ dialCountry, onLogout, onOpenSend, onPayCreator, onPa
     onOpenCoverage={onOpenCoverage}
     onPayPerson={(payee) => onPayPerson && onPayPerson(payee)}
     onPayCreator={({ creator }) => onPayCreator && onPayCreator({ creator })}
+    recent={quickPayRecent}
+    favourites={Object.values(pinnedCreators || {}).filter((c) => c && c.handle)}
   />{
     /* Profile flip — switches the same account between its two
        sides: user/consumer and merchant/producer. Every flow stays
@@ -53839,18 +53947,6 @@ function scannerControlStyle(lit) {
 
 // The zoom label.
 //
-// Shown as a multiple of the lens's own minimum, not as its raw value: a
-// device reporting 100..800 means 1x..8x, and "100" on a button means
-// nothing to anybody. One decimal only when it needs one, so the common
-// case reads 1x / 2x / 4x rather than 1.0x.
-function formatZoom(level, range) {
-  if (!range) return "";
-  const base = range.min > 0 ? range.min : 1;
-  const times = (level == null ? range.min : level) / base;
-  const rounded = Math.round(times * 10) / 10;
-  return `${Number.isInteger(rounded) ? rounded : rounded.toFixed(1)}x`;
-}
-
 // Where the lens actually is, clamped to what it said it could do.
 //
 // getSettings() is the authority; `fallback` is only used when the device
@@ -53869,309 +53965,25 @@ function currentZoomOf(track, range, fallback) {
   return Math.min(range.max, Math.max(range.min, value));
 }
 
-// ── THE ZOOM ARC ────────────────────────────────────────────────────────
+// ── ZOOM IS A PINCH ─────────────────────────────────────────────────────
 //
-// This was three stops — minimum, middle, maximum — cycled by tapping a
-// round button, and the reasoning written here was that a slider needs a
-// drag and a drag on a live viewfinder moves the phone. That argument was
-// sound and the result was still wrong, because "middle" is an arithmetic
-// midpoint of whatever the lens reports. On the founder's phone that is a
-// 1×–5.5×–10× button: three taps, and nothing between 1 and 5.5, which
-// is where every QR code on a counter or a poster actually lives.
+// There was a rail here: a scale down the square's right-hand edge with
+// 1× 2× 3× 5× 10× marks and the reading beside it. The founder: "instead
+// of zoom scale and number, zoom with fingers like we do photos". So the
+// rail, its marks and its number are gone, and two fingers on the camera
+// zoom it, the way a photo zooms. On a laptop a trackpad pinch (which the
+// browser reports as ctrl + wheel) does the same.
 //
-// So it is an arc, which is what he asked for. A bowed track above the
-// control row, where a thumb already sweeps, with the whole of the lens's
-// range along it and marks at the round numbers. Drag for anything, tap a
-// mark for exactly 1× or 2×.
-//
-// LOGARITHMIC, not linear. A linear 1–10 track spends half its length
-// between 5.5× and 10×, which is the half nobody scans in; doubling is
-// what the eye reads as "one step more", so equal distances along the arc
-// double the magnification. 1× and 10× sit at the ends either way, and
-// the useful middle gets the room.
-//
-// ── AND THEN IT STOPPED BEING AN ARC ───────────────────────────────────
-//
-// The arc was a bowed track floating in the band between the framing
-// square and the control row. Everything above about the SCALE survived
-// this change — logarithmic, marks at the round numbers, snapping in
-// pixels. What did not survive is where it sat.
-//
-// The founder's reference puts the zoom on the frame's own right-hand
-// line: the rail IS that edge of the square, the round numbers read down
-// the inside of the picture, and the current reading sits just outside
-// it. That is better than an arc for a reason worth writing down — the
-// arc was a second object in a band of its own, competing with the
-// instruction line and the control row for the only empty strip on the
-// screen, while the rail is drawn ON something already there and costs
-// no vertical room at all.
-//
-// It also means the zoom cannot collide with anything, which is the
-// fault that produced the arc's last two commits.
-//
-// 1× is at the BOTTOM and the maximum at the top, because a rail is read
-// as a level and a level fills upwards.
-var ZOOM_ARC_SNAP_PX = 10;
-
-// The rail's own geometry, in the square's percentage space rather than
-// pixels: the framing square is min(72vw, 300px), so it is a different
-// size on every phone and the rail has to be the same fraction of it.
-var ZOOM_RAIL_INSET = 0.055;
-
-// The round numbers worth landing on exactly. Expressed as multiples of the
-// lens's own minimum rather than as absolute values, because a device may
-// report its range as 100..800 — "2" here means twice as close, on any lens.
-var ZOOM_ARC_MARKS = [1, 2, 3, 5, 10];
+// What the rail learned is kept: applyZoom still asks the lens first and
+// crops in software where the lens refuses, so a pinch always visibly
+// does something.
 
 // The range offered when the lens reports none of its own.
 //
 // Six, not ten. Past about six the crop is a handful of sensor pixels
 // blown up, and a code that will not read at 6x will not read at 10x
-// either — the rail would be offering something that cannot work.
+// either.
 var ZOOM_SOFT_RANGE = { min: 1, max: 6 };
-
-function zoomArcRatio(range) {
-  return range && range.min > 0 && range.max > range.min ? range.max / range.min : 0;
-}
-
-// Where a zoom level sits along the track, 0 at the bottom (1×) and 1 at
-// the top. Clamped, so a lens reporting a level outside its own stated
-// range cannot push the handle off the rail.
-function zoomArcPosition(value, range) {
-  const ratio = zoomArcRatio(range);
-  if (!ratio) return 0;
-  const level = Math.min(range.max, Math.max(range.min, value == null ? range.min : value));
-  return Math.log(level / range.min) / Math.log(ratio);
-}
-
-// And back the other way.
-function zoomArcLevel(t, range) {
-  const ratio = zoomArcRatio(range);
-  if (!ratio) return range ? range.min : 0;
-  return range.min * Math.pow(ratio, Math.min(1, Math.max(0, t)));
-}
-
-// The marks this lens can actually reach, with where each one sits.
-function zoomArcMarks(range) {
-  const ratio = zoomArcRatio(range);
-  if (!ratio) return [];
-  return ZOOM_ARC_MARKS
-    .filter((times) => times <= ratio + 1e-6)
-    .map((times) => ({ times, t: Math.log(times) / Math.log(ratio) }));
-}
-
-// ── THE RAIL ───────────────────────────────────────────────────────────
-//
-// It renders INSIDE the framing square (QrFrameGuide passes it through as
-// `rail`), positioned against the square's right-hand edge, so it is the
-// same fraction of the picture on every phone with no media query and no
-// measurement.
-//
-// Three columns, right to left: the round-number labels inside the
-// picture, the rail line itself ON the square's edge, the ticks stepping
-// outward, and the live reading in a pill clear of the frame. The host
-// box straddles the edge so there is a thumb's width of target on both
-// sides of the line — a 1.5px line is not something anybody can grab.
-function ZoomRail({ range, level, onPick }) {
-  const hostRef = useRef17(null);
-  const draggingRef = useRef17(false);
-  const marks = zoomArcMarks(range);
-  const at = zoomArcPosition(level, range);
-
-  // A thumb's y, turned into a zoom level, snapping to a mark it lands
-  // near. Snapping is in PIXELS rather than in zoom units: ten pixels is
-  // ten pixels wherever it falls, where a tolerance in zoom units would
-  // be generous at the wide end and unreachable at the long one.
-  //
-  // The rail is read bottom-up, so t is 1 − the fraction down the box.
-  const pickAt = (clientY) => {
-    const host = hostRef.current;
-    if (!host || !range) return;
-    const box = host.getBoundingClientRect();
-    const span = box.height;
-    if (!(span > 0)) return;
-    let t = Math.min(1, Math.max(0, 1 - (clientY - box.top) / span));
-    for (const mark of marks) {
-      if (Math.abs(mark.t - t) * span <= ZOOM_ARC_SNAP_PX) {
-        t = mark.t;
-        break;
-      }
-    }
-    onPick(zoomArcLevel(t, range));
-  };
-
-  const nudge = (direction) => {
-    // One mark at a time on a keyboard, which is the only input here that
-    // cannot aim: landing between two round numbers by arrow key is not
-    // something anybody wants.
-    if (!marks.length) return;
-    const order = direction > 0 ? marks : marks.slice().reverse();
-    const next = order.find((mark) => (direction > 0 ? mark.t > at + 1e-6 : mark.t < at - 1e-6));
-    if (next) onPick(zoomArcLevel(next.t, range));
-  };
-
-  if (!range || !zoomArcRatio(range)) return null;
-
-  // Fraction-of-the-square down from the top, for a given t.
-  const topOf = (t) => `${(ZOOM_RAIL_INSET + (1 - t) * (1 - ZOOM_RAIL_INSET * 2)) * 100}%`;
-
-  // Everything on the rail carries a dark halo. White on a camera picture
-  // is legible against a dark room and invisible against a hedge; this is
-  // the same trick the title on this screen already uses, and it is the
-  // one lesson the arc's own history is worth keeping. There is no type
-  // left on the rail to hang a text-shadow on, so the ticks carry it as a
-  // box-shadow and the reading carries its own filled ground.
-
-  // ── THE SCALE, REBUILT AS A CONTROL ────────────────────────────────
-  //
-  // It was ticks on the square's right edge, a hairline, and a reading.
-  // Legible as a scale, not legible as a thing to GRAB — nothing on it
-  // looked like a handle, the hit band was invisible, and the founder's
-  // fifth report said "that 1x zoom icon doesn't move".
-  //
-  // That fifth report could not be reproduced: a real touch drag in
-  // Chromium moves it, a real mouse drag moves it, every point down the
-  // rail hit-tests to the rail. So the control is rebuilt on two
-  // principles that do not depend on finding the cause:
-  //
-  //   1. It LOOKS like a slider — a track, a round thumb, the numbers —
-  //      so a thumb knows where to land and what to do.
-  //   2. It has inputs that cannot be swallowed: + and − buttons at the
-  //      ends, and every mark is a tap target. A device where the drag
-  //      is eaten by something I cannot see still zooms by tapping.
-  //
-  // Both pointer AND touch handlers, for the same reason. If pointer
-  // events are being cancelled by a gesture recogniser on some phone, the
-  // touch events still arrive; the draggingRef gate stops a device that
-  // sends both from picking twice.
-  const thumbPct = topOf(at);
-  const press = (clientY) => {
-    draggingRef.current = true;
-    pickAt(clientY);
-  };
-  const move = (clientY) => { if (draggingRef.current) pickAt(clientY); };
-  const release = () => { draggingRef.current = false; };
-
-  const endButton = (direction, label, glyph) => <button
-    type="button"
-    aria-label={label}
-    onPointerDown={(e) => { e.stopPropagation(); e.preventDefault(); }}
-    onClick={(e) => { e.stopPropagation(); nudge(direction); }}
-    style={{
-      width: 34, height: 34, borderRadius: "50%", border: "1px solid rgba(167,139,250,0.8)",
-      background: "rgba(44,16,92,0.78)", color: "#F3E8FF", fontSize: 18, fontWeight: 800,
-      lineHeight: 1, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center",
-      boxShadow: "0 0 14px rgba(124,58,237,0.55)", touchAction: "manipulation", pointerEvents: "auto",
-      fontFamily: "inherit", padding: 0
-    }}
-  >{glyph}</button>;
-
-  return <div
-    style={{
-      position: "absolute",
-      // Centred on the square's right edge — the scale IS that edge now,
-      // which is why the ring behind it has a gap exactly here.
-      right: -36,
-      top: -22,
-      bottom: -22,
-      width: 72,
-      display: "flex", flexDirection: "column", alignItems: "center",
-      pointerEvents: "auto"
-    }}
-  >{endButton(1, "Zoom in one step", "+")}<div
-    ref={hostRef}
-    role="slider"
-    tabIndex={0}
-    aria-label="Zoom"
-    aria-orientation="vertical"
-    aria-valuemin={1}
-    aria-valuemax={Math.round(zoomArcRatio(range) * 10) / 10}
-    aria-valuenow={Math.round((level == null ? range.min : level) / range.min * 10) / 10}
-    aria-valuetext={formatZoom(level, range)}
-    onPointerDown={(e) => {
-      if (e.pointerType === "touch") return; // the touch handlers own it
-      e.preventDefault();
-      if (e.currentTarget.setPointerCapture) {
-        try { e.currentTarget.setPointerCapture(e.pointerId); } catch (err) { /* a lost pointer is not a reason to lose the drag */ }
-      }
-      press(e.clientY);
-    }}
-    onPointerMove={(e) => { if (e.pointerType !== "touch") move(e.clientY); }}
-    onPointerUp={(e) => {
-      if (e.pointerType === "touch") return;
-      release();
-      if (e.currentTarget.releasePointerCapture) {
-        try { e.currentTarget.releasePointerCapture(e.pointerId); } catch (err) { /* already released */ }
-      }
-    }}
-    onPointerCancel={(e) => { if (e.pointerType !== "touch") release(); }}
-    onTouchStart={(e) => { const t = e.touches[0]; if (t) press(t.clientY); }}
-    onTouchMove={(e) => { const t = e.touches[0]; if (t) { e.preventDefault(); move(t.clientY); } }}
-    onTouchEnd={release}
-    onTouchCancel={release}
-    onKeyDown={(e) => {
-      if (e.key === "ArrowRight" || e.key === "ArrowUp") { e.preventDefault(); nudge(1); }
-      if (e.key === "ArrowLeft" || e.key === "ArrowDown") { e.preventDefault(); nudge(-1); }
-    }}
-    style={{
-      position: "relative",
-      flex: 1, width: "100%", margin: "6px 0",
-      // touchAction none so a vertical drag zooms instead of scrolling
-      // the page underneath, and the browser's own panning gesture does
-      // not eat the drag.
-      touchAction: "none",
-      cursor: "pointer",
-      outline: "none"
-    }}
-  >{
-    /* The track: a real one, 6px, the full working height. */
-  }<span aria-hidden="true" style={{
-    position: "absolute", left: "50%", marginLeft: -3, width: 6,
-    top: `${ZOOM_RAIL_INSET * 100}%`, bottom: `${ZOOM_RAIL_INSET * 100}%`,
-    borderRadius: 3, background: "rgba(255,255,255,0.28)",
-    boxShadow: "0 0 0 1px rgba(0,0,0,0.25), 0 0 10px rgba(124,58,237,0.45)"
-  }} />{
-    /* The filled part, bottom up to the thumb: how far up the range you
-       are without reading the number. */
-  }<span aria-hidden="true" style={{
-    position: "absolute", left: "50%", marginLeft: -3, width: 6,
-    top: thumbPct, bottom: `${ZOOM_RAIL_INSET * 100}%`,
-    borderRadius: 3, background: "linear-gradient(180deg, #E9D5FF, #7C3AED)",
-    boxShadow: "0 0 12px rgba(124,58,237,0.9)"
-  }} />{
-    /* Every mark is a TAP TARGET, not just a tick: a 28px button with the
-       number on it, which is the path that works when a drag does not. */
-  }{marks.map((mark) => <button
-    key={`mark-${mark.times}`}
-    type="button"
-    aria-label={`Zoom to ${mark.times}x`}
-    onPointerDown={(e) => { e.stopPropagation(); }}
-    onTouchStart={(e) => { e.stopPropagation(); }}
-    onClick={(e) => { e.stopPropagation(); onPick(zoomArcLevel(mark.t, range)); }}
-    style={{
-      position: "absolute", left: "50%", top: topOf(mark.t),
-      transform: "translate(-50%, -50%)",
-      width: 28, height: 22, border: "none", borderRadius: 11, padding: 0,
-      background: Math.abs(mark.t - at) <= 0.02 ? "#F3E8FF" : "rgba(44,16,92,0.72)",
-      color: Math.abs(mark.t - at) <= 0.02 ? "#4C1D95" : "rgba(243,232,255,0.92)",
-      fontSize: 10.5, fontWeight: 800, fontFamily: "inherit", lineHeight: 1,
-      boxShadow: "0 1px 4px rgba(0,0,0,0.6)", cursor: "pointer", touchAction: "manipulation"
-    }}
-  >{mark.times}x</button>)}{
-    /* The thumb. Round, 30px, with the live reading inside it, so there is
-       one object that is obviously the thing to drag and it says where
-       it is. Drawn last so it sits on top of whichever mark it covers. */
-  }<span aria-hidden="true" style={{
-    position: "absolute", left: "50%", top: thumbPct,
-    transform: "translate(-50%, -50%)",
-    width: 34, height: 34, borderRadius: "50%",
-    background: "#FFFFFF", color: "#4C1D95",
-    border: "2px solid #A78BFA",
-    boxShadow: "0 2px 10px rgba(0,0,0,0.45), 0 0 18px rgba(124,58,237,0.75)",
-    display: "flex", alignItems: "center", justifyContent: "center",
-    fontSize: 11, fontWeight: 900, letterSpacing: -0.2, whiteSpace: "nowrap"
-  }}>{formatZoom(level, range)}</span></div>{endButton(-1, "Zoom out one step", "−")}</div>;
-}
 
 // ── THE FRAMING SQUARE, WITH OR WITHOUT A CAMERA BEHIND IT ─────────────
 //
@@ -54904,6 +54716,79 @@ function QrCameraScanner({ onDetected, active = true, paused = false, fullScreen
     }, 320);
   }, [zoomRange]);
 
+  // ── PINCH TO ZOOM ─────────────────────────────────────────────────────
+  //
+  // Listened for on the document, not the video: the scan screen draws its
+  // own column of words and buttons over the whole camera, so the video
+  // never sees a finger. Two fingers anywhere on the screen while the
+  // camera runs are a pinch; one finger is left alone, so every button
+  // still taps. The ratio of the fingers' spread to where it started,
+  // times the zoom at the start, is the new zoom — the same feel as
+  // pinching a photo. Applied at most every 50 ms, with the last one
+  // always landing, so a fast pinch does not queue a constraint per frame.
+  const zoomLevelRef = useRef17(null);
+  zoomLevelRef.current = zoomLevel;
+  const zoomRangeRef = useRef17(null);
+  zoomRangeRef.current = zoomRange;
+  const applyZoomRef = useRef17(applyZoom);
+  applyZoomRef.current = applyZoom;
+  useEffect22(() => {
+    if (!fullScreen || state !== "running" || typeof document === "undefined") return undefined;
+    let pinch = null;
+    let timer = null;
+    const spread = (t) => Math.hypot(t[0].clientX - t[1].clientX, t[0].clientY - t[1].clientY) || 1;
+    const startLevel = () => {
+      const range = zoomRangeRef.current;
+      return zoomLevelRef.current != null ? zoomLevelRef.current : range ? range.min : 1;
+    };
+    const send = (wanted) => {
+      if (!pinch) return;
+      pinch.wanted = wanted;
+      const now = Date.now();
+      if (now - pinch.sentAt >= 50) {
+        pinch.sentAt = now;
+        applyZoomRef.current(wanted);
+      } else if (!timer) {
+        timer = setTimeout(() => { timer = null; if (pinch) { pinch.sentAt = Date.now(); applyZoomRef.current(pinch.wanted); } }, 50);
+      }
+    };
+    const onStart = (e) => {
+      if (e.touches.length !== 2 || !zoomRangeRef.current) return;
+      pinch = { spread: spread(e.touches), level: startLevel(), sentAt: 0, wanted: null };
+      e.preventDefault();
+    };
+    const onMove = (e) => {
+      if (!pinch || e.touches.length !== 2) return;
+      e.preventDefault();
+      send(pinch.level * (spread(e.touches) / pinch.spread));
+    };
+    const onEnd = (e) => {
+      if (!pinch || e.touches.length >= 2) return;
+      if (pinch.wanted != null) applyZoomRef.current(pinch.wanted);
+      pinch = null;
+    };
+    // A trackpad pinch on a laptop arrives as ctrl + wheel.
+    const onWheel = (e) => {
+      if (!e.ctrlKey || !zoomRangeRef.current) return;
+      e.preventDefault();
+      applyZoomRef.current(startLevel() * Math.exp(-e.deltaY * 0.01));
+    };
+    const opts = { passive: false };
+    document.addEventListener("touchstart", onStart, opts);
+    document.addEventListener("touchmove", onMove, opts);
+    document.addEventListener("touchend", onEnd);
+    document.addEventListener("touchcancel", onEnd);
+    window.addEventListener("wheel", onWheel, opts);
+    return () => {
+      clearTimeout(timer);
+      document.removeEventListener("touchstart", onStart, opts);
+      document.removeEventListener("touchmove", onMove, opts);
+      document.removeEventListener("touchend", onEnd);
+      document.removeEventListener("touchcancel", onEnd);
+      window.removeEventListener("wheel", onWheel, opts);
+    };
+  }, [fullScreen, state]);
+
 
   // Tap the viewfinder to focus there.
   //
@@ -55035,17 +54920,9 @@ function QrCameraScanner({ onDetected, active = true, paused = false, fullScreen
          four positioned panels: it can never leave a seam, and it resizes
          with the square for free. */
     }<QrFrameGuide
-      // The zoom goes INSIDE the guide so it can be positioned against
-      // the square's own right-hand edge. It used to be a sibling of it,
-      // anchored to the bottom of the screen and sized in viewport units
-      // — which is how a control meant to sit beside the square ended up
-      // needing a comment explaining which gap it had to fit between.
-      // Drawn only when the lens reports a zoom range, the same rule the
-      // torch and the picker follow: a dead control is worse than no
-      // control, and most of all mid-scan.
-      rail={zoomRange && !quiet
-        ? <ZoomRail range={zoomRange} level={zoomLevel} onPick={applyZoom} />
-        : null}
+      // No zoom control drawn: zoom is a two-finger pinch (see the
+      // pinch effect above).
+      rail={null}
       // The sweep means "looking". While paused it must stop, or the
       // screen claims to be scanning when it is not.
       hunting={state === "running" && !paused}
@@ -61957,16 +61834,17 @@ function hellooLastLine(m) {
   return "";
 }
 
-function HellooChatRow({ chat, onOpen, first }) {
+function HellooChatRow({ chat, onOpen, first, onHold }) {
   const last = chat.messages[chat.messages.length - 1];
   const unread = chat.unread || 0;
-  return <button onClick={() => onOpen && onOpen(chat)} className="v2-tap" style={{ width: "100%", display: "flex", alignItems: "center", gap: 12, padding: "11px 14px", border: "none", borderTop: first ? "none" : `1px solid ${T.line}`, background: "none", cursor: "pointer", textAlign: "left", fontFamily: T.fontBody }}><HellooAvatar person={chat.person} size={50} online={chat.person.online} /><span style={{ flex: 1, minWidth: 0 }}><span style={{ display: "flex", alignItems: "baseline", gap: 8 }}><span style={{ flex: 1, minWidth: 0, fontSize: 15, fontWeight: 800, color: T.ink, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{chat.person.handle ? <CreatorHandleText handle={chat.person.handle} /> : chat.person.name}</span><span style={{ fontSize: 11, fontWeight: 700, color: unread ? T.accent : T.inkFaint, flexShrink: 0 }}>{last ? hellooWhen(last.at) : ""}</span></span><span style={{ display: "flex", alignItems: "center", gap: 8, marginTop: 3 }}><span style={{ flex: 1, minWidth: 0, fontSize: 13, color: unread ? T.ink : T.inkSoft, fontWeight: unread ? 700 : 500, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{last && last.from === "me" && last.kind === "text" && <span style={{ color: last.read ? T.accent2 : T.inkFaint, marginRight: 4 }}>{last.read ? "✓✓" : "✓"}</span>}{hellooLastLine(last)}</span>{chat.muted && <HlBellOff size={13} color={T.inkFaint} />}{chat.pinned && <HlPinIcon size={13} color={T.inkFaint} />}{unread > 0 && <span style={{ minWidth: 20, height: 20, borderRadius: 10, background: T.accent, color: "#fff", fontSize: 11, fontWeight: 800, display: "inline-flex", alignItems: "center", justifyContent: "center", padding: "0 6px" }}>{unread}</span>}</span></span></button>;
+  const row = <button onClick={() => onOpen && onOpen(chat)} className="v2-tap" style={{ width: "100%", display: "flex", alignItems: "center", gap: 12, padding: "11px 14px", border: "none", borderTop: first ? "none" : `1px solid ${T.line}`, background: "none", cursor: "pointer", textAlign: "left", fontFamily: T.fontBody }}><HellooAvatar person={chat.person} size={50} online={chat.person.online} /><span style={{ flex: 1, minWidth: 0 }}><span style={{ display: "flex", alignItems: "baseline", gap: 8 }}><span style={{ flex: 1, minWidth: 0, fontSize: 15, fontWeight: 800, color: T.ink, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{chat.person.handle ? <CreatorHandleText handle={chat.person.handle} /> : chat.person.name}</span><span style={{ fontSize: 11, fontWeight: 700, color: unread ? T.accent : T.inkFaint, flexShrink: 0 }}>{last ? hellooWhen(last.at) : ""}</span></span><span style={{ display: "flex", alignItems: "center", gap: 8, marginTop: 3 }}><span style={{ flex: 1, minWidth: 0, fontSize: 13, color: unread ? T.ink : T.inkSoft, fontWeight: unread ? 700 : 500, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{chat.typing ? <span style={{ color: HT.free, fontWeight: 700 }}>typing…</span> : <>{last && last.from === "me" && last.kind === "text" && <span style={{ color: last.read ? T.accent2 : T.inkFaint, marginRight: 4 }}>{last.read ? "✓✓" : "✓"}</span>}{hellooLastLine(last)}</>}</span>{chat.muted && <HlBellOff size={13} color={T.inkFaint} />}{chat.pinned && <HlPinIcon size={13} color={T.inkFaint} />}{unread > 0 && <span style={{ minWidth: 20, height: 20, borderRadius: 10, background: T.accent, color: "#fff", fontSize: 11, fontWeight: 800, display: "inline-flex", alignItems: "center", justifyContent: "center", padding: "0 6px" }}>{unread}</span>}</span></span></button>;
+  return onHold ? <HellooHold onHold={() => onHold(chat)} align="stretch">{row}</HellooHold> : row;
 }
 
-function HellooChatsScreen({ me, chats, onOpen, onStart, onScan, onSearch, query = "", filter = "all", onFilter, onMore, requests = [], onRequests, banner = null, empty = null }) {
+function HellooChatsScreen({ me, chats, onOpen, onStart, onScan, onSearch, query = "", filter = "all", onFilter, onMore, requests = [], onRequests, banner = null, empty = null, onHold }) {
   const filters = [["all", "All", 0], ["unread", "Unread", chats.filter((c) => c.unread).length], ["groups", "Groups", 0], ["shops", "Shops", 0]];
   const shown = chats.filter((c) => filter === "all" || (filter === "unread" && c.unread) || (filter === "groups" && c.person.group) || (filter === "shops" && c.person.handle));
-  return <HellooScreen><HellooTop big title={<span style={{ fontSize: 26 }}><HellooWordmark /></span>} right={<><HellooRoundButton Icon={HlScan} label="Scan a GLOOBAL QR" onClick={onScan} /><HellooRoundButton Icon={HlMore} label="More" onClick={onMore} /></>} /><div style={{ padding: "0 16px 10px", flexShrink: 0 }}><label style={{ display: "flex", alignItems: "center", gap: 8, background: T.surface, border: `1px solid ${T.line}`, borderRadius: 999, padding: "10px 14px" }}><HlSearch size={17} color={T.inkFaint} /><input value={query} onChange={(e) => onSearch && onSearch(e.target.value)} placeholder="Search names, messages or a GLOOBAL ID" style={{ flex: 1, minWidth: 0, border: "none", outline: "none", background: "none", fontSize: 14, color: T.ink, fontFamily: T.fontBody }} /></label><div style={{ display: "flex", gap: 8, marginTop: 10, overflowX: "auto", scrollbarWidth: "none" }}>{filters.map(([k, l, n]) => <HellooChip key={k} on={filter === k} count={n} onClick={() => onFilter && onFilter(k)}>{l}</HellooChip>)}</div></div><div style={{ flex: 1, minHeight: 0, overflowY: "auto", padding: "0 16px 90px" }}>{banner}<HellooRequestsRow requests={requests} onOpen={onRequests} />{shown.length === 0 && empty ? empty : <HellooCard>{shown.map((c, i) => <HellooChatRow key={c.id} chat={c} onOpen={onOpen} first={i === 0} />)}</HellooCard>}<div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 6, marginTop: 14, fontSize: 11.5, fontWeight: 700, color: HT.free }}><HlLock size={13} />Private to you and the people you talk to</div></div><button onClick={onStart} aria-label="Start a chat" className="v2-tap" style={{ position: "absolute", right: 18, bottom: "calc(86px + env(safe-area-inset-bottom, 0px))", width: 56, height: 56, borderRadius: HT.radius != null ? Math.min(HT.radius, 18) : 18, border: "none", background: T.gradButton, boxShadow: HT.buttonGlow || "0 12px 28px rgba(76,29,149,0.35)", display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer" }}><HlPlus size={26} color={HT.onAccent || "#fff"} /></button></HellooScreen>;
+  return <HellooScreen><HellooTop big title={<span style={{ fontSize: 26 }}><HellooWordmark /></span>} right={<><HellooRoundButton Icon={HlScan} label="Scan a GLOOBAL QR" onClick={onScan} /><HellooRoundButton Icon={HlMore} label="More" onClick={onMore} /></>} /><div style={{ padding: "0 16px 10px", flexShrink: 0 }}><label style={{ display: "flex", alignItems: "center", gap: 8, background: T.surface, border: `1px solid ${T.line}`, borderRadius: 999, padding: "10px 14px" }}><HlSearch size={17} color={T.inkFaint} /><input value={query} onChange={(e) => onSearch && onSearch(e.target.value)} placeholder="Search names, messages or a GLOOBAL ID" style={{ flex: 1, minWidth: 0, border: "none", outline: "none", background: "none", fontSize: 14, color: T.ink, fontFamily: T.fontBody }} /></label><div style={{ display: "flex", gap: 8, marginTop: 10, overflowX: "auto", scrollbarWidth: "none" }}>{filters.map(([k, l, n]) => <HellooChip key={k} on={filter === k} count={n} onClick={() => onFilter && onFilter(k)}>{l}</HellooChip>)}</div></div><div style={{ flex: 1, minHeight: 0, overflowY: "auto", padding: "0 16px 90px" }}>{banner}<HellooRequestsRow requests={requests} onOpen={onRequests} />{shown.length === 0 && empty ? empty : <HellooCard>{shown.map((c, i) => <HellooChatRow key={c.id} chat={c} onOpen={onOpen} first={i === 0} onHold={onHold} />)}</HellooCard>}<div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 6, marginTop: 14, fontSize: 11.5, fontWeight: 700, color: HT.free }}><HlLock size={13} />Private to you and the people you talk to</div></div><button onClick={onStart} aria-label="Start a chat" className="v2-tap" style={{ position: "absolute", right: 18, bottom: "calc(86px + env(safe-area-inset-bottom, 0px))", width: 56, height: 56, borderRadius: HT.radius != null ? Math.min(HT.radius, 18) : 18, border: "none", background: T.gradButton, boxShadow: HT.buttonGlow || "0 12px 28px rgba(76,29,149,0.35)", display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer" }}><HlPlus size={26} color={HT.onAccent || "#fff"} /></button></HellooScreen>;
 }
 
 // The Start sheet: three ways a person comes in, one group.
@@ -61976,9 +61854,9 @@ function HellooStartSheet({ onClose, onPad, onScan, onGroup, suggested = [], onP
 }
 
 // Long-press on a chat row.
-function HellooChatActions({ chat, onClose }) {
-  const items = [[HlPinIcon, chat.pinned ? "Unpin" : "Pin to top"], [HlBellOff, chat.muted ? "Unmute" : "Mute"], [HlArchive, "Archive"], [HlCheckCheck, "Mark as read"], [HlTrash, "Delete chat", true]];
-  return <HellooSheet onClose={onClose} label="Chat actions"><div style={{ display: "flex", alignItems: "center", gap: 12, padding: "4px 2px 12px" }}><HellooAvatar person={chat.person} size={40} /><span style={{ fontSize: 15, fontWeight: 800, color: T.ink }}>{hellooName(chat.person)}</span></div><HellooCard>{items.map(([Icon, label, danger], i) => <HellooRow key={label} Icon={Icon} title={label} danger={danger} first={i === 0} />)}</HellooCard></HellooSheet>;
+function HellooChatActions({ chat, onClose, items: given }) {
+  const items = given || [[HlPinIcon, chat.pinned ? "Unpin" : "Pin to top"], [HlBellOff, chat.muted ? "Unmute" : "Mute"], [HlArchive, "Archive"], [HlCheckCheck, "Mark as read"], [HlTrash, "Delete chat", true]];
+  return <HellooSheet onClose={onClose} label="Chat actions"><div style={{ display: "flex", alignItems: "center", gap: 12, padding: "4px 2px 12px" }}><HellooAvatar person={chat.person} size={40} /><span style={{ fontSize: 15, fontWeight: 800, color: T.ink }}>{hellooName(chat.person)}</span></div><HellooCard>{items.map(([Icon, label, danger, onPress], i) => <HellooRow key={label} Icon={Icon} title={label} danger={danger} first={i === 0} onPress={onPress} />)}</HellooCard></HellooSheet>;
 }
 
 
@@ -62016,21 +61894,23 @@ function HellooRequestCard({ m, person }) {
 
 function HellooBubble({ m, person, prevSame }) {
   const mine = m.from === "me";
+  if (m.kind === "deleted") return <div data-helloo-msg={m.from} style={{ alignSelf: mine ? "flex-end" : "flex-start", maxWidth: "82%", marginTop: prevSame ? 2 : 8 }}><span style={{ display: "inline-flex", alignItems: "center", gap: 6, padding: "8px 12px", borderRadius: 16, border: `1px dashed ${T.line}`, color: T.inkFaint, fontSize: 13.5, fontStyle: "italic" }}><HlBan size={13} />{mine ? "You deleted this message" : "This message was deleted"}<span style={{ fontSize: 10, fontStyle: "normal", marginLeft: 4 }}>{hellooClock(m.at)}</span></span></div>;
+  const quote = m.replyTo ? <span style={{ display: "block", margin: m.kind === "photo" ? "0 0 4px" : "-2px -4px 6px", padding: "6px 9px", borderRadius: 10, borderLeft: `3px solid ${mine ? "rgba(255,255,255,0.8)" : T.accent}`, background: mine ? "rgba(255,255,255,0.16)" : T.surfaceAlt, fontSize: 12, lineHeight: 1.35 }}><span style={{ display: "block", fontWeight: 800, color: mine ? "#fff" : T.accent }}>{m.replyTo.who}</span><span style={{ display: "block", opacity: 0.85, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", maxWidth: 230 }}>{m.replyTo.preview}</span></span> : null;
   if (m.kind === "day") return <div style={{ alignSelf: "center", fontSize: 10.5, fontWeight: 800, letterSpacing: 0.6, textTransform: "uppercase", color: T.inkFaint, background: T.surfaceSunk, borderRadius: 999, padding: "4px 11px", margin: "6px 0" }}>{m.text}</div>;
   if (m.kind === "system") return <div style={{ alignSelf: "center", display: "inline-flex", alignItems: "center", gap: 6, fontSize: 11, fontWeight: 700, color: HT.free, background: HT.freeSoft, borderRadius: 999, padding: "5px 11px", margin: "4px 0 6px" }}><HlShield size={12} />{m.text}</div>;
   if (m.kind === "call") return <div style={{ alignSelf: "center", display: "flex", alignItems: "center", gap: 10, background: T.surface, boxShadow: T.shadowCard, borderRadius: 16, padding: "9px 12px", margin: "4px 0" }}><span style={{ width: 32, height: 32, borderRadius: 11, background: (m.missed ? T.negative : HT.free) + "1A", display: "flex", alignItems: "center", justifyContent: "center" }}>{m.missed ? <HlMissed size={16} color={T.negative} /> : m.video ? <HlVideo size={16} color={HT.free} /> : <HlPhone size={16} color={HT.free} />}</span><span><span style={{ display: "block", fontSize: 12.5, fontWeight: 800, color: m.missed ? T.negative : T.ink }}>{m.missed ? "Missed " : ""}{m.video ? "Video" : "Voice"} call</span><span style={{ display: "block", fontSize: 11, color: T.inkSoft }}>{m.missed ? hellooClock(m.at) : `${hellooDuration(m.seconds)} · ${hellooClock(m.at)} · ${m.paidText ? (mine ? `you paid ${m.paidText}` : `paid you ${m.paidText}`) : "free"}`}</span></span><button className="v2-tap" style={{ marginLeft: 6, border: "none", borderRadius: 999, background: T.accentSoft, color: T.accent, fontSize: 11.5, fontWeight: 800, padding: "6px 10px", cursor: "pointer" }}>Call back</button></div>;
   const card = m.kind === "receipt" ? <HellooReceiptCard m={m} person={person} /> : m.kind === "request" ? <HellooRequestCard m={m} person={person} /> : m.kind === "order" ? <HellooOrderCard m={m} person={person} /> : m.kind === "split" ? <HellooSplitCard m={m} /> : m.kind === "refund" ? <HellooRefundCard m={m} person={person} /> : m.kind === "offer" ? <HellooOfferCard m={m} person={person} /> : m.kind === "letter" ? <HellooLetterCard m={m} person={person} /> : null;
-  return <div data-helloo-msg={m.from} style={{ alignSelf: mine ? "flex-end" : "flex-start", maxWidth: "82%", display: "flex", flexDirection: "column", alignItems: mine ? "flex-end" : "flex-start", marginTop: prevSame ? 2 : 8 }}>{card ? <>{card}<span style={{ fontSize: 10, color: T.inkFaint, marginTop: 3 }}>{hellooClock(m.at)}</span></> : <span style={{ padding: m.kind === "photo" ? 4 : "9px 12px", borderRadius: mine ? `${HT.bubbleRadius ?? 18}px ${HT.bubbleRadius ?? 18}px ${HT.bubbleTail ?? 5}px ${HT.bubbleRadius ?? 18}px` : `${HT.bubbleRadius ?? 18}px ${HT.bubbleRadius ?? 18}px ${HT.bubbleRadius ?? 18}px ${HT.bubbleTail ?? 5}px`, border: mine ? "none" : (HT.bubbleBorder || "none"), background: mine ? HT.bubbleMe : HT.bubbleThem, color: mine ? (HT.bubbleMeInk || "#fff") : T.ink, boxShadow: mine ? (HT.bubbleMeShadow || "none") : (HT.cardShadow ?? T.shadowCard), fontSize: 14.5, lineHeight: 1.4, overflowWrap: "anywhere", position: "relative" }}>{m.paidText && <span style={{ display: "block" }}><HellooPaidBadge amountText={m.paidText} mine={mine} /></span>}{m.kind === "voice" ? <HellooVoiceNote m={m} mine={mine} /> : m.kind === "photo" ? <span style={{ display: "block", width: 220, height: 160, borderRadius: 15, background: `linear-gradient(135deg, ${hellooHue(m.at)}44, ${hellooHue(m.text || "x")}88)` }} /> : m.text}<span style={{ display: "inline-flex", alignItems: "center", fontSize: 10, color: mine ? "rgba(255,255,255,0.75)" : T.inkFaint, marginLeft: 8, verticalAlign: "bottom", position: m.kind === "photo" ? "absolute" : "static", right: 10, bottom: 8 }}>{hellooClock(m.at)}{mine && <HellooTick read={m.read} delivered={m.delivered} />}</span></span>}</div>;
+  return <div data-helloo-msg={m.from} style={{ alignSelf: mine ? "flex-end" : "flex-start", maxWidth: "82%", display: "flex", flexDirection: "column", alignItems: mine ? "flex-end" : "flex-start", marginTop: prevSame ? 2 : 8 }}>{card ? <>{card}<span style={{ fontSize: 10, color: T.inkFaint, marginTop: 3 }}>{hellooClock(m.at)}</span></> : <span style={{ padding: m.kind === "photo" ? 4 : "9px 12px", borderRadius: mine ? `${HT.bubbleRadius ?? 18}px ${HT.bubbleRadius ?? 18}px ${HT.bubbleTail ?? 5}px ${HT.bubbleRadius ?? 18}px` : `${HT.bubbleRadius ?? 18}px ${HT.bubbleRadius ?? 18}px ${HT.bubbleRadius ?? 18}px ${HT.bubbleTail ?? 5}px`, border: mine ? "none" : (HT.bubbleBorder || "none"), background: mine ? HT.bubbleMe : HT.bubbleThem, color: mine ? (HT.bubbleMeInk || "#fff") : T.ink, boxShadow: mine ? (HT.bubbleMeShadow || "none") : (HT.cardShadow ?? T.shadowCard), fontSize: 14.5, lineHeight: 1.4, overflowWrap: "anywhere", position: "relative" }}>{m.paidText && <span style={{ display: "block" }}><HellooPaidBadge amountText={m.paidText} mine={mine} /></span>}{quote}{m.kind === "voice" ? <HellooVoiceNote m={m} mine={mine} /> : m.kind === "photo" ? <span style={{ display: "block" }}><button onClick={m.onOpen} aria-label="Open photo" style={{ display: "block", padding: 0, border: "none", background: "none", cursor: m.onOpen ? "zoom-in" : "default" }}>{m.src ? <img src={m.src} alt={m.text || "Photo"} style={{ display: "block", width: 230, height: m.width && m.height ? Math.round(230 * Math.min(1.4, Math.max(0.6, m.height / m.width))) : 172, objectFit: "cover", borderRadius: 15 }} /> : <span style={{ display: "block", width: 230, height: m.width && m.height ? Math.round(230 * Math.min(1.4, Math.max(0.6, m.height / m.width))) : 172, borderRadius: 15, background: `linear-gradient(135deg, ${hellooHue(String(m.id))}33, ${hellooHue(String(m.id) + "x")}66)` }} />}</button>{m.text ? <span style={{ display: "block", padding: "6px 8px 14px" }}>{m.text}</span> : null}</span> : m.text}<span style={{ display: "inline-flex", alignItems: "center", fontSize: 10, color: mine ? "rgba(255,255,255,0.75)" : T.inkFaint, marginLeft: 8, verticalAlign: "bottom", position: m.kind === "photo" ? "absolute" : "static", right: 10, bottom: 8 }}>{hellooClock(m.at)}{mine && <HellooTick read={m.read} delivered={m.delivered} />}</span></span>}</div>;
 }
 
-function HellooThreadScreen({ me, chat, onBack, onCall, onVideo, onMore, onPay, onAttach, onMenu, draft = "", onDraft, onSend, typing = false, ownerView = false, quickReplies = [], strip = null, paidPrice = 0, mode = "personal", onMode, onWriteLetter, recording = null, onMic, onCancelRecording, hasOlder = false, onLoadOlder, children }) {
+function HellooThreadScreen({ me, chat, onBack, onCall, onVideo, onMore, onPay, onAttach, onMenu, draft = "", onDraft, onSend, typing = false, ownerView = false, quickReplies = [], strip = null, paidPrice = 0, mode = "personal", onMode, onWriteLetter, recording = null, onMic, onCancelRecording, hasOlder = false, onLoadOlder, onMessageHold, replyTo = null, onCancelReply, composerNote = null, onOpenPerson, children }) {
   // Opens at the newest message, and follows the thread as it grows.
   const scrollRef = useRefH4(null);
   const newest = chat.messages.length ? chat.messages[chat.messages.length - 1] : null;
   useEffectH4(() => { const el = scrollRef.current; if (el) el.scrollTop = el.scrollHeight; }, [chat.id, newest && (newest.id || newest.clientId)]);
   const p = chat.person;
   const sub = typing ? "typing…" : p.online ? `Online · ${p.city || p.country}` : p.lastSeen ? `Last seen ${p.lastSeen}` : p.city || p.country;
-  return <HellooScreen><div style={{ display: "flex", alignItems: "center", gap: 8, padding: "calc(8px + env(safe-area-inset-top, 0px)) 10px 8px", borderBottom: `1px solid ${T.line}`, background: HT.barBg || T.surface, backdropFilter: HT.blur, flexShrink: 0 }}><NavBackButton onClick={onBack} /><HellooAvatar person={p} size={40} online={p.online} /><button onClick={onMore} className="v2-tap" style={{ flex: 1, minWidth: 0, border: "none", background: "none", textAlign: "left", padding: 0, cursor: "pointer", fontFamily: T.fontBody }}><span style={{ display: "block", fontSize: 15.5, fontWeight: 800, color: T.ink, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{p.handle ? <CreatorHandleText handle={p.handle} /> : p.name}</span><span style={{ display: "block", fontSize: 11.5, color: typing ? T.accent : T.inkSoft, marginTop: 1, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{sub}</span></button>{onMode && <HellooModeSwitch mode={mode} onChange={onMode} />}{onCall && <HellooRoundButton Icon={HlPhone} label="Voice call" onClick={onCall} color={HT.free} size={38} />}<HellooRoundButton Icon={HlMore} label="More" onClick={onMore} size={38} /></div><div ref={scrollRef} style={{ flex: 1, minHeight: 0, overflowY: "auto", padding: "8px 14px 12px", display: "flex", flexDirection: "column", background: HT.chatBg || HT.wash }}>{strip}{hasOlder && <button onClick={onLoadOlder} className="v2-tap" style={{ alignSelf: "center", border: "none", borderRadius: 999, background: T.surface, color: T.accent, fontSize: 12, fontWeight: 800, padding: "6px 14px", margin: "4px 0 8px", cursor: "pointer", fontFamily: T.fontBody, boxShadow: T.shadowCard }}>Earlier messages</button>}{chat.messages.map((m, i) => <HellooBubble key={m.id || i} m={m} person={p} prevSame={i > 0 && chat.messages[i - 1].from === m.from && !["day", "system", "call"].includes(chat.messages[i - 1].kind) && !["day", "system", "call"].includes(m.kind)} />)}</div>{(p.handle && !ownerView) && <div style={{ display: "flex", gap: 8, padding: "8px 12px 0", background: T.surface, borderTop: `1px solid ${T.line}`, flexShrink: 0 }}><button onClick={onMenu} className="v2-tap" style={{ display: "inline-flex", alignItems: "center", gap: 6, border: "none", borderRadius: 999, padding: "7px 13px", background: "#DB27771A", color: "#DB2777", fontSize: 12.5, fontWeight: 800, cursor: "pointer", fontFamily: T.fontBody }}><HlStore size={15} />Menu · order here</button><HellooChip>Open now · till 22:00</HellooChip></div>}{mode === "pro" ? <HellooProComposer person={p} onWrite={onWriteLetter} /> : <>{paidPrice > 0 && <HellooPaidComposerBar price={paidPrice} currency={me.currency} />}{ownerView && quickReplies.length > 0 && <div style={{ display: "flex", gap: 8, padding: "8px 12px 0", overflowX: "auto", scrollbarWidth: "none", background: T.surface, borderTop: `1px solid ${T.line}`, flexShrink: 0 }}>{quickReplies.map((q) => <HellooChip key={q}>{q}</HellooChip>)}</div>}<div style={{ display: "flex", alignItems: "flex-end", gap: 8, padding: "8px 12px calc(10px + env(safe-area-inset-bottom, 0px))", borderTop: (p.handle && !ownerView) || (ownerView && quickReplies.length) ? "none" : `1px solid ${T.line}`, background: T.surface, flexShrink: 0 }}>{onAttach && <HellooRoundButton Icon={HlPlus} label="Attach" onClick={onAttach} size={40} color={T.inkSoft} />}{recording ? <div role="status" style={{ flex: 1, minWidth: 0, display: "flex", alignItems: "center", gap: 10, background: T.surfaceAlt, borderRadius: 22, padding: "8px 8px 8px 14px" }}><span aria-hidden="true" style={{ width: 10, height: 10, borderRadius: "50%", background: T.negative, animation: "hlPulse 1s ease-in-out infinite" }} /><span style={{ flex: 1, fontSize: 14, fontWeight: 700, color: T.ink, fontVariantNumeric: "tabular-nums" }}>Recording {hellooDuration(Math.floor(recording ? recording.seconds : 0))}</span><button onClick={onCancelRecording} className="v2-tap" style={{ border: "none", background: "none", color: T.negative, fontSize: 13, fontWeight: 800, cursor: "pointer", fontFamily: T.fontBody, padding: "4px 8px" }}>Cancel</button><style>{"@keyframes hlPulse{0%,100%{opacity:1}50%{opacity:.25}}"}</style></div> : <label style={{ flex: 1, minWidth: 0, display: "flex", alignItems: "center", gap: 6, background: T.surfaceAlt, borderRadius: 22, padding: "10px 6px 10px 14px" }}><textarea value={draft} rows={1} onChange={(e) => onDraft && onDraft(e.target.value)} onKeyDown={(e) => { if (e.key === "Enter" && !e.shiftKey && onSend) { e.preventDefault(); onSend(); } }} placeholder={`Message ${hellooName(p).split(" ")[0]}`} aria-label="Message" style={{ flex: 1, minWidth: 0, resize: "none", border: "none", outline: "none", background: "none", fontSize: 14.5, color: T.ink, fontFamily: T.fontBody, maxHeight: 100 }} />{onPay && <button onClick={onPay} aria-label="Pay or request" className="v2-tap" style={{ width: 30, height: 30, borderRadius: "50%", border: "none", background: HT.freeSoft, display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer", flexShrink: 0 }}><HlRupee size={15} color={HT.free} /></button>}</label>}{draft.trim() && !recording ? <HellooRoundButton Icon={HlSend} label="Send" solid size={44} onClick={onSend} /> : onMic ? <HellooRoundButton Icon={recording ? HlSend : HlMic} label={recording ? "Send voice note" : "Record a voice note"} solid size={44} onClick={onMic} /> : null}</div></>}{children}</HellooScreen>;
+  return <HellooScreen><div style={{ display: "flex", alignItems: "center", gap: 8, padding: "calc(8px + env(safe-area-inset-top, 0px)) 10px 8px", borderBottom: `1px solid ${T.line}`, background: HT.barBg || T.surface, backdropFilter: HT.blur, flexShrink: 0 }}><NavBackButton onClick={onBack} /><HellooAvatar person={p} size={40} online={p.online} /><button onClick={onOpenPerson || onMore} className="v2-tap" style={{ flex: 1, minWidth: 0, border: "none", background: "none", textAlign: "left", padding: 0, cursor: "pointer", fontFamily: T.fontBody }}><span style={{ display: "block", fontSize: 15.5, fontWeight: 800, color: T.ink, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{p.handle ? <CreatorHandleText handle={p.handle} /> : p.name}</span><span style={{ display: "block", fontSize: 11.5, color: typing ? T.accent : T.inkSoft, marginTop: 1, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{sub}</span></button>{onMode && <HellooModeSwitch mode={mode} onChange={onMode} />}{onCall && <HellooRoundButton Icon={HlPhone} label="Voice call" onClick={onCall} color={HT.free} size={38} />}<HellooRoundButton Icon={HlMore} label="More" onClick={onMore} size={38} /></div><div ref={scrollRef} style={{ flex: 1, minHeight: 0, overflowY: "auto", padding: "8px 14px 12px", display: "flex", flexDirection: "column", background: HT.chatBg || HT.wash }}>{strip}{hasOlder && <button onClick={onLoadOlder} className="v2-tap" style={{ alignSelf: "center", border: "none", borderRadius: 999, background: T.surface, color: T.accent, fontSize: 12, fontWeight: 800, padding: "6px 14px", margin: "4px 0 8px", cursor: "pointer", fontFamily: T.fontBody, boxShadow: T.shadowCard }}>Earlier messages</button>}{chat.messages.map((m, i) => { const bubble = <HellooBubble key={m.id || i} m={m} person={p} prevSame={i > 0 && chat.messages[i - 1].from === m.from && !["day", "system", "call"].includes(chat.messages[i - 1].kind) && !["day", "system", "call"].includes(m.kind)} />; return onMessageHold && !["day", "system"].includes(m.kind) && !m.pending ? <HellooHold key={m.id || i} onHold={() => onMessageHold(m)} align={m.from === "me" ? "flex-end" : "flex-start"}>{bubble}</HellooHold> : bubble; })}</div>{(p.handle && !ownerView) && <div style={{ display: "flex", gap: 8, padding: "8px 12px 0", background: T.surface, borderTop: `1px solid ${T.line}`, flexShrink: 0 }}><button onClick={onMenu} className="v2-tap" style={{ display: "inline-flex", alignItems: "center", gap: 6, border: "none", borderRadius: 999, padding: "7px 13px", background: "#DB27771A", color: "#DB2777", fontSize: 12.5, fontWeight: 800, cursor: "pointer", fontFamily: T.fontBody }}><HlStore size={15} />Menu · order here</button><HellooChip>Open now · till 22:00</HellooChip></div>}{composerNote ? <div style={{ padding: "12px 16px calc(14px + env(safe-area-inset-bottom, 0px))", borderTop: `1px solid ${T.line}`, background: T.surface, flexShrink: 0 }}>{composerNote}</div> : mode === "pro" ? <HellooProComposer person={p} onWrite={onWriteLetter} /> : <>{replyTo && <div style={{ display: "flex", alignItems: "center", gap: 10, padding: "8px 12px 0", background: T.surface, borderTop: `1px solid ${T.line}`, flexShrink: 0 }}><HlReply size={16} color={T.accent} /><span style={{ flex: 1, minWidth: 0, borderLeft: `3px solid ${T.accent}`, paddingLeft: 9 }}><span style={{ display: "block", fontSize: 12, fontWeight: 800, color: T.accent }}>Replying to {replyTo.who}</span><span style={{ display: "block", fontSize: 12.5, color: T.inkSoft, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{replyTo.preview}</span></span><button onClick={onCancelReply} aria-label="Cancel reply" style={{ width: 30, height: 30, border: "none", borderRadius: "50%", background: T.surfaceAlt, display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer" }}><HlX size={15} color={T.inkSoft} /></button></div>}{paidPrice > 0 && <HellooPaidComposerBar price={paidPrice} currency={me.currency} />}{ownerView && quickReplies.length > 0 && <div style={{ display: "flex", gap: 8, padding: "8px 12px 0", overflowX: "auto", scrollbarWidth: "none", background: T.surface, borderTop: `1px solid ${T.line}`, flexShrink: 0 }}>{quickReplies.map((q) => <HellooChip key={q}>{q}</HellooChip>)}</div>}<div style={{ display: "flex", alignItems: "flex-end", gap: 8, padding: "8px 12px calc(10px + env(safe-area-inset-bottom, 0px))", borderTop: (p.handle && !ownerView) || (ownerView && quickReplies.length) ? "none" : `1px solid ${T.line}`, background: T.surface, flexShrink: 0 }}>{onAttach && <HellooRoundButton Icon={HlPlus} label="Attach" onClick={onAttach} size={40} color={T.inkSoft} />}{recording ? <div role="status" style={{ flex: 1, minWidth: 0, display: "flex", alignItems: "center", gap: 10, background: T.surfaceAlt, borderRadius: 22, padding: "8px 8px 8px 14px" }}><span aria-hidden="true" style={{ width: 10, height: 10, borderRadius: "50%", background: T.negative, animation: "hlPulse 1s ease-in-out infinite" }} /><span style={{ flex: 1, fontSize: 14, fontWeight: 700, color: T.ink, fontVariantNumeric: "tabular-nums" }}>Recording {hellooDuration(Math.floor(recording ? recording.seconds : 0))}</span><button onClick={onCancelRecording} className="v2-tap" style={{ border: "none", background: "none", color: T.negative, fontSize: 13, fontWeight: 800, cursor: "pointer", fontFamily: T.fontBody, padding: "4px 8px" }}>Cancel</button><style>{"@keyframes hlPulse{0%,100%{opacity:1}50%{opacity:.25}}"}</style></div> : <label style={{ flex: 1, minWidth: 0, display: "flex", alignItems: "center", gap: 6, background: T.surfaceAlt, borderRadius: 22, padding: "10px 6px 10px 14px" }}><textarea value={draft} rows={1} onChange={(e) => onDraft && onDraft(e.target.value)} onKeyDown={(e) => { if (e.key === "Enter" && !e.shiftKey && onSend) { e.preventDefault(); onSend(); } }} placeholder={`Message ${hellooName(p).split(" ")[0]}`} aria-label="Message" style={{ flex: 1, minWidth: 0, resize: "none", border: "none", outline: "none", background: "none", fontSize: 14.5, color: T.ink, fontFamily: T.fontBody, maxHeight: 100 }} />{onPay && <button onClick={onPay} aria-label="Pay or request" className="v2-tap" style={{ width: 30, height: 30, borderRadius: "50%", border: "none", background: HT.freeSoft, display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer", flexShrink: 0 }}><HlRupee size={15} color={HT.free} /></button>}</label>}{draft.trim() && !recording ? <HellooRoundButton Icon={HlSend} label="Send" solid size={44} onClick={onSend} /> : onMic ? <HellooRoundButton Icon={recording ? HlSend : HlMic} label={recording ? "Send voice note" : "Record a voice note"} solid size={44} onClick={onMic} /> : null}</div></>}{children}</HellooScreen>;
 }
 
 // Pay or request, from the composer. Send never moves money here: it
@@ -62043,23 +61923,23 @@ function HellooPaySheet({ person, me, mode = "send", onMode, amount = "500", onA
   return <HellooSheet onClose={onClose} label="Gloobal Pay">{onMode && <div style={{ display: "flex", gap: 4, padding: 4, borderRadius: 999, background: T.surfaceSunk }}>{[["send", "Send"], ["request", "Request"]].map(([k, l]) => <button key={k} onClick={() => onMode && onMode(k)} className="v2-tap" style={{ flex: 1, border: "none", borderRadius: 999, padding: "9px 0", background: mode === k ? T.surface : "transparent", boxShadow: mode === k ? T.shadowCard : "none", color: mode === k ? T.ink : T.inkSoft, fontSize: 13, fontWeight: 800, cursor: "pointer", fontFamily: T.fontBody }}>{l}</button>)}</div>}<div style={{ display: "flex", alignItems: "center", gap: 12, marginTop: 16 }}><HellooAvatar person={person} size={44} /><span><span style={{ display: "block", fontSize: 15, fontWeight: 800, color: T.ink }}>{mode === "send" ? "Pay" : "Request from"} {hellooName(person)}</span><span style={{ display: "flex", alignItems: "center", gap: 5, fontSize: 11.5, color: T.inkSoft, marginTop: 2 }}><GloobalLogo size={14} radius="30%" /><GloobalWordmark suffix=" Pay" /> · no fee · {person.country}</span></span></div><div aria-live="polite" style={{ textAlign: "center", fontSize: 34, fontWeight: 800, fontFamily: T.fontDisplay, color: T.ink, margin: "18px 0 10px", letterSpacing: -0.6 }}>{text}</div><div style={{ display: "flex", gap: 8, justifyContent: "center", flexWrap: "wrap" }}>{[100, 500, 1000, 2000].map((v) => <HellooChip key={v} on={n === v} onClick={() => onAmount && onAmount(String(v))}>{typeof fmtMoney === "function" ? fmtMoney(v, me.currency) : v}</HellooChip>)}</div><input value={note} onChange={(e) => onNote && onNote(e.target.value)} placeholder={mode === "send" ? "What's it for? (optional)" : "What's it for?"} maxLength={40} style={{ width: "100%", boxSizing: "border-box", marginTop: 12, border: `1px solid ${T.line}`, borderRadius: 14, background: T.surface, padding: "11px 14px", fontSize: 13.5, color: T.ink, textAlign: "center", fontFamily: T.fontBody, outline: "none" }} /><div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 8, marginTop: 12 }}>{["1", "2", "3", "4", "5", "6", "7", "8", "9", "00", "0", "⌫"].map(key)}</div><div style={{ marginTop: 12 }}>{mode === "send" ? <HellooPrimary disabled={!n || busy} onClick={onSend} color="linear-gradient(135deg,#0B7A57,#0FA372)"><span style={{ display: "inline-flex", alignItems: "center", gap: 8 }}><GloobalLogo size={18} radius="30%" />{busy ? "Paying…" : `Pay ${text} on GLOOBAL`}</span></HellooPrimary> : <HellooPrimary disabled={!n} onClick={onRequest} Icon={HlRupee}>Request {text}</HellooPrimary>}</div><div style={{ textAlign: "center", fontSize: 11.5, color: T.inkFaint, marginTop: 8, lineHeight: 1.4 }}>{error ? <span style={{ color: T.negative, fontWeight: 700 }}>{error}</span> : mode === "send" ? "You confirm with your GLOOBAL PIN, then the receipt lands in this chat." : "They get the card here and a GLOOBAL notification."}</div></HellooSheet>;
 }
 
-function HellooAttachSheet({ onClose }) {
-  const items = [[HlImage, "Gallery", "#7C3AED"], [HlCamera, "Camera", "#DB2777"], [HlDoc, "Document", "#2563EB"], [HlPin, "Location", "#059669"], [HlContact, "GLOOBAL ID", "#EA580C"], [HlQr, "My QR", "#0E7490"]];
-  return <HellooSheet onClose={onClose} label="Attach"><div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 12, padding: "4px 0 6px" }}>{items.map(([Icon, label, color]) => <IconTile key={label} label={label} box={58} radius={18} background={color + "1F"}><Icon size={24} color={color} /></IconTile>)}</div></HellooSheet>;
+function HellooAttachSheet({ onClose, items: given }) {
+  const items = given || [[HlImage, "Gallery", "#7C3AED"], [HlCamera, "Camera", "#DB2777"], [HlDoc, "Document", "#2563EB"], [HlPin, "Location", "#059669"], [HlContact, "GLOOBAL ID", "#EA580C"], [HlQr, "My QR", "#0E7490"]];
+  return <HellooSheet onClose={onClose} label="Attach"><div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 12, padding: "4px 0 6px" }}>{items.map(([Icon, label, color, onPress]) => <span key={label} onClick={onPress} style={{ cursor: onPress ? "pointer" : "default" }}><IconTile label={label} box={58} radius={18} background={color + "1F"}><Icon size={24} color={color} /></IconTile></span>)}</div></HellooSheet>;
 }
 
 // Long-press a message.
-function HellooMessageActions({ m, onClose }) {
+function HellooMessageActions({ m, onClose, items: given, reactions = true }) {
   const reacts = ["❤️", "😂", "👍", "🙏", "🔥", "😮"];
-  const items = [[HlReply, "Reply"], [HlForward, "Forward"], [HlCopy, "Copy"], [HlStar, "Star"], [HlTrash, "Delete", true]];
-  return <HellooSheet onClose={onClose} label="Message actions"><div style={{ display: "flex", justifyContent: "space-between", padding: "2px 6px 12px" }}>{reacts.map((r) => <button key={r} className="v2-tap" style={{ width: 44, height: 44, borderRadius: "50%", border: "none", background: T.surface, boxShadow: T.shadowCard, fontSize: 22, cursor: "pointer" }}>{r}</button>)}</div><HellooCard>{items.map(([Icon, label, danger], i) => <HellooRow key={label} Icon={Icon} title={label} danger={danger} first={i === 0} />)}</HellooCard></HellooSheet>;
+  const items = given || [[HlReply, "Reply"], [HlForward, "Forward"], [HlCopy, "Copy"], [HlStar, "Star"], [HlTrash, "Delete", true]];
+  return <HellooSheet onClose={onClose} label="Message actions">{reactions && <div style={{ display: "flex", justifyContent: "space-between", padding: "2px 6px 12px" }}>{reacts.map((r) => <button key={r} className="v2-tap" style={{ width: 44, height: 44, borderRadius: "50%", border: "none", background: T.surface, boxShadow: T.shadowCard, fontSize: 22, cursor: "pointer" }}>{r}</button>)}</div>}{m && m.preview ? <div style={{ fontSize: 13, color: T.inkSoft, padding: "0 4px 10px", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{m.preview}</div> : null}<HellooCard>{items.map(([Icon, label, danger, onPress], i) => <HellooRow key={label} Icon={Icon} title={label} danger={danger} first={i === 0} onPress={onPress} />)}</HellooCard></HellooSheet>;
 }
 
 // ⋮ on a thread.
-function HellooThreadMenu({ chat, onClose }) {
+function HellooThreadMenu({ chat, onClose, items: given }) {
   const p = chat.person;
-  const items = [[HlUser, p.group ? "Group info" : "View profile"], [HlSearch, "Search in chat"], [HlImage, "Media, links & docs"], [HlBellOff, "Mute"], [HlTimer, "Disappearing messages", null, "Off"], [HlPalette, "Wallpaper"], [HlDownload, "Export chat"], [HlFlag, "Report"], [HlBan, "Block", true]];
-  return <HellooSheet onClose={onClose} label="Chat menu"><div style={{ display: "flex", alignItems: "center", gap: 12, padding: "4px 2px 12px" }}><HellooAvatar person={p} size={44} /><span style={{ minWidth: 0 }}><span style={{ display: "block", fontSize: 15, fontWeight: 800, color: T.ink }}>{hellooName(p)}</span><span style={{ display: "block", fontSize: 12, marginTop: 2 }}><ColoredGloobalId id={p.id} /></span></span></div><HellooCard>{items.map(([Icon, label, danger, value], i) => <HellooRow key={label} Icon={Icon} title={label} value={value} danger={danger} first={i === 0} />)}</HellooCard></HellooSheet>;
+  const items = given || [[HlUser, p.group ? "Group info" : "View profile"], [HlSearch, "Search in chat"], [HlImage, "Media, links & docs"], [HlBellOff, "Mute"], [HlTimer, "Disappearing messages", null, "Off"], [HlPalette, "Wallpaper"], [HlDownload, "Export chat"], [HlFlag, "Report"], [HlBan, "Block", true]];
+  return <HellooSheet onClose={onClose} label="Chat menu"><div style={{ display: "flex", alignItems: "center", gap: 12, padding: "4px 2px 12px" }}><HellooAvatar person={p} size={44} /><span style={{ minWidth: 0 }}><span style={{ display: "block", fontSize: 15, fontWeight: 800, color: T.ink }}>{hellooName(p)}</span><span style={{ display: "block", fontSize: 12, marginTop: 2 }}><ColoredGloobalId id={p.id} /></span></span></div><HellooCard>{items.map(([Icon, label, danger, value, onPress], i) => <HellooRow key={label} Icon={Icon} title={label} value={value} danger={danger} first={i === 0} onPress={onPress} />)}</HellooCard></HellooSheet>;
 }
 
 // ── SHOP ORDERING ───────────────────────────────────────────────────────
@@ -62088,6 +61968,22 @@ function HellooSplitSheet({ group, members, amount = "1200", note = "", picked =
   const each = picked.length ? n / picked.length : 0;
   const money = (v) => typeof geuLensBarMoney === "function" ? geuLensBarMoney(v, "INR", "local", "INR") : String(v);
   return <HellooSheet onClose={onClose} title="Split a bill"><div style={{ fontSize: 12.5, color: T.inkSoft, lineHeight: 1.45 }}>Everyone picked gets a request card in {group.name}; each one pays on GLOOBAL.</div><div aria-live="polite" style={{ textAlign: "center", fontSize: 34, fontWeight: 800, fontFamily: T.fontDisplay, color: T.ink, margin: "16px 0 4px", letterSpacing: -0.6 }}>{money(n)}</div><input value={note} readOnly placeholder="What's it for?" style={{ width: "100%", boxSizing: "border-box", border: `1px solid ${T.line}`, borderRadius: 14, background: T.surface, padding: "11px 14px", fontSize: 13.5, color: T.ink, textAlign: "center", fontFamily: T.fontBody, outline: "none" }} /><div style={{ fontSize: 10.5, fontWeight: 800, letterSpacing: 0.8, textTransform: "uppercase", color: T.inkFaint, margin: "16px 2px 8px" }}>Between · {picked.length} people · {money(each)} each</div><HellooCard>{members.map((p, i) => { const on = picked.includes(p.id); return <div key={p.id} style={{ display: "flex", alignItems: "center", gap: 12, padding: "10px 14px", borderTop: i ? `1px solid ${T.line}` : "none", opacity: on ? 1 : 0.55 }}><HellooAvatar person={p} size={38} /><span style={{ flex: 1, minWidth: 0, fontSize: 14, fontWeight: 800, color: T.ink }}>{p.me ? "You" : hellooName(p)}</span><span style={{ fontSize: 13, fontWeight: 800, color: on ? T.ink : T.inkFaint, fontVariantNumeric: "tabular-nums" }}>{on ? money(each) : "—"}</span><span aria-hidden="true" style={{ width: 22, height: 22, borderRadius: "50%", border: on ? "none" : `2px solid ${T.line}`, background: on ? T.accent : "transparent", display: "flex", alignItems: "center", justifyContent: "center" }}>{on && <HlCheck size={13} color="#fff" strokeWidth={3} />}</span></div>; })}</HellooCard><div style={{ marginTop: 14 }}><HellooPrimary disabled={!n || picked.length < 2} Icon={HlRupee}>Send {Math.max(0, picked.filter((id) => !members.find((m) => m.id === id && m.me)).length)} requests</HellooPrimary></div></HellooSheet>;
+}
+
+// Long-press (phone) or right-click (computer) on a message opens its
+// actions. A tap still reaches whatever is inside (play, open photo).
+function HellooHold({ onHold, align, children }) {
+  const timer = useRefH4(null);
+  const start = useRefH4(null);
+  const clear = () => { if (timer.current) { clearTimeout(timer.current); timer.current = null; } };
+  return <div
+    onContextMenu={(e) => { e.preventDefault(); clear(); onHold(); }}
+    onTouchStart={(e) => { const t = e.touches[0]; start.current = t ? { x: t.clientX, y: t.clientY } : null; clear(); timer.current = setTimeout(() => { timer.current = null; if (navigator.vibrate) try { navigator.vibrate(12); } catch (err) { /* no vibration */ } onHold(); }, 480); }}
+    onTouchMove={(e) => { const t = e.touches[0]; if (start.current && t && Math.hypot(t.clientX - start.current.x, t.clientY - start.current.y) > 10) clear(); }}
+    onTouchEnd={clear}
+    onTouchCancel={clear}
+    style={{ alignSelf: "stretch", width: "100%", display: "flex", flexDirection: "column", alignItems: align, WebkitTouchCallout: "none", userSelect: "none", WebkitUserSelect: "none" }}
+  >{children}</div>;
 }
 
 
@@ -62139,9 +62035,9 @@ function HellooMyQrScreen({ me, onBack, onSave, onShare }) {
   return <HellooScreen><HellooTop left={<NavBackButton onClick={onBack} />} title="My QR" right={<NavFlagBadge flag={me.flag} />} /><div style={{ flex: 1, display: "flex", flexDirection: "column", alignItems: "center", padding: "10px 24px" }}><HellooCard style={{ width: "100%", padding: "20px 18px", display: "flex", flexDirection: "column", alignItems: "center", gap: 12 }}><div style={{ display: "flex", alignItems: "center", gap: 10, alignSelf: "stretch" }}><ProfileAvatar photo={me.photo} name={me.name} size={40} /><span style={{ flex: 1, minWidth: 0 }}><span style={{ display: "block", fontSize: 15, fontWeight: 800, color: T.ink }}>{me.name}</span><span style={{ display: "block", fontSize: 11.5, color: T.inkSoft }}>Scan to message or call me on Helloo</span></span><HellooMark size={34} /></div><div style={{ width: 220, height: 220, borderRadius: 18, background: "#fff", padding: 10, boxSizing: "border-box" }}>{qrValue ? <GloobalQrSvg value={qrValue} /> : null}</div><div style={{ fontSize: 15, fontWeight: 800 }}><ColoredGloobalId id={me.id} /></div></HellooCard><div style={{ display: "flex", gap: 10, width: "100%", marginTop: 16 }}><HellooSecondary Icon={HlDownload} onClick={() => onSave && onSave(qrValue)}>Save</HellooSecondary><HellooPrimary Icon={HlShare} onClick={() => onShare && onShare(qrValue)}>Share</HellooPrimary></div><div style={{ fontSize: 11.5, color: T.inkFaint, textAlign: "center", marginTop: 14, lineHeight: 1.45 }}>The same code as your GLOOBAL QR: scanned in Helloo it opens a chat, scanned in GLOOBAL it opens a payment.</div></div></HellooScreen>;
 }
 
-function HellooContactScreen({ person, onBack, onMessage, onCall, onVideo, onPay, shared = [] }) {
+function HellooContactScreen({ person, onBack, onMessage, onCall, onVideo, onPay, shared = [], onGroup, groups = null, status = "" }) {
   const action = (Icon, label, fn, color) => <button onClick={fn} className="v2-tap" style={{ flex: 1, display: "flex", flexDirection: "column", alignItems: "center", gap: 6, border: "none", background: T.surface, boxShadow: T.shadowCard, borderRadius: 18, padding: "12px 4px", cursor: "pointer", fontFamily: T.fontBody }}><span style={{ width: 40, height: 40, borderRadius: 13, background: color + "1F", display: "flex", alignItems: "center", justifyContent: "center" }}><Icon size={19} color={color} /></span><span style={{ fontSize: 11.5, fontWeight: 800, color: T.ink }}>{label}</span></button>;
-  return <HellooScreen><HellooTop left={<NavBackButton onClick={onBack} />} title="" right={<HellooRoundButton Icon={HlMore} label="More" />} /><div style={{ flex: 1, minHeight: 0, overflowY: "auto", padding: "0 16px 30px", display: "flex", flexDirection: "column", gap: 14 }}><div style={{ display: "flex", flexDirection: "column", alignItems: "center", textAlign: "center" }}><HellooAvatar person={person} size={92} online={person.online} /><div style={{ fontSize: 22, fontWeight: 800, fontFamily: T.fontDisplay, color: T.ink, marginTop: 12, letterSpacing: -0.3 }}>{person.handle ? <CreatorHandleText handle={person.handle} /> : person.name}</div><div style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 12.5, color: T.inkSoft, marginTop: 4 }}><FlagEmoji flag={person.flag} size={14} shape="circle" border="none" />{person.city ? `${person.city}, ` : ""}{person.country}{person.online && <span style={{ color: HT.free, fontWeight: 700 }}> · Online</span>}</div><div style={{ fontSize: 14, fontWeight: 800, marginTop: 8 }}><ColoredGloobalId id={person.id} /></div>{person.about && <div style={{ fontSize: 12.5, color: T.inkSoft, marginTop: 6 }}>{person.about}</div>}</div><div style={{ display: "flex", gap: 10 }}>{action(HlChat, "Message", onMessage, T.accent)}{action(HlPhone, "Call", onCall, HT.free)}{action(HlRupee, "Pay", onPay, "#0B7A57")}{action(HlUsers, "Group", null, "#DB2777")}</div>{person.handle && <HellooCard><HellooRow Icon={HlStore} color="#DB2777" title="Open their shop" value="GLOOBAL बाज़ार" first /></HellooCard>}<HellooCard><HellooRow Icon={HlImage} title="Media, links & docs" value={`${shared.length}`} first /><HellooRow Icon={HlStar} color="#EA580C" title="Starred messages" /><HellooRow Icon={HlWallet} color="#0B7A57" title="Payments between you" value="3" /></HellooCard><HellooCard><HellooRow Icon={HlBellOff} color={T.inkSoft} title="Mute" value="Off" first /><HellooRow Icon={HlTimer} color={T.inkSoft} title="Disappearing messages" value="Off" /></HellooCard><HellooCard><HellooRow Icon={HlBan} title={`Block ${hellooName(person).split(" ")[0]}`} danger first /><HellooRow Icon={HlFlag} title="Report" danger /></HellooCard></div></HellooScreen>;
+  return <HellooScreen><HellooTop left={<NavBackButton onClick={onBack} />} title="" right={<HellooRoundButton Icon={HlMore} label="More" />} /><div style={{ flex: 1, minHeight: 0, overflowY: "auto", padding: "0 16px 30px", display: "flex", flexDirection: "column", gap: 14 }}><div style={{ display: "flex", flexDirection: "column", alignItems: "center", textAlign: "center" }}><HellooAvatar person={person} size={92} online={person.online} /><div style={{ fontSize: 22, fontWeight: 800, fontFamily: T.fontDisplay, color: T.ink, marginTop: 12, letterSpacing: -0.3 }}>{person.handle ? <CreatorHandleText handle={person.handle} /> : person.name}</div><div style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 12.5, color: T.inkSoft, marginTop: 4 }}><FlagEmoji flag={person.flag} size={14} shape="circle" border="none" />{person.city ? `${person.city}, ` : ""}{person.country}{person.online ? <span style={{ color: HT.free, fontWeight: 700 }}> · Online</span> : status ? <span> · {status}</span> : null}</div><div style={{ fontSize: 14, fontWeight: 800, marginTop: 8 }}><ColoredGloobalId id={person.id} /></div>{person.about && <div style={{ fontSize: 12.5, color: T.inkSoft, marginTop: 6 }}>{person.about}</div>}</div><div style={{ display: "flex", gap: 10 }}>{action(HlChat, "Message", onMessage, T.accent)}{onCall && action(HlPhone, "Call", onCall, HT.free)}{onPay && action(HlRupee, "Pay", onPay, "#0B7A57")}{onGroup && action(HlUsers, "Group", onGroup, "#DB2777")}</div>{groups ? groups.map((rows, g) => <HellooCard key={g}>{rows.map(([Icon, title, value, onPress, danger, color], k) => <HellooRow key={typeof title === "string" ? title : k} Icon={Icon} color={color} title={title} value={value} onPress={onPress} danger={danger} first={k === 0} />)}</HellooCard>) : <>{person.handle && <HellooCard><HellooRow Icon={HlStore} color="#DB2777" title="Open their shop" value="GLOOBAL बाज़ार" first /></HellooCard>}<HellooCard><HellooRow Icon={HlImage} title="Media, links & docs" value={`${shared.length}`} first /><HellooRow Icon={HlStar} color="#EA580C" title="Starred messages" /><HellooRow Icon={HlWallet} color="#0B7A57" title="Payments between you" value="3" /></HellooCard><HellooCard><HellooRow Icon={HlBellOff} color={T.inkSoft} title="Mute" value="Off" first /><HellooRow Icon={HlTimer} color={T.inkSoft} title="Disappearing messages" value="Off" /></HellooCard><HellooCard><HellooRow Icon={HlBan} title={`Block ${hellooName(person).split(" ")[0]}`} danger first /><HellooRow Icon={HlFlag} title="Report" danger /></HellooCard></>}</div></HellooScreen>;
 }
 
 function HellooNewGroupSheet({ people, picked = [], name = "", onClose }) {
@@ -62546,8 +62442,68 @@ var hellooApi = {
   send: (chatId, body) =>
     gloobalApiClient.post(`/api/helloo/chats/${encodeURIComponent(chatId)}/messages`, body, { timeoutMs: GLOOBAL_API_COLD_START_TIMEOUT_MS }),
   read: (chatId) => gloobalApiClient.post(`/api/helloo/chats/${encodeURIComponent(chatId)}/read`, {}),
-  voice: (messageId) => gloobalApiClient.get(`/api/helloo/voice/${encodeURIComponent(messageId)}`)
+  voice: (messageId) => gloobalApiClient.get(`/api/helloo/voice/${encodeURIComponent(messageId)}`),
+  media: (messageId) => gloobalApiClient.get(`/api/helloo/media/${encodeURIComponent(messageId)}`),
+  prefs: (chatId, prefs) => gloobalApiClient.post(`/api/helloo/chats/${encodeURIComponent(chatId)}/prefs`, prefs),
+  clear: (chatId) => gloobalApiClient.post(`/api/helloo/chats/${encodeURIComponent(chatId)}/clear`, {}),
+  remove: (messageId, everyone) => gloobalApiClient.post(`/api/helloo/messages/${encodeURIComponent(messageId)}/delete`, { everyone: Boolean(everyone) }),
+  presence: (accountId) => gloobalApiClient.get(`/api/helloo/people/${encodeURIComponent(accountId)}/presence`),
+  block: (accountId, blocked) => gloobalApiClient.post("/api/helloo/block", { accountId, blocked }),
+  blocked: () => gloobalApiClient.get("/api/helloo/blocked")
 };
+
+// "Last seen today at 14:05" / "yesterday at 21:10" / "12 Oct".
+function hellooLastSeenText(at) {
+  if (!at) return "";
+  const d = new Date(at);
+  if (Number.isNaN(d.getTime())) return "";
+  const day = hellooDayLabel(d);
+  const clock = `${String(d.getHours()).padStart(2, "0")}:${String(d.getMinutes()).padStart(2, "0")}`;
+  if (day === "Today") return `last seen today at ${clock}`;
+  if (day === "Yesterday") return `last seen yesterday at ${clock}`;
+  return `last seen ${day}`;
+}
+
+// A short line for a quoted or previewed message.
+function hellooPreviewOf(m) {
+  if (!m) return "";
+  if (m.kind === "deleted") return "This message was deleted";
+  if (m.kind === "voice") return `Voice note · ${Math.round((m.voice && m.voice.seconds) || m.seconds || 0)}s`;
+  if (m.kind === "photo") return m.text ? `Photo · ${m.text}` : "Photo";
+  if (m.kind === "payment") return "Payment on GLOOBAL";
+  return String(m.text || "").replace(/\s+/g, " ").trim().slice(0, 120);
+}
+
+// A picture from the phone, made small enough to send: at most 1600 px
+// on its long side, JPEG, stepping the quality down until it is under
+// ~550 KB (the server takes 600).
+async function hellooCompressPhoto(file) {
+  const url = URL.createObjectURL(file);
+  try {
+    const img = await new Promise((resolve, reject) => { const i = new Image(); i.onload = () => resolve(i); i.onerror = () => reject(new Error("That file is not a picture.")); i.src = url; });
+    let scale = Math.min(1, 1600 / Math.max(img.naturalWidth, img.naturalHeight));
+    for (let attempt = 0; attempt < 6; attempt += 1) {
+      const w = Math.max(1, Math.round(img.naturalWidth * scale));
+      const h = Math.max(1, Math.round(img.naturalHeight * scale));
+      const canvas = document.createElement("canvas");
+      canvas.width = w;
+      canvas.height = h;
+      const ctx = canvas.getContext("2d");
+      ctx.fillStyle = "#fff";
+      ctx.fillRect(0, 0, w, h);
+      ctx.drawImage(img, 0, 0, w, h);
+      for (const q of [0.82, 0.7, 0.58]) {
+        const dataUrl = canvas.toDataURL("image/jpeg", q);
+        const b64 = dataUrl.slice(dataUrl.indexOf(",") + 1);
+        if (b64.length * 0.75 <= 550 * 1024) return { image: b64, mime: "image/jpeg", width: w, height: h, preview: dataUrl };
+      }
+      scale *= 0.75;
+    }
+    throw new Error("That picture is too big to send.");
+  } finally {
+    URL.revokeObjectURL(url);
+  }
+}
 
 function hellooClientId() {
   return `${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 10)}`;
@@ -62624,7 +62580,7 @@ function hellooDayLabel(d) {
 
 // A server message → a bubble. `theyReadAt` turns my ticks blue; a message
 // still on its way (no server id yet) shows one grey tick.
-function hellooBubbleFrom(m, meAccountId, theyReadAt, voiceState) {
+function hellooBubbleFrom(m, meAccountId, theyReadAt, voiceState, names) {
   const mine = m.from === meAccountId || m.from === "me";
   const at = new Date(m.at || Date.now());
   const base = {
@@ -62636,6 +62592,17 @@ function hellooBubbleFrom(m, meAccountId, theyReadAt, voiceState) {
     read: Boolean(mine && m.id && theyReadAt && new Date(theyReadAt) >= at),
     pending: !m.id
   };
+  if (m.replyTo) {
+    const quotedMine = m.replyTo.from === meAccountId;
+    base.replyTo = { id: m.replyTo.id, who: quotedMine ? "You" : (names && names.them) || "Them", preview: m.replyTo.preview };
+  }
+  base.preview = hellooPreviewOf(m);
+  base.source = m;
+  if (m.kind === "deleted") return Object.assign(base, { kind: "deleted" });
+  if (m.kind === "photo") {
+    const v = voiceState || {};
+    return Object.assign(base, { kind: "photo", text: m.text || "", width: (m.photo && m.photo.width) || 0, height: (m.photo && m.photo.height) || 0, src: v.src || m.localSrc || null, onOpen: v.onOpen });
+  }
   if (m.kind === "voice") {
     const v = voiceState || {};
     return Object.assign(base, { kind: "voice", seconds: Math.round((m.voice && m.voice.seconds) || 0), playing: Boolean(v.playing), progress: v.progress, onPlay: v.onPlay });
@@ -62652,11 +62619,11 @@ function hellooBubbleFrom(m, meAccountId, theyReadAt, voiceState) {
   return Object.assign(base, { kind: "text", text: m.text || "" });
 }
 
-function hellooThreadBubbles(messages, meAccountId, theyReadAt, voiceFor) {
+function hellooThreadBubbles(messages, meAccountId, theyReadAt, voiceFor, names) {
   const out = [{ kind: "system", text: "Private to you two · same GLOOBAL account" }];
   let lastDay = "";
   for (const m of messages) {
-    const bubble = hellooBubbleFrom(m, meAccountId, theyReadAt, voiceFor ? voiceFor(m) : null);
+    const bubble = hellooBubbleFrom(m, meAccountId, theyReadAt, voiceFor ? voiceFor(m) : null, names);
     const day = hellooDayLabel(bubble.at);
     if (day !== lastDay) {
       out.push({ kind: "day", text: day });
@@ -62680,7 +62647,8 @@ function hellooChatRowFrom(chat, photos) {
         read: Boolean(chat.theyReadAt && new Date(chat.theyReadAt) >= new Date(chat.lastAt))
       }
     : null;
-  return { id: chat.id, person, unread: chat.unread || 0, messages: last ? [last] : [], lastAt: chat.lastAt, theyReadAt: chat.theyReadAt };
+  if (person) person.online = Boolean(chat.online);
+  return { id: chat.id, person, unread: chat.unread || 0, muted: Boolean(chat.muted), pinned: Boolean(chat.pinned), messages: last ? [last] : [], lastAt: chat.lastAt, theyReadAt: chat.theyReadAt };
 }
 
 // ── Live socket ─────────────────────────────────────────────────────────
@@ -62692,7 +62660,7 @@ function hellooLiveUrl() {
   return `${GLOOBAL_API_BASE.replace(/^http/i, "ws")}/api/helloo/live`;
 }
 
-function useHellooLive(enabled, onEvent) {
+function useHellooLive(enabled, onEvent, sendRef) {
   const [status, setStatus] = useStateH11("offline");
   const handler = useRefH11(onEvent);
   handler.current = onEvent;
@@ -62709,6 +62677,10 @@ function useHellooLive(enabled, onEvent) {
       setStatus("connecting");
       try { ws = new WebSocket(hellooLiveUrl()); } catch (e) { schedule(); return; }
       ws.onopen = () => ws.send(JSON.stringify({ type: "auth", token }));
+      if (sendRef) {
+        const mine = ws;
+        sendRef.current = (frame) => { try { if (mine.readyState === 1) mine.send(JSON.stringify(frame)); } catch (err) { /* closing */ } };
+      }
       ws.onmessage = (e) => {
         let frame;
         try { frame = JSON.parse(e.data); } catch (err) { return; }
@@ -63021,6 +62993,30 @@ function HellooRoot() {
   const openIdRef = useRefH9(null);
   openIdRef.current = openId;
 
+  // ── Chat essentials state ───────────────────────────────────────────
+  const [typing, setTyping] = useStateH9({}); // chatId -> until (ms)
+  const [presence, setPresence] = useStateH9({}); // accountId -> { online, lastSeenAt }
+  const [blocked, setBlocked] = useStateH9(null); // [card] once loaded
+  const [replyTo, setReplyTo] = useStateH9(null); // { chatId, id, who, preview }
+  const [held, setHeld] = useStateH9(null); // the message whose actions are open
+  const [heldChat, setHeldChat] = useStateH9(null); // the chat row whose actions are open
+  const [photoView, setPhotoView] = useStateH9(null); // url of a photo open full-screen
+  const [mediaUrls, setMediaUrls] = useStateH9({}); // messageId -> object URL
+  const mediaAsked = useRefH9(new Set());
+  const liveSend = useRefH9(null);
+  const typingSentAt = useRefH9(0);
+  const galleryRef = useRefH9(null);
+  const cameraRef = useRefH9(null);
+  useEffectH9(() => {
+    const ids = Object.keys(typing);
+    if (!ids.length) return undefined;
+    const t = setTimeout(() => setTyping((all) => { const now = Date.now(); const next = {}; for (const k of Object.keys(all)) if (all[k] > now) next[k] = all[k]; return next; }), 1000);
+    return () => clearTimeout(t);
+  }, [typing]);
+  const isBlocked = (accountId) => Boolean((blocked || []).some((b) => b.accountId === accountId));
+  const refreshBlocked = useCallbackH9(() => hellooApi.blocked().then((r) => setBlocked(r.people || [])).catch(() => {}), []);
+  useEffectH9(() => { if (signedIn) refreshBlocked(); }, [signedIn, refreshBlocked]);
+
   // ── Threads ──────────────────────────────────────────────────────────
   const mergeMessages = (list, incoming) => {
     const out = list.slice();
@@ -63042,6 +63038,8 @@ function HellooRoot() {
         return Object.assign({}, all, { [chatId]: { chat: r.chat, messages: mergeMessages(prev.messages, r.messages || []), more: older ? r.more : (prev.loaded ? prev.more : r.more), loaded: true } });
       });
       askPhotos([r.chat && r.chat.person]);
+      const who = r.chat && r.chat.person && r.chat.person.accountId;
+      if (who && !older) hellooApi.presence(who).then((pr) => setPresence((all) => Object.assign({}, all, { [who]: { online: pr.online, lastSeenAt: pr.lastSeenAt } }))).catch(() => {});
     } catch (err) {
       setToast(gloobalApiIsUnreachable(err) ? "Waking the GLOOBAL server…" : err.message);
     }
@@ -63055,6 +63053,7 @@ function HellooRoot() {
   const openChat = useCallbackH9((chatId) => {
     setOpenId(chatId);
     setSheet(null);
+    setReplyTo(null);
     loadThread(chatId, false);
     markRead(chatId);
   }, [loadThread, markRead]);
@@ -63094,6 +63093,7 @@ function HellooRoot() {
       const m = frame.message;
       setThreads((all) => (all[m.chatId] ? Object.assign({}, all, { [m.chatId]: Object.assign({}, all[m.chatId], { messages: mergeMessages(all[m.chatId].messages, [m]) }) }) : all));
       const theirs = user && m.from !== user.accountId;
+      if (theirs) setTyping((all) => { if (!all[m.chatId]) return all; const next = Object.assign({}, all); delete next[m.chatId]; return next; });
       if (theirs && openIdRef.current === m.chatId && document.visibilityState === "visible") hellooApi.read(m.chatId).catch(() => {});
       refreshChats();
       return;
@@ -63102,20 +63102,46 @@ function HellooRoot() {
       const patch = (c) => (c && c.id === frame.chatId ? Object.assign({}, c, { theyReadAt: frame.at }) : c);
       setChatRows((rows) => (rows || []).map(patch));
       setThreads((all) => (all[frame.chatId] ? Object.assign({}, all, { [frame.chatId]: Object.assign({}, all[frame.chatId], { chat: patch(all[frame.chatId].chat) }) }) : all));
+      return;
     }
-  });
+    if (frame.type === "typing") {
+      setTyping((all) => Object.assign({}, all, { [frame.chatId]: Date.now() + 5000 }));
+      return;
+    }
+    if (frame.type === "presence") {
+      setPresence((all) => Object.assign({}, all, { [frame.accountId]: { online: frame.online, lastSeenAt: frame.lastSeenAt } }));
+      return;
+    }
+    if (frame.type === "update" && frame.message) {
+      const m = frame.message;
+      setThreads((all) => (all[m.chatId] ? Object.assign({}, all, { [m.chatId]: Object.assign({}, all[m.chatId], { messages: all[m.chatId].messages.map((x) => (x.id === m.id ? m : x)) }) }) : all));
+      refreshChats();
+      return;
+    }
+    if (frame.type === "hidden") {
+      setThreads((all) => (all[frame.chatId] ? Object.assign({}, all, { [frame.chatId]: Object.assign({}, all[frame.chatId], { messages: all[frame.chatId].messages.filter((x) => x.id !== frame.id) }) }) : all));
+    }
+  }, liveSend);
 
   // ── Sending ──────────────────────────────────────────────────────────
   const [drafts, setDrafts] = useStateH9({});
 
   const sendMessage = useCallbackH9(async (chatId, body) => {
     const clientId = body.clientId || hellooClientId();
-    const optimistic = Object.assign({ clientId, from: user.accountId, at: new Date().toISOString(), chatId }, body.kind === "voice" ? { kind: "voice", voice: { seconds: body.seconds } } : body.kind === "text" ? { kind: "text", text: body.text } : { kind: body.kind });
+    const optimistic = Object.assign({ clientId, from: user.accountId, at: new Date().toISOString(), chatId },
+      body.kind === "voice" ? { kind: "voice", voice: { seconds: body.seconds } }
+        : body.kind === "text" ? { kind: "text", text: body.text }
+          : body.kind === "photo" ? { kind: "photo", text: body.text || "", photo: { width: body.width, height: body.height }, localSrc: body.localSrc }
+            : { kind: body.kind },
+      body.replyPreview ? { replyTo: body.replyPreview } : {});
+    const wire = Object.assign({}, body);
+    delete wire.localSrc;
+    delete wire.replyPreview;
     if (body.kind !== "payment") {
       setThreads((all) => Object.assign({}, all, { [chatId]: Object.assign({ messages: [] }, all[chatId], { messages: mergeMessages((all[chatId] || { messages: [] }).messages, [optimistic]) }) }));
     }
     try {
-      const r = await hellooApi.send(chatId, Object.assign({}, body, { clientId }));
+      const r = await hellooApi.send(chatId, Object.assign({}, wire, { clientId }));
       setThreads((all) => Object.assign({}, all, { [chatId]: Object.assign({ messages: [] }, all[chatId], { messages: mergeMessages((all[chatId] || { messages: [] }).messages, [r.message]) }) }));
       refreshChats();
       return r.message;
@@ -63126,6 +63152,10 @@ function HellooRoot() {
         return Object.assign({}, all, { [chatId]: Object.assign({}, t, { messages: t.messages.map((m) => (m.clientId === clientId && !m.id ? Object.assign({}, m, { failed: true, retryBody: Object.assign({}, body, { clientId }) }) : m)) }) });
       });
       if (body.kind === "payment") throw err;
+      if (err && err.body && (err.body.code === "blocked_by_them" || err.body.code === "you_blocked")) {
+        // Not a network problem: take the bubble away and say why.
+        setThreads((all) => (all[chatId] ? Object.assign({}, all, { [chatId]: Object.assign({}, all[chatId], { messages: all[chatId].messages.filter((m) => m.clientId !== clientId || m.id) }) }) : all));
+      }
       setToast(gloobalApiIsUnreachable(err) ? "Not sent yet · the server is waking up" : err.message);
       return null;
     }
@@ -63187,6 +63217,73 @@ function HellooRoot() {
     } catch (err) {
       setVoicePlay({ id: null, progress: 0 });
       setToast("Could not play that voice note");
+    }
+  };
+
+  // ── Photos ───────────────────────────────────────────────────────────
+  const loadMedia = useCallbackH9((messageId) => {
+    if (!messageId || mediaAsked.current.has(messageId)) return;
+    mediaAsked.current.add(messageId);
+    hellooApi.media(messageId)
+      .then((r) => { const url = URL.createObjectURL(new Blob([hellooB64ToBytes(r.audio)], { type: r.mime })); setMediaUrls((all) => Object.assign({}, all, { [messageId]: url })); })
+      .catch(() => mediaAsked.current.delete(messageId));
+  }, []);
+  const pickPhoto = async (file) => {
+    if (!file || !openIdRef.current) return;
+    setSheet(null);
+    try {
+      const shot = await hellooCompressPhoto(file);
+      const caption = (drafts[openIdRef.current] || "").trim();
+      if (caption) setDrafts((d) => Object.assign({}, d, { [openIdRef.current]: "" }));
+      const reply = replyTo && replyTo.chatId === openIdRef.current ? replyTo : null;
+      setReplyTo(null);
+      sendMessage(openIdRef.current, { kind: "photo", image: shot.image, mime: shot.mime, width: shot.width, height: shot.height, text: caption, localSrc: shot.preview, replyToId: reply ? reply.id : undefined, replyPreview: reply ? { id: reply.id, from: reply.fromAccount, preview: reply.preview } : undefined });
+    } catch (err) {
+      setToast(err.message || "Could not send that photo");
+    }
+  };
+
+  // ── Chat settings ────────────────────────────────────────────────────
+  const setPrefs = async (chatId, prefs) => {
+    setChatRows((rowsNow) => (rowsNow || []).map((c) => (c.id === chatId ? Object.assign({}, c, prefs) : c)));
+    setThreads((all) => (all[chatId] && all[chatId].chat ? Object.assign({}, all, { [chatId]: Object.assign({}, all[chatId], { chat: Object.assign({}, all[chatId].chat, prefs) }) }) : all));
+    try { await hellooApi.prefs(chatId, prefs); refreshChats(); } catch (err) { setToast(err.message); refreshChats(); }
+  };
+  const clearChat = async (chatId, leave) => {
+    try {
+      await hellooApi.clear(chatId);
+      setThreads((all) => (all[chatId] ? Object.assign({}, all, { [chatId]: Object.assign({}, all[chatId], { messages: [], more: false }) }) : all));
+      if (leave) setOpenId(null);
+      refreshChats();
+      setToast(leave ? "Chat deleted" : "Chat cleared");
+    } catch (err) { setToast(err.message); }
+  };
+  const setBlock = async (person, on) => {
+    try {
+      await hellooApi.block(person.accountId, on);
+      await refreshBlocked();
+      setToast(on ? `${person.name.split(" ")[0]} is blocked` : `${person.name.split(" ")[0]} is unblocked`);
+    } catch (err) { setToast(err.message); }
+  };
+  const deleteMessage = async (chatId, m, everyone) => {
+    setHeld(null);
+    try {
+      const r = await hellooApi.remove(m.id, everyone);
+      setThreads((all) => {
+        const t = all[chatId];
+        if (!t) return all;
+        const messages = everyone ? t.messages.map((x) => (x.id === m.id ? r.message : x)) : t.messages.filter((x) => x.id !== m.id);
+        return Object.assign({}, all, { [chatId]: Object.assign({}, t, { messages }) });
+      });
+      refreshChats();
+    } catch (err) { setToast(err.message); }
+  };
+  const onDraftChange = (chatId, v) => {
+    setDrafts((d) => Object.assign({}, d, { [chatId]: v }));
+    const now = Date.now();
+    if (v && liveSend.current && now - typingSentAt.current > 2500) {
+      typingSentAt.current = now;
+      liveSend.current({ type: "typing", chatId });
     }
   };
 
@@ -63265,26 +63362,85 @@ function HellooRoot() {
   if (stage === "back" && me) return shell(<HellooWelcomeBack me={me} onDone={() => setStage("app")} />);
   if (!me) return shell(<HellooSplash />);
 
+  // ── Photo, full screen ───────────────────────────────────────────────
+  if (photoView) {
+    return shell(<div style={{ position: "absolute", inset: 0, background: "#000", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 50 }}><img src={photoView} alt="Photo" style={{ maxWidth: "100%", maxHeight: "100%", objectFit: "contain", touchAction: "pinch-zoom" }} /><div style={{ position: "absolute", top: "calc(14px + env(safe-area-inset-top, 0px))", left: 14, right: 14, display: "flex", justifyContent: "space-between" }}><NavBackButton onClick={() => setPhotoView(null)} /><a href={photoView} download="helloo-photo.jpg" aria-label="Save photo" style={{ width: 40, height: 40, borderRadius: "50%", background: "rgba(255,255,255,0.16)", display: "flex", alignItems: "center", justifyContent: "center" }}><HlDownload size={18} color="#fff" /></a></div></div>);
+  }
+
   // ── A chat ───────────────────────────────────────────────────────────
   const thread = openId ? threads[openId] : null;
-  if (openId) {
+  if (openId && screen !== "contact") {
     const serverChat = (thread && thread.chat) || (chatRows || []).find((c) => c.id === openId) || null;
+    const rowNow = (chatRows || []).find((c) => c.id === openId);
+    const muted = Boolean((rowNow && rowNow.muted) || (serverChat && serverChat.muted));
     const person = serverChat ? hellooPersonFrom(serverChat.person, photos) : { id: "", name: "…", country: "" };
+    const pres = presence[person.accountId];
+    const iBlocked = isBlocked(person.accountId);
+    if (pres && !iBlocked) {
+      person.online = Boolean(pres.online);
+      const seen = hellooLastSeenText(pres.lastSeenAt);
+      if (!pres.online && seen) person.lastSeen = seen.replace(/^last seen /, "");
+    }
     const msgs = thread ? thread.messages : [];
-    const bubbles = hellooThreadBubbles(msgs, user.accountId, serverChat && serverChat.theyReadAt, (m) => (m.kind === "voice" && m.id ? { playing: voicePlay.id === m.id, progress: voicePlay.id === m.id ? voicePlay.progress : 0, onPlay: () => playVoice(m.id) } : null));
+    msgs.forEach((m) => { if (m.kind === "photo" && m.id && !m.localSrc && !mediaUrls[m.id]) loadMedia(m.id); });
+    const firstName = (person.name || "").split(" ")[0];
+    const bubbles = hellooThreadBubbles(msgs, user.accountId, serverChat && serverChat.theyReadAt, (m) => {
+      if (m.kind === "voice" && m.id) return { playing: voicePlay.id === m.id, progress: voicePlay.id === m.id ? voicePlay.progress : 0, onPlay: () => playVoice(m.id) };
+      if (m.kind === "photo") { const src = (m.id && mediaUrls[m.id]) || m.localSrc || null; return { src, onOpen: src ? () => setPhotoView(src) : undefined }; }
+      return null;
+    }, { them: firstName });
     const failed = msgs.filter((m) => m.failed).length;
     const strip = failed ? <button onClick={() => retryFailed(openId)} className="v2-tap" style={{ alignSelf: "center", display: "inline-flex", alignItems: "center", gap: 6, border: "none", borderRadius: 999, background: T.negative, color: "#fff", fontSize: 12, fontWeight: 800, padding: "6px 13px", margin: "4px 0 8px", cursor: "pointer", fontFamily: T.fontBody }}><HlRetry size={13} />{failed} not sent · Retry</button> : (thread && !thread.loaded ? <div style={{ alignSelf: "center", fontSize: 12, fontWeight: 700, color: T.inkFaint, margin: "10px 0" }}>Loading…</div> : null);
     const draft = drafts[openId] || "";
+    const reply = replyTo && replyTo.chatId === openId ? replyTo : null;
     const sendText = () => {
       const text = draft.trim();
       if (!text) return;
       setDrafts((d) => Object.assign({}, d, { [openId]: "" }));
-      sendMessage(openId, { kind: "text", text });
+      setReplyTo(null);
+      sendMessage(openId, Object.assign({ kind: "text", text }, reply ? { replyToId: reply.id, replyPreview: { id: reply.id, from: reply.fromAccount, preview: reply.preview } } : {}));
     };
-    return shell(<HellooThreadScreen me={me} chat={{ id: openId, person, messages: bubbles }} strip={strip} draft={draft} onDraft={(v) => setDrafts((d) => Object.assign({}, d, { [openId]: v }))} onSend={sendText} recording={recording} onMic={recording ? stopAndSend : startRecording} onCancelRecording={cancelRecording} hasOlder={Boolean(thread && thread.more)} onLoadOlder={() => loadThread(openId, true)} onPay={person.gloobalId ? () => { setPay({ amount: "", note: "", busy: false, error: "" }); setSheet("pay"); } : undefined} onBack={() => { cancelRecording(); setOpenId(null); setSheet(null); refreshChats(); }}>
+    const heldMine = held && held.from === "me";
+    const heldFresh = held && Date.now() - new Date(held.at).getTime() < 48 * 3600e3;
+    const heldItems = held ? [
+      held.kind !== "deleted" && [HlReply, "Reply", false, () => { setReplyTo({ chatId: openId, id: held.id, who: heldMine ? "yourself" : firstName, preview: held.preview, fromAccount: heldMine ? user.accountId : person.accountId }); setHeld(null); }],
+      (held.kind === "text" || (held.kind === "photo" && held.text)) && [HlCopy, "Copy text", false, async () => { try { await navigator.clipboard.writeText(held.text); setToast("Copied"); } catch (e) { setToast("Could not copy"); } setHeld(null); }],
+      [HlTrash, "Delete for me", true, () => deleteMessage(openId, held, false)],
+      heldMine && heldFresh && held.kind !== "receipt" && held.kind !== "deleted" && [HlTrash, "Delete for everyone", true, () => deleteMessage(openId, held, true)]
+    ].filter(Boolean) : [];
+    const menuItems = [
+      [HlUser, "View profile", false, null, () => { setSheet(null); setScreen("contact"); }],
+      [HlBellOff, muted ? "Unmute notifications" : "Mute notifications", false, null, () => { setSheet(null); setPrefs(openId, { muted: !muted }); setToast(muted ? "Notifications on for this chat" : "Muted · no notifications from this chat"); }],
+      [HlTrash, "Clear chat", false, null, () => { setSheet("confirm-clear"); }],
+      [HlBan, iBlocked ? `Unblock ${firstName}` : `Block ${firstName}`, !iBlocked, null, () => { setSheet(null); setBlock(person, !iBlocked); }]
+    ];
+    const note = iBlocked ? <div style={{ display: "flex", alignItems: "center", gap: 10 }}><HlBan size={18} color={T.inkSoft} /><span style={{ flex: 1, fontSize: 13, color: T.inkSoft, lineHeight: 1.4 }}>You blocked {firstName}. They can't message you.</span><button onClick={() => setBlock(person, false)} className="v2-tap" style={{ border: "none", borderRadius: 999, background: T.accentSoft, color: T.accent, fontWeight: 800, fontSize: 13, padding: "8px 14px", cursor: "pointer", fontFamily: T.fontBody }}>Unblock</button></div> : null;
+    return shell(<HellooThreadScreen me={me} chat={{ id: openId, person, messages: bubbles }} strip={strip} typing={Boolean(typing[openId]) && !iBlocked} draft={draft} onDraft={(v) => onDraftChange(openId, v)} onSend={sendText} recording={recording} onMic={recording ? stopAndSend : startRecording} onCancelRecording={cancelRecording} hasOlder={Boolean(thread && thread.more)} onLoadOlder={() => loadThread(openId, true)} onPay={person.gloobalId ? () => { setPay({ amount: "", note: "", busy: false, error: "" }); setSheet("pay"); } : undefined} onAttach={() => setSheet("attach")} onMore={() => setSheet("menu")} onOpenPerson={() => setScreen("contact")} onMessageHold={(m) => setHeld(m)} replyTo={reply} onCancelReply={() => setReplyTo(null)} composerNote={note} onBack={() => { cancelRecording(); setOpenId(null); setSheet(null); setReplyTo(null); refreshChats(); }}>
       {sheet === "pay" && <HellooPaySheet person={person} me={me} amount={pay.amount} onAmount={(a) => setPay((p) => Object.assign({}, p, { amount: a.replace(/^0+/, ""), error: "" }))} note={pay.note} onNote={(n) => setPay((p) => Object.assign({}, p, { note: n }))} busy={pay.busy} error={pay.error} onClose={() => { if (!pay.busy) setSheet(null); }} onSend={() => setPayPinOpen(true)} />}
+      {sheet === "attach" && <HellooAttachSheet onClose={() => setSheet(null)} items={[[HlImage, "Gallery", "#7C3AED", () => galleryRef.current && galleryRef.current.click()], [HlCamera, "Camera", "#DB2777", () => cameraRef.current && cameraRef.current.click()], [HlRupee, "Pay", "#0B7A57", () => { setPay({ amount: "", note: "", busy: false, error: "" }); setSheet("pay"); }]]} />}
+      {sheet === "menu" && <HellooThreadMenu chat={{ person: Object.assign({}, person, { id: person.gloobalId }) }} items={menuItems} onClose={() => setSheet(null)} />}
+      {sheet === "confirm-clear" && <HellooSheet label="Clear chat" onClose={() => setSheet(null)}><div style={{ fontSize: 15, fontWeight: 800, color: T.ink }}>Clear this chat?</div><div style={{ fontSize: 13, color: T.inkSoft, marginTop: 6, lineHeight: 1.45 }}>Every message disappears for you. {firstName} still has them. Payments stay in your GLOOBAL history.</div><div style={{ display: "flex", gap: 10, marginTop: 16 }}><HellooSecondary onClick={() => setSheet(null)}>Cancel</HellooSecondary><HellooPrimary color={T.negative} onClick={() => { setSheet(null); clearChat(openId, false); }}>Clear chat</HellooPrimary></div></HellooSheet>}
+      {held && <HellooMessageActions m={held} reactions={false} items={heldItems} onClose={() => setHeld(null)} />}
+      <input ref={galleryRef} type="file" accept="image/*" style={{ display: "none" }} onChange={(e) => { const f = e.target.files && e.target.files[0]; e.target.value = ""; pickPhoto(f); }} />
+      <input ref={cameraRef} type="file" accept="image/*" capture="environment" style={{ display: "none" }} onChange={(e) => { const f = e.target.files && e.target.files[0]; e.target.value = ""; pickPhoto(f); }} />
       <PayPinModal open={payPinOpen} onClose={() => setPayPinOpen(false)} amountLabel={hellooMoneyText(Number(pay.amount) || 0, me.currency)} onVerified={(pinValue) => payNow(person, openId, pinValue)} />
     </HellooThreadScreen>);
+  }
+
+  // ── Their profile ────────────────────────────────────────────────────
+  if (openId && screen === "contact") {
+    const serverChat = (thread && thread.chat) || (chatRows || []).find((c) => c.id === openId) || null;
+    const rowNow = (chatRows || []).find((c) => c.id === openId);
+    const muted = Boolean((rowNow && rowNow.muted) || (serverChat && serverChat.muted));
+    const person = serverChat ? hellooPersonFrom(serverChat.person, photos) : { id: "", name: "", country: "" };
+    const pres = presence[person.accountId];
+    const iBlocked = isBlocked(person.accountId);
+    const firstName = (person.name || "").split(" ")[0];
+    const status = !iBlocked && pres ? (pres.online ? "" : hellooLastSeenText(pres.lastSeenAt)) : "";
+    return shell(<HellooContactScreen person={Object.assign({}, person, { id: person.gloobalId, online: Boolean(!iBlocked && pres && pres.online) })} status={status} onBack={() => setScreen(null)} onMessage={() => setScreen(null)} onPay={person.gloobalId ? () => { setScreen(null); setPay({ amount: "", note: "", busy: false, error: "" }); setSheet("pay"); } : undefined} groups={[
+      [[HlBellOff, muted ? "Unmute notifications" : "Mute notifications", muted ? "Muted" : "Off", () => setPrefs(openId, { muted: !muted }), false, T.inkSoft], [HlTrash, "Clear chat", "", () => { setScreen(null); setSheet("confirm-clear"); }, false, T.inkSoft]],
+      [[HlBan, iBlocked ? `Unblock ${firstName}` : `Block ${firstName}`, "", () => setBlock(person, !iBlocked), !iBlocked]]
+    ]} />);
   }
 
   // ── Full screens ─────────────────────────────────────────────────────
@@ -63311,8 +63467,19 @@ function HellooRoot() {
     return shell(<div style={{ position: "absolute", inset: 0, background: "#000" }}><QrCameraScanner onDetected={onScanned} active fullScreen quiet /><div style={{ position: "absolute", top: "calc(14px + env(safe-area-inset-top, 0px))", left: 14, zIndex: 400 }}><NavBackButton onClick={() => setScreen(null)} /></div></div>);
   }
 
+  if (screen === "blocked") {
+    return shell(<HellooScreen><HellooTop left={<NavBackButton onClick={() => setScreen(null)} />} title="Blocked people" subtitle="They can't message you or see when you're online" /><div style={{ flex: 1, minHeight: 0, overflowY: "auto", padding: "0 16px 30px" }}>{blocked === null ? <HellooCard style={{ padding: 18, textAlign: "center", color: T.inkFaint, fontWeight: 700, fontSize: 13 }}>Loading…</HellooCard> : blocked.length === 0 ? <HellooCard style={{ padding: 18, textAlign: "center", color: T.inkSoft, fontSize: 13 }}>You haven't blocked anyone.</HellooCard> : <HellooCard>{blocked.map((card, i) => { const p = hellooPersonFrom(card, photos); return <div key={p.id} style={{ display: "flex", alignItems: "center", gap: 12, padding: "10px 14px", borderTop: i ? `1px solid ${T.line}` : "none" }}><HellooAvatar person={p} size={42} /><span style={{ flex: 1, minWidth: 0, fontSize: 14.5, fontWeight: 800, color: T.ink }}>{p.name}</span><button onClick={() => setBlock(p, false)} className="v2-tap" style={{ border: "none", borderRadius: 999, background: T.accentSoft, color: T.accent, fontWeight: 800, fontSize: 12.5, padding: "7px 13px", cursor: "pointer", fontFamily: T.fontBody }}>Unblock</button></div>; })}</HellooCard>}</div></HellooScreen>);
+  }
+
   // ── Tabs ─────────────────────────────────────────────────────────────
-  const rows = (chatRows || []).map((c) => hellooChatRowFrom(c, photos));
+  const rows = (chatRows || []).map((c) => {
+    const row = hellooChatRowFrom(c, photos);
+    const pres = presence[c.person && c.person.accountId];
+    if (pres && row.person) row.person.online = Boolean(pres.online);
+    if (isBlocked(c.person && c.person.accountId) && row.person) row.person.online = false;
+    else row.typing = Boolean(typing[c.id]);
+    return row;
+  });
   const q = query.trim().toLowerCase();
   const shownRows = q ? rows.filter((c) => (c.person.name || "").toLowerCase().includes(q) || (c.person.gloobalId || "").includes(query.trim())) : rows;
   const unread = rows.reduce((n, c) => n + (c.unread || 0), 0);
@@ -63345,7 +63512,19 @@ function HellooRoot() {
   };
 
   return shell(<div style={{ position: "absolute", inset: 0, display: "flex", flexDirection: "column" }}><div style={{ flex: 1, minHeight: 0, position: "relative" }}>
-    {tab === "chats" && <HellooChatsScreen me={me} chats={shownRows} query={query} onSearch={setQuery} filter={filter} onFilter={setFilter} onOpen={(c) => openChat(c.id)} onStart={() => setSheet("start")} onScan={() => setScreen("scan")} banner={banner} empty={empty} />}
+    {tab === "chats" && <HellooChatsScreen me={me} chats={shownRows} query={query} onSearch={setQuery} filter={filter} onFilter={setFilter} onOpen={(c) => openChat(c.id)} onHold={(c) => setHeldChat(c)} onStart={() => setSheet("start")} onScan={() => setScreen("scan")} onMore={() => setSheet("more")} banner={banner} empty={empty} />}
+    {heldChat && <HellooChatActions chat={heldChat} onClose={() => setHeldChat(null)} items={[
+      [HlPinIcon, heldChat.pinned ? "Unpin" : "Pin to top", false, () => { setPrefs(heldChat.id, { pinned: !heldChat.pinned }); setHeldChat(null); }],
+      [HlBellOff, heldChat.muted ? "Unmute" : "Mute", false, () => { setPrefs(heldChat.id, { muted: !heldChat.muted }); setHeldChat(null); }],
+      heldChat.unread > 0 && [HlCheckCheck, "Mark as read", false, () => { markRead(heldChat.id); setHeldChat(null); }],
+      [HlTrash, "Delete chat", true, () => { const id = heldChat.id; setHeldChat(null); setSheet({ confirmDelete: id }); }]
+    ].filter(Boolean)} />}
+    {sheet && sheet.confirmDelete && <HellooSheet label="Delete chat" onClose={() => setSheet(null)}><div style={{ fontSize: 15, fontWeight: 800, color: T.ink }}>Delete this chat?</div><div style={{ fontSize: 13, color: T.inkSoft, marginTop: 6, lineHeight: 1.45 }}>It leaves your list and its messages disappear for you. The other person keeps theirs. It comes back if they write again.</div><div style={{ display: "flex", gap: 10, marginTop: 16 }}><HellooSecondary onClick={() => setSheet(null)}>Cancel</HellooSecondary><HellooPrimary color={T.negative} onClick={() => { const id = sheet.confirmDelete; setSheet(null); clearChat(id, true); }}>Delete chat</HellooPrimary></div></HellooSheet>}
+    {sheet === "more" && <HellooSheet label="More" onClose={() => setSheet(null)}><HellooCard>{[
+      unread > 0 && [HlCheckCheck, "Mark all as read", () => { rows.filter((c) => c.unread).forEach((c) => markRead(c.id)); setSheet(null); }],
+      [HlBan, "Blocked people", () => { setSheet(null); refreshBlocked(); setScreen("blocked"); }],
+      [HlPalette, "App theme", () => { setSheet(null); setScreen("theme"); }]
+    ].filter(Boolean).map(([Icon, title, onPress], i) => <HellooRow key={title} Icon={Icon} title={title} first={i === 0} onPress={onPress} />)}</HellooCard></HellooSheet>}
     {tab === "calls" && <HellooCallsScreen calls={[]} favourites={contacts.slice(0, 4)} onCall={() => soon("Calls")} onVideo={() => soon("Video calls")} onOpen={() => soon("Calls")} onPad={() => setTab("dial")} />}
     {tab === "dial" && <HellooDialScreen value={dial.value} onChange={(v) => setDial((d) => Object.assign({}, d, { value: v }))} match={dial.match} status={dial.status} onMessage={() => dial.match && openChatWith(dial.match.gloobalId)} onCall={() => soon("Calls")} onScan={() => setScreen("scan")} />}
     {tab === "me" && <HellooMeScreen me={me} stats={{ text: `${contacts.length} ${contacts.length === 1 ? "person" : "people"} from GLOOBAL · ${rows.length} ${rows.length === 1 ? "chat" : "chats"} · no fees` }} rows={meRows} onRow={onMeRow} onQr={() => setScreen("qr")} onCopy={async () => { try { await navigator.clipboard.writeText(me.gloobalId); setToast("GLOOBAL ID copied"); } catch (e) { setToast("Could not copy"); } }} onShare={shareHelloo} onOpenGloobal={() => window.open(HELLOO_GLOOBAL_SITE, "_blank", "noopener")} onSignOut={() => signOut("Signed out")} />}

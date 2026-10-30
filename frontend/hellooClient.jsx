@@ -23,8 +23,68 @@ var hellooApi = {
   send: (chatId, body) =>
     gloobalApiClient.post(`/api/helloo/chats/${encodeURIComponent(chatId)}/messages`, body, { timeoutMs: GLOOBAL_API_COLD_START_TIMEOUT_MS }),
   read: (chatId) => gloobalApiClient.post(`/api/helloo/chats/${encodeURIComponent(chatId)}/read`, {}),
-  voice: (messageId) => gloobalApiClient.get(`/api/helloo/voice/${encodeURIComponent(messageId)}`)
+  voice: (messageId) => gloobalApiClient.get(`/api/helloo/voice/${encodeURIComponent(messageId)}`),
+  media: (messageId) => gloobalApiClient.get(`/api/helloo/media/${encodeURIComponent(messageId)}`),
+  prefs: (chatId, prefs) => gloobalApiClient.post(`/api/helloo/chats/${encodeURIComponent(chatId)}/prefs`, prefs),
+  clear: (chatId) => gloobalApiClient.post(`/api/helloo/chats/${encodeURIComponent(chatId)}/clear`, {}),
+  remove: (messageId, everyone) => gloobalApiClient.post(`/api/helloo/messages/${encodeURIComponent(messageId)}/delete`, { everyone: Boolean(everyone) }),
+  presence: (accountId) => gloobalApiClient.get(`/api/helloo/people/${encodeURIComponent(accountId)}/presence`),
+  block: (accountId, blocked) => gloobalApiClient.post("/api/helloo/block", { accountId, blocked }),
+  blocked: () => gloobalApiClient.get("/api/helloo/blocked")
 };
+
+// "Last seen today at 14:05" / "yesterday at 21:10" / "12 Oct".
+function hellooLastSeenText(at) {
+  if (!at) return "";
+  const d = new Date(at);
+  if (Number.isNaN(d.getTime())) return "";
+  const day = hellooDayLabel(d);
+  const clock = `${String(d.getHours()).padStart(2, "0")}:${String(d.getMinutes()).padStart(2, "0")}`;
+  if (day === "Today") return `last seen today at ${clock}`;
+  if (day === "Yesterday") return `last seen yesterday at ${clock}`;
+  return `last seen ${day}`;
+}
+
+// A short line for a quoted or previewed message.
+function hellooPreviewOf(m) {
+  if (!m) return "";
+  if (m.kind === "deleted") return "This message was deleted";
+  if (m.kind === "voice") return `Voice note · ${Math.round((m.voice && m.voice.seconds) || m.seconds || 0)}s`;
+  if (m.kind === "photo") return m.text ? `Photo · ${m.text}` : "Photo";
+  if (m.kind === "payment") return "Payment on GLOOBAL";
+  return String(m.text || "").replace(/\s+/g, " ").trim().slice(0, 120);
+}
+
+// A picture from the phone, made small enough to send: at most 1600 px
+// on its long side, JPEG, stepping the quality down until it is under
+// ~550 KB (the server takes 600).
+async function hellooCompressPhoto(file) {
+  const url = URL.createObjectURL(file);
+  try {
+    const img = await new Promise((resolve, reject) => { const i = new Image(); i.onload = () => resolve(i); i.onerror = () => reject(new Error("That file is not a picture.")); i.src = url; });
+    let scale = Math.min(1, 1600 / Math.max(img.naturalWidth, img.naturalHeight));
+    for (let attempt = 0; attempt < 6; attempt += 1) {
+      const w = Math.max(1, Math.round(img.naturalWidth * scale));
+      const h = Math.max(1, Math.round(img.naturalHeight * scale));
+      const canvas = document.createElement("canvas");
+      canvas.width = w;
+      canvas.height = h;
+      const ctx = canvas.getContext("2d");
+      ctx.fillStyle = "#fff";
+      ctx.fillRect(0, 0, w, h);
+      ctx.drawImage(img, 0, 0, w, h);
+      for (const q of [0.82, 0.7, 0.58]) {
+        const dataUrl = canvas.toDataURL("image/jpeg", q);
+        const b64 = dataUrl.slice(dataUrl.indexOf(",") + 1);
+        if (b64.length * 0.75 <= 550 * 1024) return { image: b64, mime: "image/jpeg", width: w, height: h, preview: dataUrl };
+      }
+      scale *= 0.75;
+    }
+    throw new Error("That picture is too big to send.");
+  } finally {
+    URL.revokeObjectURL(url);
+  }
+}
 
 function hellooClientId() {
   return `${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 10)}`;
@@ -101,7 +161,7 @@ function hellooDayLabel(d) {
 
 // A server message → a bubble. `theyReadAt` turns my ticks blue; a message
 // still on its way (no server id yet) shows one grey tick.
-function hellooBubbleFrom(m, meAccountId, theyReadAt, voiceState) {
+function hellooBubbleFrom(m, meAccountId, theyReadAt, voiceState, names) {
   const mine = m.from === meAccountId || m.from === "me";
   const at = new Date(m.at || Date.now());
   const base = {
@@ -113,6 +173,17 @@ function hellooBubbleFrom(m, meAccountId, theyReadAt, voiceState) {
     read: Boolean(mine && m.id && theyReadAt && new Date(theyReadAt) >= at),
     pending: !m.id
   };
+  if (m.replyTo) {
+    const quotedMine = m.replyTo.from === meAccountId;
+    base.replyTo = { id: m.replyTo.id, who: quotedMine ? "You" : (names && names.them) || "Them", preview: m.replyTo.preview };
+  }
+  base.preview = hellooPreviewOf(m);
+  base.source = m;
+  if (m.kind === "deleted") return Object.assign(base, { kind: "deleted" });
+  if (m.kind === "photo") {
+    const v = voiceState || {};
+    return Object.assign(base, { kind: "photo", text: m.text || "", width: (m.photo && m.photo.width) || 0, height: (m.photo && m.photo.height) || 0, src: v.src || m.localSrc || null, onOpen: v.onOpen });
+  }
   if (m.kind === "voice") {
     const v = voiceState || {};
     return Object.assign(base, { kind: "voice", seconds: Math.round((m.voice && m.voice.seconds) || 0), playing: Boolean(v.playing), progress: v.progress, onPlay: v.onPlay });
@@ -129,11 +200,11 @@ function hellooBubbleFrom(m, meAccountId, theyReadAt, voiceState) {
   return Object.assign(base, { kind: "text", text: m.text || "" });
 }
 
-function hellooThreadBubbles(messages, meAccountId, theyReadAt, voiceFor) {
+function hellooThreadBubbles(messages, meAccountId, theyReadAt, voiceFor, names) {
   const out = [{ kind: "system", text: "Private to you two · same GLOOBAL account" }];
   let lastDay = "";
   for (const m of messages) {
-    const bubble = hellooBubbleFrom(m, meAccountId, theyReadAt, voiceFor ? voiceFor(m) : null);
+    const bubble = hellooBubbleFrom(m, meAccountId, theyReadAt, voiceFor ? voiceFor(m) : null, names);
     const day = hellooDayLabel(bubble.at);
     if (day !== lastDay) {
       out.push({ kind: "day", text: day });
@@ -157,7 +228,8 @@ function hellooChatRowFrom(chat, photos) {
         read: Boolean(chat.theyReadAt && new Date(chat.theyReadAt) >= new Date(chat.lastAt))
       }
     : null;
-  return { id: chat.id, person, unread: chat.unread || 0, messages: last ? [last] : [], lastAt: chat.lastAt, theyReadAt: chat.theyReadAt };
+  if (person) person.online = Boolean(chat.online);
+  return { id: chat.id, person, unread: chat.unread || 0, muted: Boolean(chat.muted), pinned: Boolean(chat.pinned), messages: last ? [last] : [], lastAt: chat.lastAt, theyReadAt: chat.theyReadAt };
 }
 
 // ── Live socket ─────────────────────────────────────────────────────────
@@ -169,7 +241,7 @@ function hellooLiveUrl() {
   return `${GLOOBAL_API_BASE.replace(/^http/i, "ws")}/api/helloo/live`;
 }
 
-function useHellooLive(enabled, onEvent) {
+function useHellooLive(enabled, onEvent, sendRef) {
   const [status, setStatus] = useStateH11("offline");
   const handler = useRefH11(onEvent);
   handler.current = onEvent;
@@ -186,6 +258,10 @@ function useHellooLive(enabled, onEvent) {
       setStatus("connecting");
       try { ws = new WebSocket(hellooLiveUrl()); } catch (e) { schedule(); return; }
       ws.onopen = () => ws.send(JSON.stringify({ type: "auth", token }));
+      if (sendRef) {
+        const mine = ws;
+        sendRef.current = (frame) => { try { if (mine.readyState === 1) mine.send(JSON.stringify(frame)); } catch (err) { /* closing */ } };
+      }
       ws.onmessage = (e) => {
         let frame;
         try { frame = JSON.parse(e.data); } catch (err) { return; }
