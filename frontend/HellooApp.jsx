@@ -37,10 +37,56 @@ function hellooClearDeepLink() {
   try { window.history.replaceState(null, "", "/"); } catch (e) { /* ignore */ }
 }
 
+function useHellooBack(depth, closeTop) {
+  const state = useRefH9({ depth: 0, ignore: 0 });
+  const closeRef = useRefH9(closeTop);
+  closeRef.current = closeTop;
+  useEffectH9(() => {
+    const onPop = () => {
+      const st = state.current;
+      if (st.ignore > 0) { st.ignore -= 1; return; }
+      // A real Back: the browser has already stepped one entry down.
+      st.depth = Math.max(0, st.depth - 1);
+      closeRef.current();
+    };
+    window.addEventListener("popstate", onPop);
+    return () => window.removeEventListener("popstate", onPop);
+  }, []);
+  useEffectH9(() => {
+    const st = state.current;
+    if (depth > st.depth) {
+      for (let i = st.depth; i < depth; i += 1) window.history.pushState({ helloo: i + 1 }, "");
+      st.depth = depth;
+    } else if (depth < st.depth) {
+      // Closed by the app itself: take its entries away without firing a close.
+      st.ignore += 1;
+      window.history.go(-(st.depth - depth));
+      st.depth = depth;
+    }
+  }, [depth]);
+}
+
 function HellooRoot() {
   // ── Theme ────────────────────────────────────────────────────────────
   const [, setThemeTick] = useStateH9(0);
   const [themeKey, setThemeKey] = useStateH9(() => { const k = hellooSavedTheme(); applyHellooTheme(k); return k; });
+  // The phone's status bar takes the app's own background colour.
+  useEffectH9(() => {
+    try {
+      let meta = document.querySelector('meta[name="theme-color"]');
+      if (!meta) { meta = document.createElement("meta"); meta.name = "theme-color"; document.head.appendChild(meta); }
+      meta.content = T.bg;
+    } catch (e) { /* no DOM */ }
+  }, [themeKey]);
+  // "Install Helloo": Chrome and Android offer it through this event; on an
+  // iPhone it is Share → Add to Home Screen, which the row explains.
+  const [installEvent, setInstallEvent] = useStateH9(null);
+  const standalone = typeof window !== "undefined" && (window.matchMedia && window.matchMedia("(display-mode: standalone)").matches || window.navigator.standalone === true);
+  useEffectH9(() => {
+    const keep = (e) => { e.preventDefault(); setInstallEvent(e); };
+    window.addEventListener("beforeinstallprompt", keep);
+    return () => window.removeEventListener("beforeinstallprompt", keep);
+  }, []);
   const pickTheme = (k) => { applyHellooTheme(k); try { localStorage.setItem(HELLOO_THEME_KEY, k); } catch (e) { /* private window */ } setThemeKey(k); setThemeTick((n) => n + 1); };
 
   // ── Sign-in ──────────────────────────────────────────────────────────
@@ -653,6 +699,44 @@ function HellooRoot() {
     openChatWith(parsed.gloobalId);
   };
 
+  // ── Back button ──────────────────────────────────────────────────────
+  //
+  // Every layer the app opens — a tab other than Chats, a screen, a chat,
+  // their profile, a sheet, a PIN — is one step of the phone's Back. Back
+  // closes the top one; only Back on Chats with nothing open leaves the
+  // app. The count of open layers is kept equal to the history entries
+  // this page has pushed, so closing something with an on-screen arrow
+  // takes its entry away too and the next Back is never swallowed.
+  const backDepth =
+    (payPinOpen || reachPin || giveBackPin ? 1 : 0) +
+    (held || heldChat ? 1 : 0) +
+    (sheet ? 1 : 0) +
+    (photoView ? 1 : 0) +
+    (priceGate ? 1 : 0) +
+    (screen === "contact" ? 1 : 0) +
+    (openId ? 1 : 0) +
+    (screen === "earnings" ? 2 : screen && screen !== "contact" ? 1 : 0) +
+    (signedIn && tab !== "chats" ? 1 : 0) +
+    (stage === "id" ? 1 : stage === "pin" ? 2 : 0);
+  useHellooBack(backDepth, () => {
+    if (payPinOpen) return setPayPinOpen(false);
+    if (reachPin) return setReachPin(null);
+    if (giveBackPin) return setGiveBackPin(null);
+    if (held) return setHeld(null);
+    if (heldChat) return setHeldChat(null);
+    if (sheet) return setSheet(null);
+    if (photoView) return setPhotoView(null);
+    if (priceGate) return setPriceGate(null);
+    if (screen === "contact") return setScreen(null);
+    if (openId) { cancelRecording(); setOpenId(null); setReplyTo(null); refreshChats(); return undefined; }
+    if (screen === "earnings") return setScreen("reach");
+    if (screen) return setScreen(null);
+    if (signedIn && tab !== "chats") return setTab("chats");
+    if (stage === "pin") return setStage("id");
+    if (stage === "id") return setStage("welcome");
+    return undefined;
+  });
+
   // ── Shell ────────────────────────────────────────────────────────────
   const shell = (children) => <div style={{ position: "absolute", inset: 0, overflow: "hidden", background: T.bg }}>{children}{toast && <div role="status" style={{ position: "absolute", left: 16, right: 16, bottom: "calc(96px + env(safe-area-inset-bottom, 0px))", display: "flex", justifyContent: "center", zIndex: 300, pointerEvents: "none" }}><span style={{ background: T.ink, color: T.bg, borderRadius: 18, padding: "9px 16px", fontSize: 13, fontWeight: 700, fontFamily: T.fontBody, boxShadow: "0 8px 24px rgba(0,0,0,0.25)", textAlign: "center", maxWidth: "100%" }}>{toast}</span></div>}</div>;
 
@@ -721,8 +805,8 @@ function HellooRoot() {
     const theyPaid = msgs.filter((m) => m.from === person.accountId && m.paid && m.paid.amount);
     const earnedHere = theyPaid.reduce((n, m) => n + Number(m.paid.amount || 0), 0);
     const showPaidStrip = !iBlocked && theyPaid.length > 0 && !allowedIds.has(person.accountId);
-    const closedNote = rule && !rule.free && rule.closed ? <div style={{ display: "flex", alignItems: "center", gap: 10 }}><HlLock size={18} color={T.inkSoft} /><span style={{ flex: 1, fontSize: 13, color: T.inkSoft, lineHeight: 1.4 }}>{card.askPending ? `Your request is waiting for ${firstName}.` : (rule.kind === "business" ? `${firstName} doesn't take messages from businesses. Ask first, free.` : `${firstName} only takes requests from people they haven't allowed. Ask first, free.`)}</span>{!card.askPending && <button onClick={() => { setAskText(""); setSheet("ask"); }} className="v2-tap" style={{ border: "none", borderRadius: 999, background: T.accentSoft, color: T.accent, fontWeight: 800, fontSize: 13, padding: "8px 14px", cursor: "pointer", fontFamily: T.fontBody }}>Ask · free</button>}</div> : null;
-    const note = iBlocked ? <div style={{ display: "flex", alignItems: "center", gap: 10 }}><HlBan size={18} color={T.inkSoft} /><span style={{ flex: 1, fontSize: 13, color: T.inkSoft, lineHeight: 1.4 }}>You blocked {firstName}. They can't message you.</span><button onClick={() => setBlock(person, false)} className="v2-tap" style={{ border: "none", borderRadius: 999, background: T.accentSoft, color: T.accent, fontWeight: 800, fontSize: 13, padding: "8px 14px", cursor: "pointer", fontFamily: T.fontBody }}>Unblock</button></div> : closedNote;
+    const closedNote = rule && !rule.free && rule.closed ? <div style={{ display: "flex", alignItems: "center", gap: 10 }}><HlLock size={18} color={T.inkSoft} /><span style={{ flex: 1, fontSize: 13, color: T.inkSoft, lineHeight: 1.4 }}>{card.askPending ? `Your request is waiting for ${firstName}.` : (rule.kind === "business" ? `${firstName} doesn't take messages from businesses. Ask first, free.` : `${firstName} only takes requests from people they haven't allowed. Ask first, free.`)}</span>{!card.askPending && <button onClick={() => { setAskText(""); setSheet("ask"); }} className="v2-tap" style={{ flexShrink: 0, whiteSpace: "nowrap", border: "none", borderRadius: 999, background: T.accentSoft, color: T.accent, fontWeight: 800, fontSize: 13, padding: "8px 14px", cursor: "pointer", fontFamily: T.fontBody }}>Ask · free</button>}</div> : null;
+    const note = iBlocked ? <div style={{ display: "flex", alignItems: "center", gap: 10 }}><HlBan size={18} color={T.inkSoft} /><span style={{ flex: 1, fontSize: 13, color: T.inkSoft, lineHeight: 1.4 }}>You blocked {firstName}. They can't message you.</span><button onClick={() => setBlock(person, false)} className="v2-tap" style={{ flexShrink: 0, whiteSpace: "nowrap", border: "none", borderRadius: 999, background: T.accentSoft, color: T.accent, fontWeight: 800, fontSize: 13, padding: "8px 14px", cursor: "pointer", fontFamily: T.fontBody }}>Unblock</button></div> : closedNote;
     const paidStrip = showPaidStrip ? <HellooPaidMessageStrip person={person} earnedText={hellooMoneyText(earnedHere, theyPaid[0].paid.currency)} isBusiness={Boolean(person.handle)} onAllow={() => hellooApi.allow(person.accountId, true).then(() => { refreshMyReach(); setToast(`${firstName} reaches you free now`); }).catch((err) => setToast(err.message))} onBlock={() => setBlock(person, true)} onGiveBack={() => { setGiveBack({ percent: 50, busy: false }); setSheet("giveback"); }} /> : null;
     if (priceGate && priceGate.chatId === openId) {
       return shell(<><HellooPriceCard person={priceGate.person} price={priceGate.rule.price} currency={priceGate.rule.currency} viewerIsBusiness={priceGate.rule.kind === "business"} balance={priceGate.balance != null && !Number.isNaN(priceGate.balance) ? priceGate.balance : null} balanceCurrency={me.currency} busy={Boolean(priceGate.busy)} onAgree={() => payAndSend(priceGate)} onAsk={card && card.askPending ? undefined : () => { setPriceGate(null); setAskText(""); setSheet("ask"); }} onBack={() => setPriceGate(null)} /><PayPinModal open={Boolean(reachPin)} onClose={() => setReachPin(null)} amountLabel={hellooMoneyText(priceGate.rule.price, priceGate.rule.currency)} onVerified={(pinValue) => payAndSend(priceGate, pinValue)} /></>);
@@ -823,13 +907,19 @@ function HellooRoot() {
 
   const soon = (what) => setToast(`${what} come in the next Helloo update`);
   const themeName = (HELLOO_THEMES.find((x) => x.key === themeKey) || HELLOO_THEMES[0]).name;
-  const reachValue = !myReach ? "" : (myReach.people.closed && myReach.business.closed) ? "Requests only" : [myReach.people, myReach.business].map((g) => (g.closed ? "Closed" : g.price ? hellooMoneyText(g.price, myReach.currency) : "Free")).join(" · ");
+  const reachValue = !myReach ? "" : (myReach.people.closed && myReach.business.closed) ? "Requests only" : [myReach.people, myReach.business].map((g) => (g.closed ? "Requests only" : g.price ? hellooMoneyText(g.price, myReach.currency) : "Free")).join(" · ");
+  const isIos = typeof navigator !== "undefined" && /iphone|ipad|ipod/i.test(navigator.userAgent);
   const meRows = [
     [HlRupee, "Who can reach me", reachValue, HT.free],
     [HlBell, "Notifications", push === "on" ? "On" : push === "blocked" ? "Blocked" : push === "unsupported" ? "Not on this browser" : "Off", "#EA580C"],
     [HlPalette, "App theme", themeName, "#9333EA"]
-  ];
+  ].concat(!standalone && (installEvent || isIos) ? [[HlDownload, "Install Helloo", "Home screen app", "#2563EB"]] : []);
   const onMeRow = (title) => {
+    if (title === "Install Helloo") {
+      if (installEvent) { installEvent.prompt(); installEvent.userChoice.then(() => setInstallEvent(null)).catch(() => {}); }
+      else setToast("Tap Share, then Add to Home Screen");
+      return;
+    }
     if (title === "Who can reach me") { refreshMyReach(); setScreen("reach"); return; }
     if (title === "App theme") setScreen("theme");
     else if (title === "Notifications") turnOnPush();
