@@ -12,8 +12,14 @@
 // own registration, because the account is a Gloobal account.
 import { useState as useStateH2, useEffect as useEffectH2 } from "react";
 
-function HellooSplash() {
-  return <HellooScreen style={{ alignItems: "center", justifyContent: "center", background: HT.wash }}><HellooMark size={96} /><div style={{ marginTop: 20, fontSize: 34, letterSpacing: -0.5 }}><HellooWordmark /></div><div style={{ marginTop: 6, fontSize: 12, color: T.inkSoft, display: "flex", alignItems: "center", gap: 6 }}>by <GloobalWordmark /></div><div style={{ position: "absolute", bottom: "calc(40px + env(safe-area-inset-bottom, 0px))", display: "flex", alignItems: "center", gap: 7, fontSize: 12.5, fontWeight: 700, color: HT.free }}><HlLock size={14} />Free calls and messages, every country</div></HellooScreen>;
+// Follows the phone: light in light mode, the call-screen navy in dark
+// mode. Same icon on both (founder's choice, 30 Oct: the mark with
+// GL●●BAL's two dots).
+function hellooPrefersDark() {
+  try { return typeof window !== "undefined" && window.matchMedia && window.matchMedia("(prefers-color-scheme: dark)").matches; } catch (e) { return false; }
+}
+function HellooSplash({ dark = hellooPrefersDark() }) {
+  return <HellooScreen style={{ alignItems: "center", justifyContent: "center", background: dark ? "#0F0D1F" : HT.wash, color: dark ? "#F1EEFF" : T.ink }}><HellooMark size={104} /><div style={{ marginTop: 22, fontSize: 34, letterSpacing: -0.5 }}><HellooWordmark /></div><div style={{ marginTop: 6, fontSize: 12, color: dark ? "#B3ADCC" : T.inkSoft, display: "flex", alignItems: "center", gap: 6 }}>by <GloobalWordmark /></div><div style={{ position: "absolute", bottom: "calc(40px + env(safe-area-inset-bottom, 0px))", display: "flex", alignItems: "center", gap: 7, fontSize: 12.5, fontWeight: 700, color: HT.free }}><HlLock size={14} />Free calls and messages, every country</div></HellooScreen>;
 }
 
 function HellooWelcome({ onContinueWithGloobal, onEnterId, hasGloobal = true }) {

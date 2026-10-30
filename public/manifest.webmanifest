@@ -1,0 +1,14 @@
+{
+  "name": "Helloo by GLOOBAL",
+  "short_name": "Helloo",
+  "description": "Free calls and messages with your GLOOBAL ID. Strangers pay your price, or ask.",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#F6F5FC",
+  "theme_color": "#1B1838",
+  "icons": [
+    { "src": "/icons/helloo-192.png", "sizes": "192x192", "type": "image/png" },
+    { "src": "/icons/helloo-512.png", "sizes": "512x512", "type": "image/png" },
+    { "src": "/icons/helloo-maskable-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+  ]
+}

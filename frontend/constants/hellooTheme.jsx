@@ -54,7 +54,7 @@ var HELLOO_MARK_VARIANTS = {
   purple: { bg: "url(#hlMarkGrad)", ink: "#fff", dots: ["#5B21B6", "#5B21B6", "#5B21B6"], grad: ["#3B0F63", "#7C3AED"] },
   ink: { bg: "#F7F6FB", ink: "#3B0F63", dots: ["#DC2626", "#2563EB", "#3B0F63"] }
 };
-var HELLOO_MARK_DEFAULT = "navy";
+var HELLOO_MARK_DEFAULT = "dots";
 
 function HellooMark({ size = 64, variant = HELLOO_MARK_DEFAULT }) {
   const v = HELLOO_MARK_VARIANTS[variant] || HELLOO_MARK_VARIANTS.navy;
