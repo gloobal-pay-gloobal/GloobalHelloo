@@ -27,6 +27,7 @@ const HELLOO_MODULES = [
   "screens/PadMe.jsx",
   "screens/Reach.jsx",
   "screens/Broadcast.jsx",
+  "screens/Money.jsx",
   "HellooApp.jsx"
 ];
 

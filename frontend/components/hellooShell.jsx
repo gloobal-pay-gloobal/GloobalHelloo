@@ -66,7 +66,9 @@ function HellooRow({ Icon, color = T.accent, title, value, onPress, danger = fal
 }
 
 function HellooCard({ children, style }) {
-  return <div style={{ background: T.surface, borderRadius: 20, boxShadow: T.shadowCard, overflow: "hidden", ...style }}>{children}</div>;
+  // flexShrink 0: inside a scrolling flex column, a card with overflow
+  // hidden would otherwise be squeezed to its padding (min-height: 0).
+  return <div style={{ background: T.surface, borderRadius: 20, boxShadow: T.shadowCard, overflow: "hidden", flexShrink: 0, ...style }}>{children}</div>;
 }
 
 function HellooPrimary({ children, onClick, disabled, Icon, color }) {

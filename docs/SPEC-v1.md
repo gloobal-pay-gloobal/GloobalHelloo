@@ -105,3 +105,11 @@ Pay cards → push → communities/broadcast/linked/scheduled → calls.
   until the other person decides. Same for calls ("Ask to call · free").
 - Receiver: a "people want to reach you" row on Chats → Requests screen → Decline,
   Allow once / Allow this call, or Allow · free (makes them a contact on your side).
+
+## Me → Money (decided 30 Oct, night) — all time, month picker
+- Earned: total + vs last month + payers; daily bars (messages vs calls); people vs
+  businesses; top payers; gave back / attention kept (hours) / turned away; "if your price
+  had been" what-if from the month's traffic with one line of advice; all-time in Gloobal Bank.
+- Spent (creators): total, orders it brought, back per rupee, cost per order; reach per
+  rupee per share (delivered/opened/replied/ordered, cost/order); where it landed by area
+  (never a point); best hour and best max price from own shares; orders within 48 h of a share.
