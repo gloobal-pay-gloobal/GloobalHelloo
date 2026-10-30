@@ -26,6 +26,7 @@ function hellooDeepLink() {
     const url = new URL(window.location.href);
     const chat = url.searchParams.get("chat");
     if (chat) return { chatId: chat };
+    if (url.searchParams.get("requests")) return { requests: true };
     const parsed = typeof parseGloobalPayPayload === "function" ? parseGloobalPayPayload(`${HELLOO_GLOOBAL_SITE}${url.pathname}`) : null;
     if (parsed && parsed.gloobalId) return { gloobalId: parsed.gloobalId };
   } catch (e) { /* no URL API */ }
@@ -180,6 +181,30 @@ function HellooRoot() {
   const refreshBlocked = useCallbackH9(() => hellooApi.blocked().then((r) => setBlocked(r.people || [])).catch(() => {}), []);
   useEffectH9(() => { if (signedIn) refreshBlocked(); }, [signedIn, refreshBlocked]);
 
+  // ── Pay to reach state ─────────────────────────────────────────────
+  const [myReach, setMyReach] = useStateH9(null); // GET /api/helloo/reach
+  const [reachCards, setReachCards] = useStateH9({}); // accountId -> { rule, askPending }
+  const [asks, setAsks] = useStateH9([]);
+  const [priceGate, setPriceGate] = useStateH9(null); // { chatId, body, person, rule, balance }
+  const [reachPin, setReachPin] = useStateH9(null); // waiting for the PIN to pay a price
+  const [askText, setAskText] = useStateH9("");
+  const [giveBack, setGiveBack] = useStateH9({ percent: 50, busy: false });
+  const [giveBackPin, setGiveBackPin] = useStateH9(null);
+  const [earnings, setEarnings] = useStateH9(null);
+  const agreedRef = useRefH9(new Set());
+  const pinCacheRef = useRefH9({ pin: null, at: 0 });
+  const reachSaveTimer = useRefH9(null);
+  const refreshMyReach = useCallbackH9(() => hellooApi.reach().then((r) => setMyReach(r)).catch(() => {}), []);
+  const refreshMyReachRef = useRefH9(refreshMyReach);
+  refreshMyReachRef.current = refreshMyReach;
+  const refreshAsks = useCallbackH9(() => hellooApi.asks().then((r) => setAsks(r.asks || [])).catch(() => {}), []);
+  const refreshCard = useCallbackH9((accountId) => {
+    if (!accountId) return Promise.resolve(null);
+    return hellooApi.reachCard(accountId).then((r) => { setReachCards((all) => Object.assign({}, all, { [accountId]: { rule: r.rule, askPending: r.askPending } })); return r; }).catch(() => null);
+  }, []);
+  useEffectH9(() => { if (signedIn) { refreshMyReach(); refreshAsks(); } }, [signedIn, refreshMyReach, refreshAsks]);
+  const allowedIds = new Set(((myReach && myReach.allowed) || []).map((p) => p.accountId));
+
   // ── Threads ──────────────────────────────────────────────────────────
   const mergeMessages = (list, incoming) => {
     const out = list.slice();
@@ -202,6 +227,7 @@ function HellooRoot() {
       });
       askPhotos([r.chat && r.chat.person]);
       const who = r.chat && r.chat.person && r.chat.person.accountId;
+      if (who && !older) refreshCard(who);
       if (who && !older) hellooApi.presence(who).then((pr) => setPresence((all) => Object.assign({}, all, { [who]: { online: pr.online, lastSeenAt: pr.lastSeenAt } }))).catch(() => {});
     } catch (err) {
       setToast(gloobalApiIsUnreachable(err) ? "Waking the GLOOBAL server…" : err.message);
@@ -240,6 +266,7 @@ function HellooRoot() {
     const link = hellooDeepLink();
     if (!link) return;
     hellooClearDeepLink();
+    if (link.requests) { setScreen("requests"); return; }
     if (link.chatId) openChat(link.chatId);
     else if (link.gloobalId && link.gloobalId !== user.symbolId) openChatWith(link.gloobalId);
   }, [signedIn]);
@@ -281,6 +308,15 @@ function HellooRoot() {
       refreshChats();
       return;
     }
+    if (frame.type === "ask") {
+      refreshAsks();
+      return;
+    }
+    if (frame.type === "ask-answer") {
+      refreshCard(frame.to);
+      if (frame.allowed) { setToast("Your request was accepted · message them free"); refreshChats(); }
+      return;
+    }
     if (frame.type === "hidden") {
       setThreads((all) => (all[frame.chatId] ? Object.assign({}, all, { [frame.chatId]: Object.assign({}, all[frame.chatId], { messages: all[frame.chatId].messages.filter((x) => x.id !== frame.id) }) }) : all));
     }
@@ -289,6 +325,8 @@ function HellooRoot() {
   // ── Sending ──────────────────────────────────────────────────────────
   const [drafts, setDrafts] = useStateH9({});
 
+  const threadsRef = useRefH9(threads);
+  threadsRef.current = threads;
   const sendMessage = useCallbackH9(async (chatId, body) => {
     const clientId = body.clientId || hellooClientId();
     const optimistic = Object.assign({ clientId, from: user.accountId, at: new Date().toISOString(), chatId },
@@ -305,6 +343,8 @@ function HellooRoot() {
     }
     try {
       const r = await hellooApi.send(chatId, Object.assign({}, wire, { clientId }));
+      // Writing to someone allows them (server side); keep the list in step.
+      if (refreshMyReachRef.current) refreshMyReachRef.current();
       setThreads((all) => Object.assign({}, all, { [chatId]: Object.assign({ messages: [] }, all[chatId], { messages: mergeMessages((all[chatId] || { messages: [] }).messages, [r.message]) }) }));
       refreshChats();
       return r.message;
@@ -315,7 +355,12 @@ function HellooRoot() {
         return Object.assign({}, all, { [chatId]: Object.assign({}, t, { messages: t.messages.map((m) => (m.clientId === clientId && !m.id ? Object.assign({}, m, { failed: true, retryBody: Object.assign({}, body, { clientId }) }) : m)) }) });
       });
       if (body.kind === "payment") throw err;
-      if (err && err.body && (err.body.code === "blocked_by_them" || err.body.code === "you_blocked")) {
+      if (err && err.body && (err.body.code === "reach_payment_required" || err.body.code === "reach_closed")) {
+        const t = threadsRef.current[chatId];
+        const who = t && t.chat && t.chat.person && t.chat.person.accountId;
+        if (who) refreshCard(who);
+      }
+      if (err && err.body && (err.body.code === "blocked_by_them" || err.body.code === "you_blocked" || err.body.code === "reach_payment_required" || err.body.code === "reach_closed")) {
         // Not a network problem: take the bubble away and say why.
         setThreads((all) => (all[chatId] ? Object.assign({}, all, { [chatId]: Object.assign({}, all[chatId], { messages: all[chatId].messages.filter((m) => m.clientId !== clientId || m.id) }) }) : all));
       }
@@ -323,6 +368,99 @@ function HellooRoot() {
       return null;
     }
   }, [user, refreshChats]);
+
+  // ── Deliver: free, or pay their price first ─────────────────────────
+  const personOf = (chatId) => {
+    const t = threadsRef.current[chatId];
+    const chat = (t && t.chat) || (chatRows || []).find((c) => c.id === chatId);
+    return chat ? hellooPersonFrom(chat.person, photos) : null;
+  };
+  const payAndSend = async (gate, pinGiven) => {
+    const fresh = pinCacheRef.current.pin && Date.now() - pinCacheRef.current.at < 5 * 60e3;
+    const pinValue = pinGiven || (fresh ? pinCacheRef.current.pin : null);
+    if (!pinValue) { setReachPin(gate); return; }
+    setReachPin(null);
+    setPriceGate((g) => (g ? Object.assign({}, g, { busy: true }) : g));
+    try {
+      const result = await GloobalApi.sendTransaction({
+        senderSymbolId: user.symbolId,
+        receiverSymbolId: gate.person.gloobalId,
+        amountBasis: "destination",
+        destinationAmount: gate.rule.price,
+        amount: gate.rule.price,
+        note: "Helloo message",
+        pin: pinValue,
+        payMethod: "helloo-reach",
+        idempotencyKey: `helloo-reach-${hellooClientId()}`
+      });
+      pinCacheRef.current = { pin: pinValue, at: Date.now() };
+      agreedRef.current.add(gate.person.accountId);
+      setPriceGate(null);
+      const reachRef = result && result.transaction && result.transaction.referenceId;
+      await sendMessage(gate.chatId, Object.assign({}, gate.body, { reachRef }));
+    } catch (err) {
+      pinCacheRef.current = { pin: null, at: 0 };
+      setPriceGate((g) => (g ? Object.assign({}, g, { busy: false }) : g));
+      setToast(gloobalApiIsUnreachable(err) ? "The GLOOBAL server is waking up. Try again." : err.message);
+    }
+  };
+  const deliver = (chatId, body) => {
+    const person = personOf(chatId);
+    const card = person && reachCards[person.accountId];
+    const rule = card && card.rule;
+    if (!person || !rule || rule.free) return sendMessage(chatId, body);
+    if (rule.closed) { setAskText(""); setSheet("ask"); return null; }
+    const gate = { chatId, body, person, rule };
+    if (!agreedRef.current.has(person.accountId)) {
+      setPriceGate(gate);
+      GloobalApi.getProfile(user.symbolId).then((u) => setPriceGate((g) => (g && g.chatId === chatId ? Object.assign({}, g, { balance: Number(u.balance) }) : g))).catch(() => {});
+      return null;
+    }
+    return payAndSend(gate);
+  };
+  const giveBackNow = async (person, chatId, earned, percent, pinValue) => {
+    setGiveBackPin(null);
+    const amount = Math.round(earned * percent) / 100;
+    if (!(amount > 0)) return;
+    setGiveBack((g) => Object.assign({}, g, { busy: true }));
+    try {
+      const result = await GloobalApi.sendTransaction({
+        senderSymbolId: user.symbolId,
+        receiverSymbolId: person.gloobalId,
+        amountBasis: "source",
+        sourceAmount: amount,
+        amount,
+        note: "Helloo give back",
+        pin: pinValue,
+        payMethod: "helloo-giveback",
+        idempotencyKey: `helloo-gb-${hellooClientId()}`
+      });
+      const referenceId = result && result.transaction && result.transaction.referenceId;
+      if (referenceId) { try { await sendMessage(chatId, { kind: "payment", referenceId, percent }); } catch (e) { /* the money moved */ } }
+      setGiveBack({ percent: 50, busy: false });
+      setSheet(null);
+      setToast(`Gave back ${hellooMoneyText(amount, me.currency)}`);
+    } catch (err) {
+      setGiveBack((g) => Object.assign({}, g, { busy: false }));
+      setToast(gloobalApiIsUnreachable(err) ? "The GLOOBAL server is waking up. Try again." : err.message);
+    }
+  };
+  const answerAsk = async (ask, action) => {
+    try {
+      const r = await hellooApi.answerAsk(ask.id, action);
+      setAsks((list) => list.filter((a) => a.id !== ask.id));
+      refreshMyReach();
+      if (action === "allow" && r.chatId) { setScreen(null); refreshChats(); openChat(r.chatId); }
+      else setToast("Declined");
+    } catch (err) { setToast(err.message); }
+  };
+  const saveReach = (prices) => {
+    setMyReach((r) => Object.assign({}, r, prices));
+    clearTimeout(reachSaveTimer.current);
+    reachSaveTimer.current = setTimeout(() => {
+      hellooApi.saveReach({ people: prices.people, business: prices.business }).then(() => refreshMyReach()).catch((err) => setToast(err.message));
+    }, 500);
+  };
 
   const retryFailed = (chatId) => {
     const t = threads[chatId];
@@ -339,7 +477,7 @@ function HellooRoot() {
     setRecording(null);
     if (!rec) return;
     const result = await rec.stop();
-    if (result && openIdRef.current) sendMessage(openIdRef.current, { kind: "voice", audio: result.audio, mime: result.mime, seconds: Math.round(result.seconds * 10) / 10 });
+    if (result && openIdRef.current) deliver(openIdRef.current, { kind: "voice", audio: result.audio, mime: result.mime, seconds: Math.round(result.seconds * 10) / 10 });
   };
   const startRecording = async () => {
     const rec = hellooVoiceRecorder((s) => setRecording({ seconds: s }), () => stopAndSend());
@@ -400,7 +538,7 @@ function HellooRoot() {
       if (caption) setDrafts((d) => Object.assign({}, d, { [openIdRef.current]: "" }));
       const reply = replyTo && replyTo.chatId === openIdRef.current ? replyTo : null;
       setReplyTo(null);
-      sendMessage(openIdRef.current, { kind: "photo", image: shot.image, mime: shot.mime, width: shot.width, height: shot.height, text: caption, localSrc: shot.preview, replyToId: reply ? reply.id : undefined, replyPreview: reply ? { id: reply.id, from: reply.fromAccount, preview: reply.preview } : undefined });
+      deliver(openIdRef.current, { kind: "photo", image: shot.image, mime: shot.mime, width: shot.width, height: shot.height, text: caption, localSrc: shot.preview, replyToId: reply ? reply.id : undefined, replyPreview: reply ? { id: reply.id, from: reply.fromAccount, preview: reply.preview } : undefined });
     } catch (err) {
       setToast(err.message || "Could not send that photo");
     }
@@ -561,13 +699,14 @@ function HellooRoot() {
       if (!text) return;
       setDrafts((d) => Object.assign({}, d, { [openId]: "" }));
       setReplyTo(null);
-      sendMessage(openId, Object.assign({ kind: "text", text }, reply ? { replyToId: reply.id, replyPreview: { id: reply.id, from: reply.fromAccount, preview: reply.preview } } : {}));
+      deliver(openId, Object.assign({ kind: "text", text }, reply ? { replyToId: reply.id, replyPreview: { id: reply.id, from: reply.fromAccount, preview: reply.preview } } : {}));
     };
     const heldMine = held && held.from === "me";
     const heldFresh = held && Date.now() - new Date(held.at).getTime() < 48 * 3600e3;
     const heldItems = held ? [
       held.kind !== "deleted" && [HlReply, "Reply", false, () => { setReplyTo({ chatId: openId, id: held.id, who: heldMine ? "yourself" : firstName, preview: held.preview, fromAccount: heldMine ? user.accountId : person.accountId }); setHeld(null); }],
       (held.kind === "text" || (held.kind === "photo" && held.text)) && [HlCopy, "Copy text", false, async () => { try { await navigator.clipboard.writeText(held.text); setToast("Copied"); } catch (e) { setToast("Could not copy"); } setHeld(null); }],
+      !heldMine && held.paidText && [HlRupee, "Give back…", false, () => { setHeld(null); setGiveBack({ percent: 50, busy: false }); setSheet("giveback"); }],
       [HlTrash, "Delete for me", true, () => deleteMessage(openId, held, false)],
       heldMine && heldFresh && held.kind !== "receipt" && held.kind !== "deleted" && [HlTrash, "Delete for everyone", true, () => deleteMessage(openId, held, true)]
     ].filter(Boolean) : [];
@@ -577,13 +716,27 @@ function HellooRoot() {
       [HlTrash, "Clear chat", false, null, () => { setSheet("confirm-clear"); }],
       [HlBan, iBlocked ? `Unblock ${firstName}` : `Block ${firstName}`, !iBlocked, null, () => { setSheet(null); setBlock(person, !iBlocked); }]
     ];
-    const note = iBlocked ? <div style={{ display: "flex", alignItems: "center", gap: 10 }}><HlBan size={18} color={T.inkSoft} /><span style={{ flex: 1, fontSize: 13, color: T.inkSoft, lineHeight: 1.4 }}>You blocked {firstName}. They can't message you.</span><button onClick={() => setBlock(person, false)} className="v2-tap" style={{ border: "none", borderRadius: 999, background: T.accentSoft, color: T.accent, fontWeight: 800, fontSize: 13, padding: "8px 14px", cursor: "pointer", fontFamily: T.fontBody }}>Unblock</button></div> : null;
-    return shell(<HellooThreadScreen me={me} chat={{ id: openId, person, messages: bubbles }} strip={strip} typing={Boolean(typing[openId]) && !iBlocked} draft={draft} onDraft={(v) => onDraftChange(openId, v)} onSend={sendText} recording={recording} onMic={recording ? stopAndSend : startRecording} onCancelRecording={cancelRecording} hasOlder={Boolean(thread && thread.more)} onLoadOlder={() => loadThread(openId, true)} onPay={person.gloobalId ? () => { setPay({ amount: "", note: "", busy: false, error: "" }); setSheet("pay"); } : undefined} onAttach={() => setSheet("attach")} onMore={() => setSheet("menu")} onOpenPerson={() => setScreen("contact")} onMessageHold={(m) => setHeld(m)} replyTo={reply} onCancelReply={() => setReplyTo(null)} composerNote={note} onBack={() => { cancelRecording(); setOpenId(null); setSheet(null); setReplyTo(null); refreshChats(); }}>
+    const card = reachCards[person.accountId];
+    const rule = card && card.rule;
+    const theyPaid = msgs.filter((m) => m.from === person.accountId && m.paid && m.paid.amount);
+    const earnedHere = theyPaid.reduce((n, m) => n + Number(m.paid.amount || 0), 0);
+    const showPaidStrip = !iBlocked && theyPaid.length > 0 && !allowedIds.has(person.accountId);
+    const closedNote = rule && !rule.free && rule.closed ? <div style={{ display: "flex", alignItems: "center", gap: 10 }}><HlLock size={18} color={T.inkSoft} /><span style={{ flex: 1, fontSize: 13, color: T.inkSoft, lineHeight: 1.4 }}>{card.askPending ? `Your request is waiting for ${firstName}.` : (rule.kind === "business" ? `${firstName} doesn't take messages from businesses. Ask first, free.` : `${firstName} only takes requests from people they haven't allowed. Ask first, free.`)}</span>{!card.askPending && <button onClick={() => { setAskText(""); setSheet("ask"); }} className="v2-tap" style={{ border: "none", borderRadius: 999, background: T.accentSoft, color: T.accent, fontWeight: 800, fontSize: 13, padding: "8px 14px", cursor: "pointer", fontFamily: T.fontBody }}>Ask · free</button>}</div> : null;
+    const note = iBlocked ? <div style={{ display: "flex", alignItems: "center", gap: 10 }}><HlBan size={18} color={T.inkSoft} /><span style={{ flex: 1, fontSize: 13, color: T.inkSoft, lineHeight: 1.4 }}>You blocked {firstName}. They can't message you.</span><button onClick={() => setBlock(person, false)} className="v2-tap" style={{ border: "none", borderRadius: 999, background: T.accentSoft, color: T.accent, fontWeight: 800, fontSize: 13, padding: "8px 14px", cursor: "pointer", fontFamily: T.fontBody }}>Unblock</button></div> : closedNote;
+    const paidStrip = showPaidStrip ? <HellooPaidMessageStrip person={person} earnedText={hellooMoneyText(earnedHere, theyPaid[0].paid.currency)} isBusiness={Boolean(person.handle)} onAllow={() => hellooApi.allow(person.accountId, true).then(() => { refreshMyReach(); setToast(`${firstName} reaches you free now`); }).catch((err) => setToast(err.message))} onBlock={() => setBlock(person, true)} onGiveBack={() => { setGiveBack({ percent: 50, busy: false }); setSheet("giveback"); }} /> : null;
+    if (priceGate && priceGate.chatId === openId) {
+      return shell(<><HellooPriceCard person={priceGate.person} price={priceGate.rule.price} currency={priceGate.rule.currency} viewerIsBusiness={priceGate.rule.kind === "business"} balance={priceGate.balance != null && !Number.isNaN(priceGate.balance) ? priceGate.balance : null} balanceCurrency={me.currency} busy={Boolean(priceGate.busy)} onAgree={() => payAndSend(priceGate)} onAsk={card && card.askPending ? undefined : () => { setPriceGate(null); setAskText(""); setSheet("ask"); }} onBack={() => setPriceGate(null)} /><PayPinModal open={Boolean(reachPin)} onClose={() => setReachPin(null)} amountLabel={hellooMoneyText(priceGate.rule.price, priceGate.rule.currency)} onVerified={(pinValue) => payAndSend(priceGate, pinValue)} /></>);
+    }
+    return shell(<HellooThreadScreen me={me} chat={{ id: openId, person, messages: bubbles }} strip={<>{paidStrip}{strip}</>} paidPrice={rule && !rule.free && !rule.closed ? rule.price : 0} paidCurrency={rule && rule.currency} typing={Boolean(typing[openId]) && !iBlocked} draft={draft} onDraft={(v) => onDraftChange(openId, v)} onSend={sendText} recording={recording} onMic={recording ? stopAndSend : startRecording} onCancelRecording={cancelRecording} hasOlder={Boolean(thread && thread.more)} onLoadOlder={() => loadThread(openId, true)} onPay={person.gloobalId ? () => { setPay({ amount: "", note: "", busy: false, error: "" }); setSheet("pay"); } : undefined} onAttach={() => setSheet("attach")} onMore={() => setSheet("menu")} onOpenPerson={() => setScreen("contact")} onMessageHold={(m) => setHeld(m)} replyTo={reply} onCancelReply={() => setReplyTo(null)} composerNote={note} onBack={() => { cancelRecording(); setOpenId(null); setSheet(null); setReplyTo(null); refreshChats(); }}>
       {sheet === "pay" && <HellooPaySheet person={person} me={me} amount={pay.amount} onAmount={(a) => setPay((p) => Object.assign({}, p, { amount: a.replace(/^0+/, ""), error: "" }))} note={pay.note} onNote={(n) => setPay((p) => Object.assign({}, p, { note: n }))} busy={pay.busy} error={pay.error} onClose={() => { if (!pay.busy) setSheet(null); }} onSend={() => setPayPinOpen(true)} />}
       {sheet === "attach" && <HellooAttachSheet onClose={() => setSheet(null)} items={[[HlImage, "Gallery", "#7C3AED", () => galleryRef.current && galleryRef.current.click()], [HlCamera, "Camera", "#DB2777", () => cameraRef.current && cameraRef.current.click()], [HlRupee, "Pay", "#0B7A57", () => { setPay({ amount: "", note: "", busy: false, error: "" }); setSheet("pay"); }]]} />}
       {sheet === "menu" && <HellooThreadMenu chat={{ person: Object.assign({}, person, { id: person.gloobalId }) }} items={menuItems} onClose={() => setSheet(null)} />}
       {sheet === "confirm-clear" && <HellooSheet label="Clear chat" onClose={() => setSheet(null)}><div style={{ fontSize: 15, fontWeight: 800, color: T.ink }}>Clear this chat?</div><div style={{ fontSize: 13, color: T.inkSoft, marginTop: 6, lineHeight: 1.45 }}>Every message disappears for you. {firstName} still has them. Payments stay in your GLOOBAL history.</div><div style={{ display: "flex", gap: 10, marginTop: 16 }}><HellooSecondary onClick={() => setSheet(null)}>Cancel</HellooSecondary><HellooPrimary color={T.negative} onClick={() => { setSheet(null); clearChat(openId, false); }}>Clear chat</HellooPrimary></div></HellooSheet>}
       {held && <HellooMessageActions m={held} reactions={false} items={heldItems} onClose={() => setHeld(null)} />}
+      {sheet === "ask" && <HellooAskSheet person={person} text={askText} onText={setAskText} priceText={rule && !rule.free && !rule.closed ? `${hellooMoneyText(rule.price, rule.currency)}/message` : ""} onClose={() => setSheet(null)} onSend={() => hellooApi.ask(person.accountId, askText.trim()).then(() => { setSheet(null); setToast(`Request sent to ${firstName}`); refreshCard(person.accountId); }).catch((err) => setToast(err.message))} />}
+      {sheet === "giveback" && <HellooRefundSheet person={person} earnedValue={earnedHere} earnedText={hellooMoneyText(earnedHere, me.currency)} currency={me.currency} percent={giveBack.percent} onPercent={(v) => setGiveBack((g) => Object.assign({}, g, { percent: v }))} onRefund={() => setGiveBackPin({ person, chatId: openId, earned: earnedHere, percent: giveBack.percent })} onClose={() => { if (!giveBack.busy) setSheet(null); }} />}
+      <PayPinModal open={Boolean(giveBackPin)} onClose={() => setGiveBackPin(null)} amountLabel={giveBackPin ? hellooMoneyText(Math.round(giveBackPin.earned * giveBackPin.percent) / 100, me.currency) : ""} onVerified={(pinValue) => giveBackPin && giveBackNow(giveBackPin.person, giveBackPin.chatId, giveBackPin.earned, giveBackPin.percent, pinValue)} />
+      {!priceGate && <PayPinModal open={Boolean(reachPin)} onClose={() => setReachPin(null)} amountLabel={reachPin ? hellooMoneyText(reachPin.rule.price, reachPin.rule.currency) : ""} onVerified={(pinValue) => reachPin && payAndSend(reachPin, pinValue)} />}
       <input ref={galleryRef} type="file" accept="image/*" style={{ display: "none" }} onChange={(e) => { const f = e.target.files && e.target.files[0]; e.target.value = ""; pickPhoto(f); }} />
       <input ref={cameraRef} type="file" accept="image/*" capture="environment" style={{ display: "none" }} onChange={(e) => { const f = e.target.files && e.target.files[0]; e.target.value = ""; pickPhoto(f); }} />
       <PayPinModal open={payPinOpen} onClose={() => setPayPinOpen(false)} amountLabel={hellooMoneyText(Number(pay.amount) || 0, me.currency)} onVerified={(pinValue) => payNow(person, openId, pinValue)} />
@@ -630,6 +783,19 @@ function HellooRoot() {
     return shell(<div style={{ position: "absolute", inset: 0, background: "#000" }}><QrCameraScanner onDetected={onScanned} active fullScreen quiet /><div style={{ position: "absolute", top: "calc(14px + env(safe-area-inset-top, 0px))", left: 14, zIndex: 400 }}><NavBackButton onClick={() => setScreen(null)} /></div></div>);
   }
 
+  if (screen === "reach" && myReach) {
+    const prices = { people: { price: myReach.people.price, blocked: myReach.people.closed }, business: { price: myReach.business.price, blocked: myReach.business.closed } };
+    const m = myReach.month || {};
+    return shell(<HellooReachScreen me={me} currency={myReach.currency} prices={prices} onChange={(next) => saveReach({ people: { price: next.people.price, closed: next.people.blocked }, business: { price: next.business.price, closed: next.business.blocked } })} earnings={{ monthText: hellooMoneyText((m.earned || 0) - (m.gaveBack || 0), myReach.currency), turnedAway: String(m.turnedAway || 0) }} allowed={(myReach.allowed || []).map((c) => hellooPersonFrom(c, photos))} onRemoveAllowed={(p) => hellooApi.allow(p.accountId, false).then(() => { refreshMyReach(); setToast(`${p.name.split(" ")[0]} pays your price again`); }).catch((err) => setToast(err.message))} onEarnings={() => { setEarnings(null); hellooApi.earnings().then(setEarnings).catch((err) => setToast(err.message)); setScreen("earnings"); }} onBack={() => setScreen(null)} />);
+  }
+  if (screen === "earnings") {
+    const rowsE = earnings ? earnings.rows.map((r) => ({ person: hellooPersonFrom(r.person, photos), what: `${r.messages} paid ${r.messages === 1 ? "message" : "messages"}${r.gaveBack ? ` · you gave back ${hellooMoneyText(r.gaveBack, earnings.currency)}` : ""}`, amountText: hellooMoneyText(r.amount, earnings.currency) })) : [];
+    return shell(<HellooEarningsScreen me={me} rows={rowsE} totalText={earnings ? hellooMoneyText(earnings.total - earnings.gaveBack, earnings.currency) : "…"} onBack={() => setScreen("reach")} />);
+  }
+  if (screen === "requests") {
+    const reqs = asks.map((a) => ({ id: a.id, person: Object.assign(hellooPersonFrom(a.person, photos), { business: Boolean(a.person.handle) }), kind: a.kind, text: a.text, when: hellooWhen(a.at) }));
+    return shell(<HellooRequestsScreen me={me} requests={reqs} onAllow={(r) => answerAsk(r, "allow")} onDecline={(r) => answerAsk(r, "decline")} onBack={() => setScreen(null)} />);
+  }
   if (screen === "blocked") {
     return shell(<HellooScreen><HellooTop left={<NavBackButton onClick={() => setScreen(null)} />} title="Blocked people" subtitle="They can't message you or see when you're online" /><div style={{ flex: 1, minHeight: 0, overflowY: "auto", padding: "0 16px 30px" }}>{blocked === null ? <HellooCard style={{ padding: 18, textAlign: "center", color: T.inkFaint, fontWeight: 700, fontSize: 13 }}>Loading…</HellooCard> : blocked.length === 0 ? <HellooCard style={{ padding: 18, textAlign: "center", color: T.inkSoft, fontSize: 13 }}>You haven't blocked anyone.</HellooCard> : <HellooCard>{blocked.map((card, i) => { const p = hellooPersonFrom(card, photos); return <div key={p.id} style={{ display: "flex", alignItems: "center", gap: 12, padding: "10px 14px", borderTop: i ? `1px solid ${T.line}` : "none" }}><HellooAvatar person={p} size={42} /><span style={{ flex: 1, minWidth: 0, fontSize: 14.5, fontWeight: 800, color: T.ink }}>{p.name}</span><button onClick={() => setBlock(p, false)} className="v2-tap" style={{ border: "none", borderRadius: 999, background: T.accentSoft, color: T.accent, fontWeight: 800, fontSize: 12.5, padding: "7px 13px", cursor: "pointer", fontFamily: T.fontBody }}>Unblock</button></div>; })}</HellooCard>}</div></HellooScreen>);
   }
@@ -657,11 +823,14 @@ function HellooRoot() {
 
   const soon = (what) => setToast(`${what} come in the next Helloo update`);
   const themeName = (HELLOO_THEMES.find((x) => x.key === themeKey) || HELLOO_THEMES[0]).name;
+  const reachValue = !myReach ? "" : (myReach.people.closed && myReach.business.closed) ? "Requests only" : [myReach.people, myReach.business].map((g) => (g.closed ? "Closed" : g.price ? hellooMoneyText(g.price, myReach.currency) : "Free")).join(" · ");
   const meRows = [
+    [HlRupee, "Who can reach me", reachValue, HT.free],
     [HlBell, "Notifications", push === "on" ? "On" : push === "blocked" ? "Blocked" : push === "unsupported" ? "Not on this browser" : "Off", "#EA580C"],
     [HlPalette, "App theme", themeName, "#9333EA"]
   ];
   const onMeRow = (title) => {
+    if (title === "Who can reach me") { refreshMyReach(); setScreen("reach"); return; }
     if (title === "App theme") setScreen("theme");
     else if (title === "Notifications") turnOnPush();
   };
@@ -675,7 +844,7 @@ function HellooRoot() {
   };
 
   return shell(<div style={{ position: "absolute", inset: 0, display: "flex", flexDirection: "column" }}><div style={{ flex: 1, minHeight: 0, position: "relative" }}>
-    {tab === "chats" && <HellooChatsScreen me={me} chats={shownRows} query={query} onSearch={setQuery} filter={filter} onFilter={setFilter} onOpen={(c) => openChat(c.id)} onHold={(c) => setHeldChat(c)} onStart={() => setSheet("start")} onScan={() => setScreen("scan")} onMore={() => setSheet("more")} banner={banner} empty={empty} />}
+    {tab === "chats" && <HellooChatsScreen me={me} chats={shownRows} query={query} onSearch={setQuery} filter={filter} onFilter={setFilter} onOpen={(c) => openChat(c.id)} onHold={(c) => setHeldChat(c)} onStart={() => setSheet("start")} onScan={() => setScreen("scan")} onMore={() => setSheet("more")} banner={banner} empty={empty} requests={asks.map((a) => ({ id: a.id, person: hellooPersonFrom(a.person, photos), text: a.text }))} onRequests={() => { refreshAsks(); setScreen("requests"); }} />}
     {heldChat && <HellooChatActions chat={heldChat} onClose={() => setHeldChat(null)} items={[
       [HlPinIcon, heldChat.pinned ? "Unpin" : "Pin to top", false, () => { setPrefs(heldChat.id, { pinned: !heldChat.pinned }); setHeldChat(null); }],
       [HlBellOff, heldChat.muted ? "Unmute" : "Mute", false, () => { setPrefs(heldChat.id, { muted: !heldChat.muted }); setHeldChat(null); }],

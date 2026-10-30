@@ -30,7 +30,15 @@ var hellooApi = {
   remove: (messageId, everyone) => gloobalApiClient.post(`/api/helloo/messages/${encodeURIComponent(messageId)}/delete`, { everyone: Boolean(everyone) }),
   presence: (accountId) => gloobalApiClient.get(`/api/helloo/people/${encodeURIComponent(accountId)}/presence`),
   block: (accountId, blocked) => gloobalApiClient.post("/api/helloo/block", { accountId, blocked }),
-  blocked: () => gloobalApiClient.get("/api/helloo/blocked")
+  blocked: () => gloobalApiClient.get("/api/helloo/blocked"),
+  reach: () => gloobalApiClient.get("/api/helloo/reach"),
+  saveReach: (prices) => gloobalApiClient.put("/api/helloo/reach", prices),
+  allow: (accountId, allowed) => gloobalApiClient.post("/api/helloo/reach/allow", { accountId, allowed }),
+  reachCard: (accountId) => gloobalApiClient.get(`/api/helloo/people/${encodeURIComponent(accountId)}/reach`),
+  ask: (to, text, kind) => gloobalApiClient.post("/api/helloo/asks", { to, text, kind: kind || "message" }),
+  asks: () => gloobalApiClient.get("/api/helloo/asks"),
+  answerAsk: (id, action) => gloobalApiClient.post(`/api/helloo/asks/${encodeURIComponent(id)}`, { action }),
+  earnings: (month) => gloobalApiClient.get(`/api/helloo/earnings${month ? `?month=${encodeURIComponent(month)}` : ""}`)
 };
 
 // "Last seen today at 14:05" / "yesterday at 21:10" / "12 Oct".
@@ -179,6 +187,7 @@ function hellooBubbleFrom(m, meAccountId, theyReadAt, voiceState, names) {
   }
   base.preview = hellooPreviewOf(m);
   base.source = m;
+  if (m.paid && m.paid.amount) base.paidText = hellooMoneyText(m.paid.amount, m.paid.currency);
   if (m.kind === "deleted") return Object.assign(base, { kind: "deleted" });
   if (m.kind === "photo") {
     const v = voiceState || {};
@@ -187,6 +196,17 @@ function hellooBubbleFrom(m, meAccountId, theyReadAt, voiceState, names) {
   if (m.kind === "voice") {
     const v = voiceState || {};
     return Object.assign(base, { kind: "voice", seconds: Math.round((m.voice && m.voice.seconds) || 0), playing: Boolean(v.playing), progress: v.progress, onPlay: v.onPlay });
+  }
+  if (m.kind === "payment" && m.payment && m.payment.purpose === "giveback") {
+    const p = m.payment;
+    return Object.assign(base, {
+      kind: "refund",
+      amountText: mine ? hellooMoneyText(p.amount, p.currency) : hellooMoneyText(p.destAmount || p.amount, p.destCurrency || p.currency),
+      percent: p.percent || 0,
+      ofText: "",
+      what: "paid to reach",
+      referenceId: p.referenceId
+    });
   }
   if (m.kind === "payment") {
     const p = m.payment || {};
