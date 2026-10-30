@@ -83,3 +83,25 @@ Pay cards → push → communities/broadcast/linked/scheduled → calls.
   share, 0–100% on a bar (quick chips Keep all / 25% / 50% / All of it). It is an
   ordinary Gloobal payment back to the payer; both chats get a "gave back" card.
   Available right after the call ends and any time from Paid to reach me.
+
+## Share nearby (creator side) — decided 30 Oct, night
+- A creator writes a message (+ photo, Open shop button), picks a circle (1/2/5/10 km),
+  the most they'll pay one person (bar 0–7), and a budget. Live estimate shows how many
+  people at each price the budget reaches.
+- Who: Gloobal already knows — the address every account registered with its bank.
+  Helloo asks Gloobal's server for the people in the circle; it never tracks anyone.
+- Each person is paid THEIR OWN Businesses price, nearest first, only if ≤ the creator's
+  max, until the budget is spent. Blocked never hear of it.
+- Budget held from the creator's Gloobal balance at Share (PIN on Gloobal); each delivery
+  pays that person at once; unused comes back after 48 h.
+- The offer lands as a card: photo, "1.4 km from you", "Paid you ₹2", Open shop, Reply · free.
+  A reply opens a free chat both ways.
+- Results screen: delivered / opened shop / replied, paid so far, held, coming back,
+  replies list, Add budget.
+- No receiver-side caps: unknown senders always pay or ask.
+
+## Ask instead (free) — both message and call
+- The price card offers "Ask first instead · free": one line (≤120 chars), nothing delivered
+  until the other person decides. Same for calls ("Ask to call · free").
+- Receiver: a "people want to reach you" row on Chats → Requests screen → Decline,
+  Allow once / Allow this call, or Allow · free (makes them a contact on your side).
