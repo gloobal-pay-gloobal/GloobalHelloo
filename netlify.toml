@@ -1,0 +1,20 @@
+# Netlify builds the preview app. src/HellooApp.jsx is committed (it is
+# generated from Gloobal's bundle + frontend/ by build_app.mjs), so the
+# build here needs nothing outside this repo.
+[build]
+  base = "gloobal-helloo-preview"
+  command = "npm run build"
+  publish = "dist"
+
+[build.environment]
+  NODE_VERSION = "20"
+
+[[redirects]]
+  from = "/*"
+  to = "/index.html"
+  status = 200
+
+[[headers]]
+  for = "/sw.js"
+  [headers.values]
+    Cache-Control = "no-cache"
