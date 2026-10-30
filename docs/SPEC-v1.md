@@ -126,3 +126,30 @@ Pay cards → push → communities/broadcast/linked/scheduled → calls.
   Leave request, Appointment, Follow-up, Resignation), Government & bank (Complaint, KYC /
   documents, Loan query, Address change), Personal formal (Notice to landlord, School leave
   note, Invitation, Condolence), plus Blank. Blanks are tapped through; preview updates live.
+
+## Improvements accepted (30 Oct, late) and RELEASE 1 scope
+- Letters in the other person's language: each template carries translations (Hindi,
+  Tamil, Bengali, … ); the one offered follows the script of the other person's name.
+- Voice-to-letter: hold the mic in Pro mode, Helloo fills the blanks; receiver has Hear it.
+- One card family for all money: green = money moved (receipt, order paid, refund given,
+  paid-to-reach, offer paid), purple = money asked (request, split share, order unpaid).
+  One server record type (`attention` / `request` / `payment` by Gloobal transaction id).
+- Price follows you to Gloobal: the "Who can reach me" bars also gate Gloobal's
+  payment-request notifications and shop messages. One setting, both apps.
+- Share estimate shows "~N have Helloo and see it now; the rest get a GLOOBAL notification".
+- Seed contacts from Gloobal payments: paid / paid-by → mutual contacts on first run.
+- Pro mode default by contact type (shop, business, titled → Pro); remembered per chat.
+- Limits and quiet hours OFF by default; the Time page leads with facts, not "over by".
+
+### Release 1 (build in this order)
+1. Login against the Gloobal API (Continue with GLOOBAL handoff; ID/mobile + PIN fallback)
+2. Me with the ID card, My QR; seeded contacts
+3. Dial + Scan + contacts by GLOOBAL ID
+4. Helloo server: chats, presence, voice notes (hold-to-record), text; the thread
+5. Price bars, price card, pay-to-reach (messages), Ask, Requests
+6. Share nearby (creator) + offer card
+7. Business letters (Pro mode), in the other person's language
+8. Activity: Time + Earned
+9. Push notifications
+Later: calls (voice), groups + split, orders in thread, Spent face, area map, best hour/price,
+per-person limits, quiet hours, Government & Personal letter sets, communities etc.
