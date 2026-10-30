@@ -113,3 +113,16 @@ Pay cards → push → communities/broadcast/linked/scheduled → calls.
 - Spent (creators): total, orders it brought, back per rupee, cost per order; reach per
   rupee per share (delivered/opened/replied/ordered, cost/order); where it landed by area
   (never a point); best hour and best max price from own shares; orders within 48 h of a share.
+
+## Activity (Time · Earned · Spent) and Professional mode — decided 30 Oct, night
+- Me → Activity: three faces. Time: minutes on calls and in chats by day; personal vs
+  professional; free vs paid-to-you; busiest hour/day; with whom (bars, calls, msgs);
+  daily limit, quiet hours, per-person limits — Helloo tells you, never stops you.
+- Every chat has a Personal ↔ Pro switch. Pro turns the composer into a letter
+  (subject, greeting, body, sign-off with name and title), landing as a letter card with
+  "Read on <date, time>", Reply and PDF. Quick professional replies above the composer.
+- 19 prebuilt letters in four sets: Business (Quotation, Invoice reminder, Order
+  confirmation, Delivery update, Meeting request, Thank you), Work & jobs (Job application,
+  Leave request, Appointment, Follow-up, Resignation), Government & bank (Complaint, KYC /
+  documents, Loan query, Address change), Personal formal (Notice to landlord, School leave
+  note, Invitation, Condolence), plus Blank. Blanks are tapped through; preview updates live.

@@ -28,6 +28,8 @@ const HELLOO_MODULES = [
   "screens/Reach.jsx",
   "screens/Broadcast.jsx",
   "screens/Money.jsx",
+  "screens/Letters.jsx",
+  "screens/Time.jsx",
   "HellooApp.jsx"
 ];
 
