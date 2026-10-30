@@ -60,3 +60,22 @@ Decided with the founder on 30 Oct 2026. The prototype in
 ## Build order
 login → Me + ID card → Pad + contacts → chat server + thread → groups →
 Pay cards → push → communities/broadcast/linked/scheduled → calls.
+
+## Why Helloo exists (decided 30 Oct, evening) — your attention has a price
+- Mutual contacts (both saved each other) reach you free. So does anyone you tap Allow on.
+- Everyone else sees your price card BEFORE the first message or call and must agree.
+- Two bars, 0–7 in your currency, same scale: "People I don't know" and "Businesses".
+  One value = per message AND per started minute. 0 = Free. A switch blocks the group.
+- Charged on delivery: a message when it reaches you; a call per started minute, first
+  10 seconds free (a misdial costs nothing). Taken from their Gloobal balance, settled to
+  yours at once, 100% yours. Gloobal takes nothing.
+- Reply or Allow makes that person free from then on. Block ends it.
+- Paid messages carry a "Paid you ₹2" badge; a paid call shows a meter to both sides.
+- Me → Who can reach me (bars, earned this month, turned away, always-free list) and
+  Me → Paid to reach me (who paid, what for).
+- Server: price stored per account; a stranger's first send/call goes through an
+  "agree" step; each delivery/minute posts a Gloobal transfer (type `attention`) from
+  payer to receiver; refused when the payer's balance can't cover the next unit.
+- Tomorrow, satellite: the same protocol — store-and-forward messages, low-bitrate voice —
+  carried over a satellite link where there is no network. Designed in from the start:
+  every message is a small signed record that can wait and be delivered later.
