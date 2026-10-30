@@ -42,10 +42,24 @@ function HellooWordmark({ suffix = "", size }) {
   return <span aria-label={`Helloo${suffix}`} style={{ textTransform: "uppercase", fontWeight: 800, fontFamily: T.fontWordmark, whiteSpace: "nowrap", fontSize: size }}>Hell{dot(c1)}{dot(c2)}{suffix}</span>;
 }
 
-// The app mark: a speech bubble holding the two discs.
-function HellooMark({ size = 64 }) {
-  const r = size * 0.22;
-  return <span style={{ width: size, height: size, borderRadius: r, background: T.gradWallet, display: "inline-flex", alignItems: "center", justifyContent: "center", boxShadow: "0 12px 30px rgba(76,29,149,0.28)", position: "relative" }}><svg width={size * 0.6} height={size * 0.6} viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M12 3.5c4.8 0 8.5 3.4 8.5 7.6s-3.7 7.6-8.5 7.6c-1 0-2-.1-2.9-.4L4.5 20l1.2-3.6C4.3 15 3.5 13.1 3.5 11.1 3.5 6.9 7.2 3.5 12 3.5z" fill="#fff" /><circle cx="9.2" cy="11.2" r="1.9" fill="#DC2626" /><circle cx="14.8" cy="11.2" r="1.9" fill="#2563EB" /></svg></span>;
+// The app mark, as the founder drew it: two speech bubbles with tails at
+// opposite corners, joined by a handset's curve. Four treatments:
+//   navy   — navy on white, white dots (as drawn)
+//   dots   — navy, the first two dots in GL●●BAL's colours
+//   purple — white mark on Gloobal's Royal Purple, purple dots
+//   ink    — purple mark on white, coloured dots
+var HELLOO_MARK_VARIANTS = {
+  navy: { bg: "#F7F6FB", ink: "#1B1838", dots: ["#fff", "#fff", "#fff"] },
+  dots: { bg: "#F7F6FB", ink: "#1B1838", dots: ["#2563EB", "#DC2626", "#fff"] },
+  purple: { bg: "url(#hlMarkGrad)", ink: "#fff", dots: ["#5B21B6", "#5B21B6", "#5B21B6"], grad: ["#3B0F63", "#7C3AED"] },
+  ink: { bg: "#F7F6FB", ink: "#3B0F63", dots: ["#DC2626", "#2563EB", "#3B0F63"] }
+};
+var HELLOO_MARK_DEFAULT = "navy";
+
+function HellooMark({ size = 64, variant = HELLOO_MARK_DEFAULT }) {
+  const v = HELLOO_MARK_VARIANTS[variant] || HELLOO_MARK_VARIANTS.navy;
+  const [d1, d2, d3] = v.dots;
+  return <svg width={size} height={size} viewBox="0 0 100 100" aria-label="Helloo" role="img" style={{ display: "block", flexShrink: 0, filter: "drop-shadow(0 10px 24px rgba(27,24,56,0.22))" }}>{v.grad && <defs><linearGradient id="hlMarkGrad" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stopColor={v.grad[0]} /><stop offset="1" stopColor={v.grad[1]} /></linearGradient></defs>}<rect width="100" height="100" rx="22" fill={v.bg} /><rect x="20" y="22" width="28" height="26" rx="7" fill={v.ink} /><path d="M11 13 L33 22 L20 35 Z" fill={v.ink} /><rect x="52" y="52" width="28" height="26" rx="7" fill={v.ink} /><path d="M89 87 L67 78 L80 65 Z" fill={v.ink} /><path d="M27 47 C27 64 36 72 52 72" fill="none" stroke={v.ink} strokeWidth="10.5" strokeLinecap="round" /><circle cx="28" cy="35" r="2.5" fill={d1} /><circle cx="34" cy="35" r="2.5" fill={d2} /><circle cx="40" cy="35" r="2.5" fill={d3} /><circle cx="60" cy="65" r="2.5" fill={d1} /><circle cx="66" cy="65" r="2.5" fill={d2} /><circle cx="72" cy="65" r="2.5" fill={d3} /></svg>;
 }
 
 // A person on Helloo. The GLOOBAL ID is the identity; the name, flag and
