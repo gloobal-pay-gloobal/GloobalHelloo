@@ -16,7 +16,7 @@ import {
   Forward as HlForward, Star as HlStar, Trash2 as HlTrash, Pin as HlPinIcon, BellOff as HlBellOff,
   Archive as HlArchive, Timer as HlTimer, Flag as HlFlag, Download as HlDownload, Share2 as HlShare,
   Smartphone as HlMobile, Sparkles as HlSpark, Lock as HlLock, Wallet as HlWallet, IndianRupee as HlRupee,
-  Hash as HlHash, Keyboard as HlKeyboard, Fingerprint as HlFinger, ChevronDown as HlDown, Send as HlSend, UserPlus as HlUserPlus, Pencil as HlPencil, Globe2 as HlGlobe, Briefcase as HlBriefcase, Smile as HlSmile, FileText as HlFileText, Pause as HlPause, RefreshCw as HlRetry
+  Hash as HlHash, Keyboard as HlKeyboard, Fingerprint as HlFinger, ChevronDown as HlDown, Send as HlSend, UserPlus as HlUserPlus, Pencil as HlPencil, Globe2 as HlGlobe, Briefcase as HlBriefcase, Smile as HlSmile, FileText as HlFileText, Pause as HlPause, RefreshCw as HlRetry, Grip as HlGrip, Info as HlInfo
 } from "lucide-react";
 
 var HELLOO_TABS = [

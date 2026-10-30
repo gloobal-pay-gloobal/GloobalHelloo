@@ -294,14 +294,15 @@ function HellooRoot() {
     markRead(chatId);
   }, [loadThread, markRead]);
 
-  const openChatWith = useCallbackH9(async (who) => {
+  const openChatWith = useCallbackH9(async (who, profile) => {
     try {
       const r = await hellooApi.open(who);
       const chat = r.chat;
       setThreads((all) => (all[chat.id] ? all : Object.assign({}, all, { [chat.id]: { chat, messages: [], more: false, loaded: false } })));
-      setScreen(null);
+      setScreen(profile ? "contact" : null);
       setSheet(null);
       openChat(chat.id);
+      refreshContacts();
     } catch (err) {
       setToast(err.message || "Could not open that chat.");
     }
@@ -709,6 +710,7 @@ function HellooRoot() {
 
   // ── Calls ────────────────────────────────────────────────────────────
   const [callLog, setCallLog] = useStateH9(null);
+  const [callFilter, setCallFilter] = useStateH9("all");
   const [call, setCall] = useStateH9(null); // { id, person, video, direction, state, seconds, muted, cameraOff, speaker, iceServers, chatId, note }
   const callRef = useRefH9(null);
   callRef.current = call;
@@ -1025,7 +1027,6 @@ function HellooRoot() {
   const shownRows = q ? rows.filter((c) => (c.person.name || "").toLowerCase().includes(q) || (c.person.gloobalId || "").includes(query.trim())) : rows;
   const unread = rows.reduce((n, c) => n + (c.unread || 0), 0);
   const callsAll = (callLog || []).map((c) => hellooCallFrom(c, photos));
-  const callRecents = callsAll.filter((c, i, arr) => arr.findIndex((x) => x.person.id === c.person.id) === i);
   const missedCount = callsAll.filter((c) => c.missed && c.at > new Date(Date.now() - 24 * 3600e3)).length;
   const banner = loadError
     ? <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 10, padding: "10px 14px", borderRadius: 16, background: T.surfaceSunk, color: T.inkSoft, fontSize: 12.5, fontWeight: 700 }}><HlRetry size={14} /><span style={{ flex: 1 }}>{loadError}</span><button onClick={refreshChats} style={{ border: "none", background: "none", color: T.accent, fontWeight: 800, cursor: "pointer", fontFamily: T.fontBody }}>Retry</button></div>
@@ -1104,10 +1105,6 @@ function HellooRoot() {
   if (screen === "me") {
     return shell(<HellooMeScreen me={me} stats={{ text: `${contacts.length} ${contacts.length === 1 ? "person" : "people"} from GLOOBAL · ${rows.length} ${rows.length === 1 ? "chat" : "chats"} · no fees` }} rows={meRows} onRow={onMeRow} onQr={() => setScreen("qr")} onCopy={async () => { try { await navigator.clipboard.writeText(me.gloobalId); setToast("GLOOBAL ID copied"); } catch (e) { setToast("Could not copy"); } }} onShare={shareHelloo} onOpenGloobal={() => window.open(HELLOO_GLOOBAL_SITE, "_blank", "noopener")} onSignOut={() => signOut("Signed out")} onBack={() => setScreen(null)} />);
   }
-  if (screen === "calllog") {
-    const callsAll = (callLog || []).map((c) => hellooCallFrom(c, photos));
-    return shell(<HellooCallLogScreen me={me} calls={callsAll} onBack={() => setScreen(null)} onCall={(c) => startCall(c.person, false)} onVideo={(c) => startCall(c.person, true)} onOpen={(c) => { if (c.chatId) openChat(c.chatId); }} />);
-  }
   if (screen === "blocked") {
     return shell(<HellooScreen><HellooTop left={<NavBackButton onClick={() => setScreen(null)} />} title="Blocked people" subtitle="They can't message you or see when you're online" /><div style={{ flex: 1, minHeight: 0, overflowY: "auto", padding: "0 16px 30px" }}>{blocked === null ? <HellooCard style={{ padding: 18, textAlign: "center", color: T.inkFaint, fontWeight: 700, fontSize: 13 }}>Loading…</HellooCard> : blocked.length === 0 ? <HellooCard style={{ padding: 18, textAlign: "center", color: T.inkSoft, fontSize: 13 }}>You haven't blocked anyone.</HellooCard> : <HellooCard>{blocked.map((card, i) => { const p = hellooPersonFrom(card, photos); return <div key={p.id} style={{ display: "flex", alignItems: "center", gap: 12, padding: "10px 14px", borderTop: i ? `1px solid ${T.line}` : "none" }}><HellooAvatar person={p} size={42} /><span style={{ flex: 1, minWidth: 0, fontSize: 14.5, fontWeight: 800, color: T.ink }}>{p.name}</span><button onClick={() => setBlock(p, false)} className="v2-tap" style={{ border: "none", borderRadius: 999, background: T.accentSoft, color: T.accent, fontWeight: 800, fontSize: 12.5, padding: "7px 13px", cursor: "pointer", fontFamily: T.fontBody }}>Unblock</button></div>; })}</HellooCard>}</div></HellooScreen>);
   }
@@ -1128,7 +1125,9 @@ function HellooRoot() {
       [HlBan, "Blocked people", () => { setSheet(null); refreshBlocked(); setScreen("blocked"); }],
       [HlPalette, "App theme", () => { setSheet(null); setScreen("theme"); }]
     ].filter(Boolean).map(([Icon, title, onPress], i) => <HellooRow key={title} Icon={Icon} title={title} first={i === 0} onPress={onPress} />)}</HellooCard></HellooSheet>}
-    {tab === "calls" && <HellooCallsHome me={me} recents={callRecents} missedCount={missedCount} onCallBack={(c) => startCall(c.person, c.video)} onOpenLog={() => setScreen("calllog")} dial={dial.value} onDial={(v) => setDial((d) => Object.assign({}, d, { value: v }))} match={dial.match} status={dial.status} onMessage={() => dial.match && openChatWith(dial.match.gloobalId)} onCall={() => dial.match && startCall(dial.match, false)} onVideo={() => dial.match && startCall(dial.match, true)} onScan={() => setScreen("scan")} onMe={() => setScreen("me")} />}
+    {tab === "calls" && <HellooCallsHome me={me} calls={callsAll} filter={callFilter} onFilter={setCallFilter} onCallBack={(c) => startCall(c.person, c.video)} onInfo={(c) => openChatWith(c.person.accountId, true)} onOpenDial={() => { setDial({ value: "", status: "", match: null }); setSheet("dial"); }} onAdd={() => setSheet("add")} onScan={() => setScreen("scan")} onMe={() => setScreen("me")} />}
+    {sheet === "dial" && <HellooDialSheet dial={dial.value} onDial={(v) => setDial((d) => Object.assign({}, d, { value: v }))} match={dial.match} status={dial.status} onMessage={() => dial.match && openChatWith(dial.match.gloobalId)} onCall={() => { if (dial.match) { setSheet(null); startCall(dial.match, false); } }} onVideo={() => { if (dial.match) { setSheet(null); startCall(dial.match, true); } }} onClose={() => setSheet(null)} />}
+    {sheet === "add" && <HellooSheet label="Add someone" onClose={() => setSheet(null)}><div style={{ fontSize: 16, fontWeight: 800, fontFamily: T.fontDisplay, color: T.ink, marginBottom: 4 }}>Add someone</div><div style={{ fontSize: 12.5, color: T.inkSoft, marginBottom: 12, lineHeight: 1.45 }}>Helloo never reads your phone book. People are here by GLOOBAL ID only.</div><HellooCard><HellooRow Icon={HlHash} title="Dial their GLOOBAL ID" value="12 symbols" first onPress={() => { setDial({ value: "", status: "", match: null }); setSheet("dial"); }} /><HellooRow Icon={HlScan} color="#0E7490" title="Scan their GLOOBAL QR" onPress={() => { setSheet(null); setScreen("scan"); }} /><HellooRow Icon={HlCopy} color="#EA580C" title="Paste an ID or link" onPress={async () => { try { const text = String(await navigator.clipboard.readText() || "").trim(); const parsed = typeof parseGloobalPayPayload === "function" ? parseGloobalPayPayload(text) : null; if (parsed && parsed.gloobalId) { setSheet(null); openChatWith(parsed.gloobalId, true); } else setToast("Nothing GLOOBAL on the clipboard"); } catch (e) { setToast("Long-press the dial box to paste instead"); } }} /></HellooCard>{contacts.length > 0 && <HellooSection title="People you've paid on GLOOBAL" hint="already here"><HellooCard>{contacts.slice(0, 8).map((p, i) => <button key={p.id} onClick={() => { setSheet(null); openChatWith(p.accountId, true); }} className="v2-tap" style={{ width: "100%", display: "flex", alignItems: "center", gap: 12, padding: "10px 14px", border: "none", borderTop: i ? `1px solid ${T.line}` : "none", background: "none", cursor: "pointer", textAlign: "left", fontFamily: T.fontBody }}><HellooAvatar person={p} size={40} /><span style={{ flex: 1, minWidth: 0, fontSize: 14.5, fontWeight: 800, color: T.ink, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{p.name}</span><HlChevron size={16} color={T.inkFaint} /></button>)}</HellooCard></HellooSection>}</HellooSheet>}
     {sheet === "start" && <HellooStartSheet suggested={contacts.slice(0, 8)} onPick={contactPick} onPad={() => { setSheet(null); setTab("calls"); }} onScan={() => { setSheet(null); setScreen("scan"); }} onGroup={() => setToast("Groups come in a later update")} onClose={() => setSheet(null)} />}
   </div><HellooTabBar active={tab} onChange={(t) => { setTab(t); setSheet(null); }} badges={{ chats: unread, callsDot: missedCount > 0 }} /></div>);
 }
