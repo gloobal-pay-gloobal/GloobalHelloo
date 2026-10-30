@@ -38,7 +38,11 @@ var hellooApi = {
   ask: (to, text, kind) => gloobalApiClient.post("/api/helloo/asks", { to, text, kind: kind || "message" }),
   asks: () => gloobalApiClient.get("/api/helloo/asks"),
   answerAsk: (id, action) => gloobalApiClient.post(`/api/helloo/asks/${encodeURIComponent(id)}`, { action }),
-  earnings: (month) => gloobalApiClient.get(`/api/helloo/earnings${month ? `?month=${encodeURIComponent(month)}` : ""}`)
+  earnings: (month) => gloobalApiClient.get(`/api/helloo/earnings${month ? `?month=${encodeURIComponent(month)}` : ""}`),
+  startCall: (to, video) => gloobalApiClient.post("/api/helloo/calls", { to, video: Boolean(video) }),
+  calls: () => gloobalApiClient.get("/api/helloo/calls"),
+  activeCall: () => gloobalApiClient.get("/api/helloo/calls/active"),
+  callAction: (id, action) => gloobalApiClient.post(`/api/helloo/calls/${encodeURIComponent(id)}/${action}`, {})
 };
 
 // "Last seen today at 14:05" / "yesterday at 21:10" / "12 Oct".
@@ -189,6 +193,12 @@ function hellooBubbleFrom(m, meAccountId, theyReadAt, voiceState, names) {
   base.source = m;
   if (m.paid && m.paid.amount) base.paidText = hellooMoneyText(m.paid.amount, m.paid.currency);
   if (m.kind === "deleted") return Object.assign(base, { kind: "deleted" });
+  if (m.kind === "call") {
+    const c = m.call || {};
+    const v = voiceState || {};
+    const missed = c.status === "missed" || (c.status === "cancelled" && !mine) || (c.status === "declined" && !mine);
+    return Object.assign(base, { kind: "call", video: Boolean(c.video), seconds: c.seconds || 0, missed, statusText: c.status === "ended" ? "" : missed ? "" : c.status === "declined" ? "Declined" : c.status === "cancelled" ? "Cancelled" : "", onCallBack: v.onCallBack });
+  }
   if (m.kind === "photo") {
     const v = voiceState || {};
     return Object.assign(base, { kind: "photo", text: m.text || "", width: (m.photo && m.photo.width) || 0, height: (m.photo && m.photo.height) || 0, src: v.src || m.localSrc || null, onOpen: v.onOpen });
@@ -433,4 +443,73 @@ async function hellooPushSync(ask) {
     app: "helloo"
   });
   return "on";
+}
+
+// A call from the server → the row the Calls side draws.
+function hellooCallFrom(c, photos) {
+  const person = hellooPersonFrom(c.person, photos);
+  const missed = c.status === "missed" || (c.direction === "in" && (c.status === "cancelled" || c.status === "declined"));
+  return { id: c.id, chatId: c.chatId, person, direction: c.direction, video: Boolean(c.video), status: c.status, seconds: c.seconds || 0, at: new Date(c.at), missed };
+}
+
+// Which side to open on: whatever happened last. A message (sent or
+// received) → Messages; a call (made, received or missed) → Calls.
+function hellooLatestSide(chats, calls) {
+  // A chat whose newest item is a call counts for the Calls side.
+  const lastChat = (chats || []).filter((c) => !(c.last && c.last.kind === "call")).reduce((t, c) => Math.max(t, new Date(c.lastAt || 0).getTime()), 0);
+  const lastCall = Math.max(
+    (calls || []).reduce((t, c) => Math.max(t, new Date(c.at || 0).getTime()), 0),
+    (chats || []).filter((c) => c.last && c.last.kind === "call").reduce((t, c) => Math.max(t, new Date(c.lastAt || 0).getTime()), 0)
+  );
+  if (!lastChat && !lastCall) return "chats";
+  return lastCall > lastChat ? "calls" : "chats";
+}
+
+// ── A call between two phones (WebRTC) ──────────────────────────────────
+//
+// The server only passes the handshake along; the sound and picture go
+// phone to phone. The caller makes the offer once the other side answers;
+// the callee answers it. Network candidates are exchanged as they come.
+function hellooPeer(iceServers, sendSignal, onRemoteStream, onState) {
+  const pc = new RTCPeerConnection({ iceServers: iceServers && iceServers.length ? iceServers : [{ urls: "stun:stun.l.google.com:19302" }] });
+  const remote = new MediaStream();
+  const pending = [];
+  let remoteSet = false;
+  pc.onicecandidate = (e) => { if (e.candidate) sendSignal({ candidate: e.candidate.toJSON() }); };
+  pc.ontrack = (e) => { e.streams[0] ? e.streams[0].getTracks().forEach((t) => remote.addTrack(t)) : remote.addTrack(e.track); onRemoteStream(remote); };
+  pc.onconnectionstatechange = () => onState && onState(pc.connectionState);
+  return {
+    pc,
+    addLocal(stream) { stream.getTracks().forEach((t) => pc.addTrack(t, stream)); },
+    async offer() { const d = await pc.createOffer(); await pc.setLocalDescription(d); sendSignal({ sdp: pc.localDescription.toJSON() }); },
+    async handle(data) {
+      if (data.sdp) {
+        await pc.setRemoteDescription(new RTCSessionDescription(data.sdp));
+        remoteSet = true;
+        while (pending.length) { try { await pc.addIceCandidate(pending.shift()); } catch (e) { /* stale */ } }
+        if (data.sdp.type === "offer") { const d = await pc.createAnswer(); await pc.setLocalDescription(d); sendSignal({ sdp: pc.localDescription.toJSON() }); }
+      } else if (data.candidate) {
+        const c = new RTCIceCandidate(data.candidate);
+        if (remoteSet) { try { await pc.addIceCandidate(c); } catch (e) { /* stale */ } } else pending.push(c);
+      }
+    },
+    close() { try { pc.getSenders().forEach((s) => s.track && s.track.stop()); } catch (e) { /* closed */ } try { pc.close(); } catch (e) { /* closed */ } }
+  };
+}
+
+async function hellooLocalMedia(video, facing) {
+  const constraints = { audio: { echoCancellation: true, noiseSuppression: true }, video: video ? { facingMode: facing || "user", width: { ideal: 640 }, height: { ideal: 480 } } : false };
+  return navigator.mediaDevices.getUserMedia(constraints);
+}
+
+// A ringtone and a ringback made on the phone, so an incoming call is
+// heard without any audio file.
+function hellooTone(kind) {
+  let ctx = null, timer = null;
+  const beep = (f, when, len) => { const o = ctx.createOscillator(); const g = ctx.createGain(); o.frequency.value = f; o.connect(g); g.connect(ctx.destination); g.gain.setValueAtTime(0.0001, when); g.gain.exponentialRampToValueAtTime(0.25, when + 0.02); g.gain.exponentialRampToValueAtTime(0.0001, when + len); o.start(when); o.stop(when + len + 0.05); };
+  const cycle = () => { const t = ctx.currentTime; if (kind === "ring") { beep(880, t, 0.25); beep(1046, t + 0.3, 0.25); beep(880, t + 0.6, 0.25); beep(1046, t + 0.9, 0.25); } else { beep(440, t, 0.9); } };
+  return {
+    start() { try { ctx = new (window.AudioContext || window.webkitAudioContext)(); cycle(); timer = setInterval(cycle, kind === "ring" ? 2200 : 3000); if (navigator.vibrate && kind === "ring") navigator.vibrate([400, 300, 400]); } catch (e) { /* no audio */ } },
+    stop() { clearInterval(timer); if (ctx) { try { ctx.close(); } catch (e) { /* closed */ } ctx = null; } if (navigator.vibrate) try { navigator.vibrate(0); } catch (e) { /* ignore */ } }
+  };
 }

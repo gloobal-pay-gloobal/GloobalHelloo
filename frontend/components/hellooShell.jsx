@@ -26,21 +26,35 @@ var HELLOO_TABS = [
   { key: "me", label: "Me", Icon: HlUser }
 ];
 
+// ── TWO SIDES, ONE BAR ────────────────────────────────────────────────
+//
+// Helloo is two things: messages and calls. The bar at the bottom says
+// exactly that — two icons in one rounded bar. The side you are on sits
+// in a coloured pill with its name; the other side is just its icon. The
+// pill slides across when you switch. Badges: a count of unread messages,
+// a dot for a missed call.
+var HELLOO_SIDES = [
+  { key: "chats", label: "Messages", Icon: HlChat },
+  { key: "calls", label: "Calls", Icon: HlPhone }
+];
+
 function HellooTabBar({ active, onChange, badges = {} }) {
-  const float = HT.tabBar === "float";
-  return <nav aria-label="Main" style={float
-    ? { display: "flex", margin: "0 14px calc(12px + env(safe-area-inset-bottom, 0px))", padding: "6px 6px", borderRadius: 26, background: HT.tabBg || HT.cardBg || T.surface, border: HT.cardBorder || "none", backdropFilter: HT.blur || "blur(14px)", WebkitBackdropFilter: HT.blur || "blur(14px)", boxShadow: T.shadowFloat, flexShrink: 0 }
-    : { display: "flex", borderTop: HT.tabTopBorder || `1px solid ${T.line}`, background: HT.tabBg || T.surface, padding: "6px 8px calc(8px + env(safe-area-inset-bottom, 0px))", flexShrink: 0 }}>{HELLOO_TABS.map(({ key, label, Icon }) => {
+  const at = HELLOO_SIDES.findIndex((s) => s.key === active);
+  const idx = at < 0 ? 0 : at;
+  const accent = HT.onAccent ? T.accent : T.accent;
+  return <nav aria-label="Main" style={{ display: "flex", justifyContent: "center", padding: "6px 16px calc(10px + env(safe-area-inset-bottom, 0px))", background: HT.tabBar === "float" ? "transparent" : (HT.tabBg || T.surface), borderTop: HT.tabBar === "float" ? "none" : (HT.tabTopBorder || `1px solid ${T.line}`), flexShrink: 0 }}><div style={{ position: "relative", display: "grid", gridTemplateColumns: "1fr 1fr", width: "100%", maxWidth: 360, height: 56, borderRadius: 28, background: HT.tabBar === "float" ? (HT.tabBg || HT.cardBg || T.surface) : (HT.cardBg && HT.cardBg !== T.surface ? HT.cardBg : T.surfaceSunk), border: HT.cardBorder || "none", boxShadow: HT.tabBar === "float" ? T.shadowFloat : "none", padding: 5, boxSizing: "border-box" }}><span aria-hidden="true" style={{ position: "absolute", top: 5, bottom: 5, left: 5, width: "calc(50% - 5px)", borderRadius: 23, background: T.gradButton, boxShadow: HT.buttonGlow || "0 6px 16px rgba(76,29,149,0.28)", transform: `translateX(${idx * 100}%)`, transition: "transform 0.28s cubic-bezier(.4,0,.2,1)" }} />{HELLOO_SIDES.map(({ key, label, Icon }) => {
     const on = active === key;
     const n = badges[key] || 0;
+    const dot = badges[key + "Dot"];
     return <button
       key={key}
       onClick={() => onChange && onChange(key)}
       aria-current={on ? "page" : undefined}
+      aria-label={label}
       className="v2-tap"
-      style={{ flex: 1, display: "flex", flexDirection: "column", alignItems: "center", gap: 3, border: "none", background: "none", padding: "6px 0 2px", cursor: "pointer", color: on ? T.accent : T.inkFaint, fontFamily: T.fontBody }}
-    ><span style={{ position: "relative", width: 44, height: 28, borderRadius: HT.chipRadius ?? 14, background: on ? T.accentSoft : "transparent", display: "flex", alignItems: "center", justifyContent: "center", transition: "background 0.2s" }}><Icon size={20} />{n > 0 && <span style={{ position: "absolute", top: -4, right: 2, minWidth: 17, height: 17, borderRadius: 9, background: T.negative, color: "#fff", fontSize: 10, fontWeight: 800, display: "flex", alignItems: "center", justifyContent: "center", padding: "0 4px", border: `2px solid ${T.surface}` }}>{n}</span>}</span><span style={{ fontSize: 10.5, fontWeight: on ? 800 : 700 }}>{label}</span></button>;
-  })}</nav>;
+      style={{ position: "relative", zIndex: 1, display: "flex", alignItems: "center", justifyContent: "center", gap: 8, border: "none", background: "none", cursor: "pointer", color: on ? (HT.onAccent || "#fff") : T.inkSoft, fontFamily: T.fontBody, transition: "color 0.2s", padding: 0 }}
+    ><span style={{ position: "relative", display: "inline-flex" }}><Icon size={22} strokeWidth={on ? 2.4 : 2} />{n > 0 && <span style={{ position: "absolute", top: -7, right: -11, minWidth: 17, height: 17, borderRadius: 9, background: on ? "#fff" : T.negative, color: on ? T.accent : "#fff", fontSize: 10, fontWeight: 800, display: "flex", alignItems: "center", justifyContent: "center", padding: "0 4px" }}>{n}</span>}{!n && dot && <span style={{ position: "absolute", top: -3, right: -5, width: 9, height: 9, borderRadius: "50%", background: on ? "#fff" : T.negative, border: `2px solid ${on ? T.accent : T.surface}` }} />}</span>{on && <span style={{ fontSize: 14, fontWeight: 800, letterSpacing: -0.1 }}>{label}</span>}</button>;
+  })}</div></nav>;
 }
 
 function HellooRoundButton({ Icon, label, onClick, solid = false, size = 40, color }) {
