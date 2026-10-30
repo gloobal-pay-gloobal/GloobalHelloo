@@ -27,7 +27,10 @@ var HELLOO_TABS = [
 ];
 
 function HellooTabBar({ active, onChange, badges = {} }) {
-  return <nav aria-label="Main" style={{ display: "flex", borderTop: `1px solid ${T.line}`, background: T.surface, padding: "6px 8px calc(8px + env(safe-area-inset-bottom, 0px))", flexShrink: 0 }}>{HELLOO_TABS.map(({ key, label, Icon }) => {
+  const float = HT.tabBar === "float";
+  return <nav aria-label="Main" style={float
+    ? { display: "flex", margin: "0 14px calc(12px + env(safe-area-inset-bottom, 0px))", padding: "6px 6px", borderRadius: 26, background: HT.tabBg || HT.cardBg || T.surface, border: HT.cardBorder || "none", backdropFilter: HT.blur || "blur(14px)", WebkitBackdropFilter: HT.blur || "blur(14px)", boxShadow: T.shadowFloat, flexShrink: 0 }
+    : { display: "flex", borderTop: HT.tabTopBorder || `1px solid ${T.line}`, background: HT.tabBg || T.surface, padding: "6px 8px calc(8px + env(safe-area-inset-bottom, 0px))", flexShrink: 0 }}>{HELLOO_TABS.map(({ key, label, Icon }) => {
     const on = active === key;
     const n = badges[key] || 0;
     return <button
@@ -36,17 +39,17 @@ function HellooTabBar({ active, onChange, badges = {} }) {
       aria-current={on ? "page" : undefined}
       className="v2-tap"
       style={{ flex: 1, display: "flex", flexDirection: "column", alignItems: "center", gap: 3, border: "none", background: "none", padding: "6px 0 2px", cursor: "pointer", color: on ? T.accent : T.inkFaint, fontFamily: T.fontBody }}
-    ><span style={{ position: "relative", width: 44, height: 28, borderRadius: 14, background: on ? T.accentSoft : "transparent", display: "flex", alignItems: "center", justifyContent: "center", transition: "background 0.2s" }}><Icon size={20} />{n > 0 && <span style={{ position: "absolute", top: -4, right: 2, minWidth: 17, height: 17, borderRadius: 9, background: T.negative, color: "#fff", fontSize: 10, fontWeight: 800, display: "flex", alignItems: "center", justifyContent: "center", padding: "0 4px", border: `2px solid ${T.surface}` }}>{n}</span>}</span><span style={{ fontSize: 10.5, fontWeight: on ? 800 : 700 }}>{label}</span></button>;
+    ><span style={{ position: "relative", width: 44, height: 28, borderRadius: HT.chipRadius ?? 14, background: on ? T.accentSoft : "transparent", display: "flex", alignItems: "center", justifyContent: "center", transition: "background 0.2s" }}><Icon size={20} />{n > 0 && <span style={{ position: "absolute", top: -4, right: 2, minWidth: 17, height: 17, borderRadius: 9, background: T.negative, color: "#fff", fontSize: 10, fontWeight: 800, display: "flex", alignItems: "center", justifyContent: "center", padding: "0 4px", border: `2px solid ${T.surface}` }}>{n}</span>}</span><span style={{ fontSize: 10.5, fontWeight: on ? 800 : 700 }}>{label}</span></button>;
   })}</nav>;
 }
 
 function HellooRoundButton({ Icon, label, onClick, solid = false, size = 40, color }) {
-  return <button onClick={onClick} aria-label={label} title={label} className="v2-tap" style={{ width: size, height: size, borderRadius: "50%", border: "none", background: solid ? T.gradButton : T.surface, boxShadow: solid ? "0 8px 20px -10px rgba(76,29,149,0.9)" : T.shadowCard, display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer", flexShrink: 0, padding: 0 }}><Icon size={size * 0.45} color={solid ? "#fff" : (color || T.ink)} /></button>;
+  return <button onClick={onClick} aria-label={label} title={label} className="v2-tap" style={{ width: size, height: size, borderRadius: HT.iconRadius ?? "50%", border: solid ? "none" : (HT.cardBorder || "none"), background: solid ? T.gradButton : (HT.cardBg || T.surface), backdropFilter: solid ? undefined : HT.blur, boxShadow: solid ? (HT.buttonGlow || "0 8px 20px -10px rgba(76,29,149,0.9)") : (HT.cardShadow ?? T.shadowCard), display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer", flexShrink: 0, padding: 0 }}><Icon size={size * 0.45} color={solid ? (HT.onAccent || "#fff") : (color || T.ink)} /></button>;
 }
 
 // The screen frame: a fixed, full-height column with Gloobal's wash.
 function HellooScreen({ children, style, dark = false }) {
-  return <div style={{ position: "absolute", inset: 0, display: "flex", flexDirection: "column", background: dark ? HT.callBg : T.bg, color: dark ? HT.callInk : T.ink, fontFamily: T.fontBody, overflow: "hidden", ...style }}>{children}</div>;
+  return <div style={{ position: "absolute", inset: 0, display: "flex", flexDirection: "column", background: dark ? HT.callBg : (HT.screenBg || T.bg), color: dark ? HT.callInk : T.ink, fontFamily: T.fontBody, overflow: "hidden", ...style }}>{children}</div>;
 }
 
 function HellooTop({ left, title, subtitle, right, big = false }) {
@@ -54,11 +57,11 @@ function HellooTop({ left, title, subtitle, right, big = false }) {
 }
 
 function HellooSheet({ title, onClose, children, label, zIndex = 60 }) {
-  return <div role="dialog" aria-modal="true" aria-label={label || (typeof title === "string" ? title : "Sheet")} style={{ position: "absolute", inset: 0, zIndex, background: "rgba(15,12,35,0.45)", display: "flex", alignItems: "flex-end" }} onClick={(e) => { if (e.target === e.currentTarget && onClose) onClose(); }}><div style={{ width: "100%", maxHeight: "92%", display: "flex", flexDirection: "column", background: T.bg, borderRadius: "26px 26px 0 0", boxShadow: T.shadowFloat }}><div style={{ display: "flex", justifyContent: "center", padding: "10px 0 2px" }}><span style={{ width: 40, height: 4, borderRadius: 2, background: T.line }} /></div>{title && <div style={{ padding: "8px 18px 4px", fontSize: 18, fontWeight: 800, fontFamily: T.fontDisplay, color: T.ink }}>{title}</div>}<div style={{ flex: 1, minHeight: 0, overflowY: "auto", padding: "8px 18px calc(18px + env(safe-area-inset-bottom, 0px))" }}>{children}</div></div></div>;
+  return <div role="dialog" aria-modal="true" aria-label={label || (typeof title === "string" ? title : "Sheet")} style={{ position: "absolute", inset: 0, zIndex, background: "rgba(15,12,35,0.45)", display: "flex", alignItems: "flex-end" }} onClick={(e) => { if (e.target === e.currentTarget && onClose) onClose(); }}><div style={{ width: "100%", maxHeight: "92%", display: "flex", flexDirection: "column", background: T.bg, borderRadius: `${Math.max(HT.radius ?? 26, 10)}px ${Math.max(HT.radius ?? 26, 10)}px 0 0`, boxShadow: T.shadowFloat }}><div style={{ display: "flex", justifyContent: "center", padding: "10px 0 2px" }}><span style={{ width: 40, height: 4, borderRadius: 2, background: T.line }} /></div>{title && <div style={{ padding: "8px 18px 4px", fontSize: 18, fontWeight: 800, fontFamily: T.fontDisplay, color: T.ink }}>{title}</div>}<div style={{ flex: 1, minHeight: 0, overflowY: "auto", padding: "8px 18px calc(18px + env(safe-area-inset-bottom, 0px))" }}>{children}</div></div></div>;
 }
 
 function HellooChip({ on, children, onClick, count }) {
-  return <button onClick={onClick} className="v2-tap" style={{ display: "inline-flex", alignItems: "center", gap: 5, border: on ? "none" : `1px solid ${T.line}`, background: on ? T.accentSoft : T.surface, color: on ? T.accent : T.inkSoft, borderRadius: 999, padding: "7px 13px", fontSize: 12.5, fontWeight: 800, cursor: "pointer", whiteSpace: "nowrap", fontFamily: T.fontBody }}>{children}{count > 0 && <span style={{ fontSize: 11, color: on ? T.accent : T.inkFaint }}>{count}</span>}</button>;
+  return <button onClick={onClick} className="v2-tap" style={{ display: "inline-flex", alignItems: "center", gap: 5, border: on ? (HT.chipOnBorder || "none") : (HT.cardBorder || `1px solid ${T.line}`), background: on ? T.accentSoft : (HT.cardBg || T.surface), backdropFilter: HT.blur, color: on ? T.accent : T.inkSoft, borderRadius: HT.chipRadius ?? 999, padding: "7px 13px", fontSize: 12.5, fontWeight: 800, cursor: "pointer", whiteSpace: "nowrap", fontFamily: T.fontBody }}>{children}{count > 0 && <span style={{ fontSize: 11, color: on ? T.accent : T.inkFaint }}>{count}</span>}</button>;
 }
 
 function HellooRow({ Icon, color = T.accent, title, value, onPress, danger = false, first = false }) {
@@ -68,12 +71,12 @@ function HellooRow({ Icon, color = T.accent, title, value, onPress, danger = fal
 function HellooCard({ children, style }) {
   // flexShrink 0: inside a scrolling flex column, a card with overflow
   // hidden would otherwise be squeezed to its padding (min-height: 0).
-  return <div style={{ background: T.surface, borderRadius: 20, boxShadow: T.shadowCard, overflow: "hidden", flexShrink: 0, ...style }}>{children}</div>;
+  return <div style={{ background: HT.cardBg || T.surface, borderRadius: HT.radius ?? 20, boxShadow: HT.cardShadow ?? T.shadowCard, border: HT.cardBorder || "none", backdropFilter: HT.blur || undefined, WebkitBackdropFilter: HT.blur || undefined, overflow: "hidden", flexShrink: 0, ...style }}>{children}</div>;
 }
 
 function HellooPrimary({ children, onClick, disabled, Icon, color }) {
-  return <button onClick={onClick} disabled={disabled} className="v2-tap" style={{ width: "100%", minHeight: 50, display: "flex", alignItems: "center", justifyContent: "center", gap: 8, borderRadius: 999, border: "none", background: disabled ? T.gradButtonDisabled : (color || T.gradButton), color: "#fff", fontSize: 15, fontWeight: 800, cursor: disabled ? "default" : "pointer", fontFamily: T.fontBody }}>{Icon && <Icon size={18} color="#fff" />}{children}</button>;
+  return <button onClick={onClick} disabled={disabled} className="v2-tap" style={{ width: "100%", minHeight: 50, display: "flex", alignItems: "center", justifyContent: "center", gap: 8, borderRadius: HT.buttonRadius ?? 999, border: "none", background: disabled ? T.gradButtonDisabled : (color || T.gradButton), boxShadow: disabled ? "none" : (HT.buttonGlow || "none"), color: color ? "#fff" : (HT.onAccent || "#fff"), fontSize: 15, fontWeight: 800, cursor: disabled ? "default" : "pointer", fontFamily: T.fontBody, letterSpacing: HT.buttonTracking || 0, textTransform: HT.buttonCase || "none" }}>{Icon && <Icon size={18} color={color ? "#fff" : (HT.onAccent || "#fff")} />}{children}</button>;
 }
 function HellooSecondary({ children, onClick, Icon }) {
-  return <button onClick={onClick} className="v2-tap" style={{ width: "100%", minHeight: 48, display: "flex", alignItems: "center", justifyContent: "center", gap: 8, borderRadius: 999, border: `1px solid ${T.line}`, background: T.surface, color: T.ink, fontSize: 14.5, fontWeight: 800, cursor: "pointer", fontFamily: T.fontBody }}>{Icon && <Icon size={18} color={T.ink} />}{children}</button>;
+  return <button onClick={onClick} className="v2-tap" style={{ width: "100%", minHeight: 48, display: "flex", alignItems: "center", justifyContent: "center", gap: 8, borderRadius: HT.buttonRadius ?? 999, border: HT.cardBorder || `1px solid ${T.line}`, background: HT.cardBg || T.surface, backdropFilter: HT.blur, color: T.ink, fontSize: 14.5, fontWeight: 800, cursor: "pointer", fontFamily: T.fontBody }}>{Icon && <Icon size={18} color={T.ink} />}{children}</button>;
 }

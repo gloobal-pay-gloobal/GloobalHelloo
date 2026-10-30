@@ -155,8 +155,12 @@ Later: calls (voice), groups + split, orders in thread, Spent face, area map, be
 per-person limits, quiet hours, Government & Personal letter sets, communities etc.
 
 ## Themes (30 Oct, late)
-- Six app themes in Me → App theme: GLOOBAL (default light), Midnight (dark), Emerald,
-  Ocean, Rose, Graphite (dark, amber). Default follows the phone: GLOOBAL in light mode,
-  Midnight in dark mode, until the person picks one. Remembered per device.
+- Six app themes in Me → App theme, each with its own shape, surface, type and wallpaper,
+  not just colours: GLOOBAL (house style), Aurora (dark glass over an aurora, floating tab
+  bar), Paper (ink on white, Fraunces serif, hairlines, square corners), Bazaar (marigold +
+  peacock teal, Baloo 2 / Poppins, rangoli chat wallpaper, round), Sky (pastel sky, glass
+  cards, Poppins, floating bar), Graphite (near-black, amber, DM Mono, sharp, ruled chat).
+  Default follows the phone: GLOOBAL in light mode, Aurora in dark mode. Remembered per device.
+  index.html must load: Space Grotesk, Fraunces, Baloo 2, Poppins, DM Mono, Inter.
 - A theme is one set of tokens written into T and HT (applyHellooTheme); no screen knows
   which theme it is in. Money colours keep their meaning: green = moved/free, red = warning.
