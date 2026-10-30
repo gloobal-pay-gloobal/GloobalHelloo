@@ -19,6 +19,7 @@ const GLOOBAL_BUNDLE = join(GLOOBAL_ROOT, "gloobal-essentials-preview", "src", "
 
 const HELLOO_MODULES = [
   "constants/hellooTheme.jsx",
+  "constants/hellooThemes.jsx",
   "components/hellooShell.jsx",
   "screens/Entry.jsx",
   "screens/Chats.jsx",

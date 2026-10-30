@@ -36,7 +36,7 @@ function HellooTabBar({ active, onChange, badges = {} }) {
       aria-current={on ? "page" : undefined}
       className="v2-tap"
       style={{ flex: 1, display: "flex", flexDirection: "column", alignItems: "center", gap: 3, border: "none", background: "none", padding: "6px 0 2px", cursor: "pointer", color: on ? T.accent : T.inkFaint, fontFamily: T.fontBody }}
-    ><span style={{ position: "relative", width: 44, height: 28, borderRadius: 14, background: on ? T.accentSoft : "transparent", display: "flex", alignItems: "center", justifyContent: "center", transition: "background 0.2s" }}><Icon size={20} />{n > 0 && <span style={{ position: "absolute", top: -4, right: 2, minWidth: 17, height: 17, borderRadius: 9, background: T.negative, color: "#fff", fontSize: 10, fontWeight: 800, display: "flex", alignItems: "center", justifyContent: "center", padding: "0 4px", border: "2px solid #fff" }}>{n}</span>}</span><span style={{ fontSize: 10.5, fontWeight: on ? 800 : 700 }}>{label}</span></button>;
+    ><span style={{ position: "relative", width: 44, height: 28, borderRadius: 14, background: on ? T.accentSoft : "transparent", display: "flex", alignItems: "center", justifyContent: "center", transition: "background 0.2s" }}><Icon size={20} />{n > 0 && <span style={{ position: "absolute", top: -4, right: 2, minWidth: 17, height: 17, borderRadius: 9, background: T.negative, color: "#fff", fontSize: 10, fontWeight: 800, display: "flex", alignItems: "center", justifyContent: "center", padding: "0 4px", border: `2px solid ${T.surface}` }}>{n}</span>}</span><span style={{ fontSize: 10.5, fontWeight: on ? 800 : 700 }}>{label}</span></button>;
   })}</nav>;
 }
 

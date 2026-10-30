@@ -153,3 +153,10 @@ Pay cards → push → communities/broadcast/linked/scheduled → calls.
 9. Push notifications
 Later: calls (voice), groups + split, orders in thread, Spent face, area map, best hour/price,
 per-person limits, quiet hours, Government & Personal letter sets, communities etc.
+
+## Themes (30 Oct, late)
+- Six app themes in Me → App theme: GLOOBAL (default light), Midnight (dark), Emerald,
+  Ocean, Rose, Graphite (dark, amber). Default follows the phone: GLOOBAL in light mode,
+  Midnight in dark mode, until the person picks one. Remembered per device.
+- A theme is one set of tokens written into T and HT (applyHellooTheme); no screen knows
+  which theme it is in. Money colours keep their meaning: green = moved/free, red = warning.
