@@ -1,0 +1,42 @@
+// frontend/screens/Chats.jsx
+//
+// Home. The list of conversations, a search that also understands a
+// GLOOBAL ID, and one button to start something: the Start sheet, which
+// is the only place a new person enters your Helloo — by ID, by QR, or
+// from the people you have already paid on Gloobal.
+import { useState as useStateH3 } from "react";
+
+function hellooLastLine(m) {
+  if (!m) return "";
+  if (m.kind === "text") return m.text;
+  if (m.kind === "voice") return `🎤 Voice note · ${hellooDuration(m.seconds)}`;
+  if (m.kind === "photo") return "📷 Photo";
+  if (m.kind === "call") return `${m.missed ? "Missed" : ""} ${m.video ? "video" : "voice"} call`.trim();
+  if (m.kind === "receipt") return `${m.from === "me" ? "You paid" : "Paid you"} ${m.amountText}`;
+  if (m.kind === "request") return `${m.from === "me" ? "You requested" : "Requested"} ${m.amountText}${m.paid ? " · Paid" : ""}`;
+  return "";
+}
+
+function HellooChatRow({ chat, onOpen, first }) {
+  const last = chat.messages[chat.messages.length - 1];
+  const unread = chat.unread || 0;
+  return <button onClick={() => onOpen && onOpen(chat)} className="v2-tap" style={{ width: "100%", display: "flex", alignItems: "center", gap: 12, padding: "11px 14px", border: "none", borderTop: first ? "none" : `1px solid ${T.line}`, background: "none", cursor: "pointer", textAlign: "left", fontFamily: T.fontBody }}><HellooAvatar person={chat.person} size={50} online={chat.person.online} /><span style={{ flex: 1, minWidth: 0 }}><span style={{ display: "flex", alignItems: "baseline", gap: 8 }}><span style={{ flex: 1, minWidth: 0, fontSize: 15, fontWeight: 800, color: T.ink, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{chat.person.handle ? <CreatorHandleText handle={chat.person.handle} /> : chat.person.name}</span><span style={{ fontSize: 11, fontWeight: 700, color: unread ? T.accent : T.inkFaint, flexShrink: 0 }}>{last ? hellooWhen(last.at) : ""}</span></span><span style={{ display: "flex", alignItems: "center", gap: 8, marginTop: 3 }}><span style={{ flex: 1, minWidth: 0, fontSize: 13, color: unread ? T.ink : T.inkSoft, fontWeight: unread ? 700 : 500, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{last && last.from === "me" && last.kind === "text" && <span style={{ color: last.read ? T.accent2 : T.inkFaint, marginRight: 4 }}>{last.read ? "✓✓" : "✓"}</span>}{hellooLastLine(last)}</span>{chat.muted && <HlBellOff size={13} color={T.inkFaint} />}{chat.pinned && <HlPinIcon size={13} color={T.inkFaint} />}{unread > 0 && <span style={{ minWidth: 20, height: 20, borderRadius: 10, background: T.accent, color: "#fff", fontSize: 11, fontWeight: 800, display: "inline-flex", alignItems: "center", justifyContent: "center", padding: "0 6px" }}>{unread}</span>}</span></span></button>;
+}
+
+function HellooChatsScreen({ me, chats, onOpen, onStart, onScan, onSearch, query = "", filter = "all", onFilter, onMore }) {
+  const filters = [["all", "All", 0], ["unread", "Unread", chats.filter((c) => c.unread).length], ["groups", "Groups", 0], ["shops", "Shops", 0]];
+  const shown = chats.filter((c) => filter === "all" || (filter === "unread" && c.unread) || (filter === "groups" && c.person.group) || (filter === "shops" && c.person.handle));
+  return <HellooScreen><HellooTop big title={<span style={{ fontSize: 26 }}><HellooWordmark /></span>} right={<><HellooRoundButton Icon={HlScan} label="Scan a GLOOBAL QR" onClick={onScan} /><HellooRoundButton Icon={HlMore} label="More" onClick={onMore} /></>} /><div style={{ padding: "0 16px 10px", flexShrink: 0 }}><label style={{ display: "flex", alignItems: "center", gap: 8, background: T.surface, border: `1px solid ${T.line}`, borderRadius: 999, padding: "10px 14px" }}><HlSearch size={17} color={T.inkFaint} /><input value={query} onChange={(e) => onSearch && onSearch(e.target.value)} placeholder="Search names, messages or a GLOOBAL ID" style={{ flex: 1, minWidth: 0, border: "none", outline: "none", background: "none", fontSize: 14, color: T.ink, fontFamily: T.fontBody }} /></label><div style={{ display: "flex", gap: 8, marginTop: 10, overflowX: "auto", scrollbarWidth: "none" }}>{filters.map(([k, l, n]) => <HellooChip key={k} on={filter === k} count={n} onClick={() => onFilter && onFilter(k)}>{l}</HellooChip>)}</div></div><div style={{ flex: 1, minHeight: 0, overflowY: "auto", padding: "0 16px 90px" }}><HellooCard>{shown.map((c, i) => <HellooChatRow key={c.id} chat={c} onOpen={onOpen} first={i === 0} />)}</HellooCard><div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 6, marginTop: 14, fontSize: 11.5, fontWeight: 700, color: HT.free }}><HlLock size={13} />Private to you and the people you talk to</div></div><button onClick={onStart} aria-label="Start a chat" className="v2-tap" style={{ position: "absolute", right: 18, bottom: "calc(86px + env(safe-area-inset-bottom, 0px))", width: 56, height: 56, borderRadius: 18, border: "none", background: T.gradButton, boxShadow: "0 12px 28px rgba(76,29,149,0.35)", display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer" }}><HlPlus size={26} color="#fff" /></button></HellooScreen>;
+}
+
+// The Start sheet: three ways a person comes in, one group.
+function HellooStartSheet({ onClose, onPad, onScan, onGroup, suggested = [], onPick }) {
+  const tile = (Icon, label, hint, onClick, color) => <button onClick={onClick} className="v2-tap" style={{ flex: 1, display: "flex", flexDirection: "column", alignItems: "center", gap: 7, padding: "14px 6px 12px", border: "none", borderRadius: 18, background: T.surface, boxShadow: T.shadowCard, cursor: "pointer", fontFamily: T.fontBody }}><span style={{ width: 46, height: 46, borderRadius: 15, background: color + "1F", display: "flex", alignItems: "center", justifyContent: "center" }}><Icon size={22} color={color} /></span><span style={{ fontSize: 12.5, fontWeight: 800, color: T.ink }}>{label}</span><span style={{ fontSize: 10.5, color: T.inkFaint, textAlign: "center", lineHeight: 1.3 }}>{hint}</span></button>;
+  return <HellooSheet title="Start" onClose={onClose}><div style={{ display: "flex", gap: 10 }}>{tile(HlHash, "Dial an ID", "12 symbols", onPad, T.accent)}{tile(HlScan, "Scan QR", "their GLOOBAL code", onScan, T.accent2)}{tile(HlUsers, "New group", "pick people", onGroup, "#DB2777")}</div><div style={{ fontSize: 10.5, fontWeight: 800, letterSpacing: 0.8, textTransform: "uppercase", color: T.inkFaint, margin: "20px 2px 8px" }}>People you've paid on GLOOBAL</div><HellooCard>{suggested.map((p, i) => <button key={p.id} onClick={() => onPick && onPick(p)} className="v2-tap" style={{ width: "100%", display: "flex", alignItems: "center", gap: 12, padding: "11px 14px", border: "none", borderTop: i ? `1px solid ${T.line}` : "none", background: "none", cursor: "pointer", textAlign: "left", fontFamily: T.fontBody }}><HellooAvatar person={p} size={42} /><span style={{ flex: 1, minWidth: 0 }}><span style={{ display: "block", fontSize: 14, fontWeight: 800, color: T.ink }}>{p.handle ? <CreatorHandleText handle={p.handle} /> : p.name}</span><span style={{ display: "block", fontSize: 11.5, color: T.inkSoft, marginTop: 2 }}>{p.lastPaid}</span></span><span style={{ fontSize: 12, fontWeight: 800, color: T.accent }}>Message</span></button>)}</HellooCard><div style={{ fontSize: 11.5, color: T.inkFaint, lineHeight: 1.45, margin: "10px 2px 0" }}>Helloo never reads your phone book. People are here by GLOOBAL ID only.</div></HellooSheet>;
+}
+
+// Long-press on a chat row.
+function HellooChatActions({ chat, onClose }) {
+  const items = [[HlPinIcon, chat.pinned ? "Unpin" : "Pin to top"], [HlBellOff, chat.muted ? "Unmute" : "Mute"], [HlArchive, "Archive"], [HlCheckCheck, "Mark as read"], [HlTrash, "Delete chat", true]];
+  return <HellooSheet onClose={onClose} label="Chat actions"><div style={{ display: "flex", alignItems: "center", gap: 12, padding: "4px 2px 12px" }}><HellooAvatar person={chat.person} size={40} /><span style={{ fontSize: 15, fontWeight: 800, color: T.ink }}>{hellooName(chat.person)}</span></div><HellooCard>{items.map(([Icon, label, danger], i) => <HellooRow key={label} Icon={Icon} title={label} danger={danger} first={i === 0} />)}</HellooCard></HellooSheet>;
+}

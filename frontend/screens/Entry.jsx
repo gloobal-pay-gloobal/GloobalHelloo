@@ -1,0 +1,40 @@
+// frontend/screens/Entry.jsx
+//
+// The way in. Three screens, and most people see only the first and last:
+//
+//   Welcome  → "Continue with GLOOBAL" hands off to the Gloobal app, which
+//              asks "Let Helloo in?" and comes back signed in. One tap.
+//   ID + PIN → for a phone without Gloobal installed: the same symbol pad
+//              and the same PIN screen Gloobal uses (LoginAuthScreen).
+//   Welcome back → the account's name and flag, then Chats.
+//
+// Helloo never creates an account. An ID nobody has leads to Gloobal's
+// own registration, because the account is a Gloobal account.
+import { useState as useStateH2, useEffect as useEffectH2 } from "react";
+
+function HellooSplash() {
+  return <HellooScreen style={{ alignItems: "center", justifyContent: "center", background: HT.wash }}><HellooMark size={96} /><div style={{ marginTop: 20, fontSize: 34, letterSpacing: -0.5 }}><HellooWordmark /></div><div style={{ marginTop: 6, fontSize: 12, color: T.inkSoft, display: "flex", alignItems: "center", gap: 6 }}>by <GloobalWordmark /></div><div style={{ position: "absolute", bottom: "calc(40px + env(safe-area-inset-bottom, 0px))", display: "flex", alignItems: "center", gap: 7, fontSize: 12.5, fontWeight: 700, color: HT.free }}><HlLock size={14} />Free calls and messages, every country</div></HellooScreen>;
+}
+
+function HellooWelcome({ onContinueWithGloobal, onEnterId, hasGloobal = true }) {
+  return <HellooScreen style={{ background: HT.wash }}><div style={{ flex: 1, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", padding: "0 28px", textAlign: "center" }}><HellooMark size={76} /><div style={{ marginTop: 18, fontSize: 26, fontWeight: 800, fontFamily: T.fontDisplay, letterSpacing: -0.5, color: T.ink }}>Your <GloobalWordmark suffix=" ID" /> is your number</div><div style={{ marginTop: 10, fontSize: 14, color: T.inkSoft, lineHeight: 1.5, maxWidth: 300 }}>Message and call anyone on GLOOBAL for free, in any country. No phone book, no new account.</div><div style={{ marginTop: 26, display: "flex", gap: 10 }}>{["−", "+", "×", "=", "○", "□", "●", "■"].map((s, i) => <span key={s} style={{ width: 30, height: 30, borderRadius: 9, background: T.surface, boxShadow: T.shadowCard, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 14, fontWeight: 800, color: POSITION_COLORS[i % POSITION_COLORS.length] }}>{s}</span>)}</div></div><div style={{ padding: "0 20px calc(22px + env(safe-area-inset-bottom, 0px))", display: "flex", flexDirection: "column", gap: 10 }}>{hasGloobal && <HellooPrimary onClick={onContinueWithGloobal}><span style={{ display: "inline-flex", alignItems: "center", gap: 8 }}><GloobalLogo size={22} radius="30%" />Continue with <GloobalWordmark /></span></HellooPrimary>}<HellooSecondary onClick={onEnterId} Icon={HlKeyboard}>{hasGloobal ? "Enter my GLOOBAL ID instead" : "Enter my GLOOBAL ID"}</HellooSecondary><div style={{ textAlign: "center", fontSize: 12, color: T.inkFaint, marginTop: 4 }}>No GLOOBAL ID yet? <span style={{ color: T.accent, fontWeight: 800 }}>Create one on GLOOBAL</span></div></div></HellooScreen>;
+}
+
+// What Gloobal shows when Helloo asks to come in. Lives in the Gloobal
+// app; drawn here so the flow can be seen whole.
+function GloobalLetHellooIn({ me, onAllow, onDeny }) {
+  return <HellooScreen><HellooTop left={<NavBackButton onClick={onDeny} />} title={<GloobalWordmark />} right={<NavFlagBadge flag={me.flag} />} /><div style={{ flex: 1, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", padding: "0 28px", textAlign: "center" }}><div style={{ display: "flex", alignItems: "center", gap: 14 }}><GloobalLogo size={56} /><span style={{ width: 34, height: 2, background: T.line, position: "relative" }}><span style={{ position: "absolute", left: 11, top: -5, width: 12, height: 12, borderRadius: "50%", background: HT.free }} /></span><HellooMark size={56} /></div><div style={{ marginTop: 20, fontSize: 22, fontWeight: 800, fontFamily: T.fontDisplay, color: T.ink }}>Let <HellooWordmark /> in?</div><div style={{ marginTop: 10, fontSize: 13.5, color: T.inkSoft, lineHeight: 1.5 }}>Helloo will sign in as you and can see your name, photo, country and the people you have paid. It can't move money.</div><HellooCard style={{ marginTop: 22, width: "100%", padding: 14, display: "flex", alignItems: "center", gap: 12 }}><ProfileAvatar photo={me.photo} name={me.name} size={44} /><div style={{ textAlign: "left", minWidth: 0 }}><div style={{ fontSize: 14.5, fontWeight: 800, color: T.ink }}>{me.name}</div><div style={{ fontSize: 13, marginTop: 2 }}><ColoredGloobalId id={me.id} /></div></div></HellooCard></div><div style={{ padding: "0 20px calc(22px + env(safe-area-inset-bottom, 0px))", display: "flex", flexDirection: "column", gap: 10 }}><HellooPrimary onClick={onAllow} Icon={HlFinger}>Allow with fingerprint</HellooPrimary><HellooSecondary onClick={onDeny}>Not now</HellooSecondary></div></HellooScreen>;
+}
+
+// Gloobal ID entry, on Gloobal's own dial. The chips above the dial fill
+// as symbols go in; at twelve, the ID is looked up and the status line
+// says what it found. A found account goes on to the PIN by itself.
+function HellooIdScreen({ value, onChange, status, onBack, onNext }) {
+  const found = status === "found";
+  return <HellooScreen><HellooTop left={<NavBackButton onClick={onBack} />} title={<span style={{ fontSize: 16.5 }}><GloobalWordmark suffix=" ID" /></span>} right={<HellooRoundButton Icon={HlMobile} label="Use mobile number instead" />} /><div style={{ flex: 1, minHeight: 0, display: "flex", flexDirection: "column", alignItems: "center", padding: "6px 18px 0", overflow: "hidden" }}><HellooCard style={{ width: "100%", padding: "14px 14px 12px" }}><div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}><span style={{ fontSize: 10.5, fontWeight: 800, letterSpacing: 1, textTransform: "uppercase", color: T.inkFaint }}>Sign in</span><span style={{ fontSize: 11.5, fontWeight: 700, color: T.inkFaint }}>{value.length}/12</span></div><div style={{ marginTop: 10 }}><SymbolChipRow length={12} value={value} masked={false} boxSize={22} fitWidth /></div></HellooCard><div style={{ height: 30, marginTop: 10, fontSize: 12.5, fontWeight: 800, color: found ? HT.free : status === "none" ? T.negative : T.inkFaint, display: "flex", alignItems: "center", gap: 6 }}>{status === "looking" && "Checking…"}{found && <><HlCheck size={15} />Account found · next, your PIN</>}{status === "none" && "No account with this ID yet"}</div><div style={{ flex: 1, minHeight: 0, display: "flex", alignItems: "center", justifyContent: "center", width: "100%" }}><SymbolDialPad value={value} onChange={onChange} length={12} /></div></div><div style={{ padding: "6px 20px calc(18px + env(safe-area-inset-bottom, 0px))" }}>{status === "none" ? <HellooSecondary Icon={HlSpark}>Create this ID on GLOOBAL</HellooSecondary> : <HellooPrimary disabled={!found} onClick={onNext}>Continue</HellooPrimary>}</div></HellooScreen>;
+}
+
+function HellooWelcomeBack({ me, onDone }) {
+  useEffectH2(() => { const t = setTimeout(() => onDone && onDone(), 1400); return () => clearTimeout(t); }, []);
+  return <HellooScreen style={{ alignItems: "center", justifyContent: "center", background: HT.wash }}><span style={{ width: 96, height: 96, borderRadius: "50%", padding: 3, background: `conic-gradient(${HT.free} 0 100%)`, display: "inline-block" }}><span style={{ display: "block", borderRadius: "50%", background: T.surface, padding: 3 }}><ProfileAvatar photo={me.photo} name={me.name} size={84} /></span></span><div style={{ marginTop: 16, fontSize: 24, fontWeight: 800, fontFamily: T.fontDisplay, color: T.ink, letterSpacing: -0.4 }}>Welcome back, {me.name.split(" ")[0]}</div><div style={{ marginTop: 6, display: "flex", alignItems: "center", gap: 8, fontSize: 13, color: T.inkSoft }}><FlagEmoji flag={me.flag} size={16} shape="circle" border="none" />{me.country} · <ColoredGloobalId id={me.id} /></div><div style={{ marginTop: 26, fontSize: 12, color: T.inkFaint }}>Opening Helloo…</div></HellooScreen>;
+}

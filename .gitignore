@@ -1,0 +1,4 @@
+node_modules/
+gloobal-helloo-preview/src/HellooApp.jsx
+gloobal-helloo-preview/dist/
+.env
