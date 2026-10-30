@@ -79,3 +79,7 @@ Pay cards → push → communities/broadcast/linked/scheduled → calls.
 - Tomorrow, satellite: the same protocol — store-and-forward messages, low-bitrate voice —
   carried over a satellite link where there is no network. Designed in from the start:
   every message is a small signed record that can wait and be delivered later.
+- Give some back: after a paid call (or any paid chat), the receiver can refund any
+  share, 0–100% on a bar (quick chips Keep all / 25% / 50% / All of it). It is an
+  ordinary Gloobal payment back to the payer; both chats get a "gave back" card.
+  Available right after the call ends and any time from Paid to reach me.
