@@ -137,7 +137,12 @@ function HellooRoot() {
     const waking = setTimeout(() => setPinWaking(true), 5000);
     try {
       const { user: signedIn } = await GloobalApi.login(signInAs, value);
+      // The token this sign-in just earned. Saving the session drops it when
+      // the phone still holds an old session of a DIFFERENT account, which
+      // left the person signed in with no token: every request refused.
+      const earned = gloobalAuthToken();
       gloobalSessionSave(signedIn, signedIn.mobileNumber || "", false);
+      if (earned && gloobalAuthToken() !== earned) gloobalAuthTokenSave(earned);
       setUser(signedIn);
       setPin("");
       setStage("back");
