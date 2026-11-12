@@ -27,6 +27,7 @@ var hellooApi = {
   media: (messageId) => gloobalApiClient.get(`/api/helloo/media/${encodeURIComponent(messageId)}`),
   prefs: (chatId, prefs) => gloobalApiClient.post(`/api/helloo/chats/${encodeURIComponent(chatId)}/prefs`, prefs),
   clear: (chatId) => gloobalApiClient.post(`/api/helloo/chats/${encodeURIComponent(chatId)}/clear`, {}),
+  orderStatus: (messageId, status) => gloobalApiClient.post(`/api/helloo/messages/${encodeURIComponent(messageId)}/order`, { status }),
   remove: (messageId, everyone) => gloobalApiClient.post(`/api/helloo/messages/${encodeURIComponent(messageId)}/delete`, { everyone: Boolean(everyone) }),
   presence: (accountId) => gloobalApiClient.get(`/api/helloo/people/${encodeURIComponent(accountId)}/presence`),
   block: (accountId, blocked) => gloobalApiClient.post("/api/helloo/block", { accountId, blocked }),
@@ -65,6 +66,7 @@ function hellooPreviewOf(m) {
   if (m.kind === "voice") return `Voice note · ${Math.round((m.voice && m.voice.seconds) || m.seconds || 0)}s`;
   if (m.kind === "photo") return m.text ? `Photo · ${m.text}` : "Photo";
   if (m.kind === "payment") return "Payment on GLOOBAL";
+  if (m.kind === "order") { const n = ((m.order && m.order.items) || []).reduce((t, l) => t + (Number(l.qty) || 0), 0); return `Order · ${n} ${n === 1 ? "thing" : "things"}`; }
   return String(m.text || "").replace(/\s+/g, " ").trim().slice(0, 120);
 }
 
@@ -219,6 +221,25 @@ function hellooBubbleFrom(m, meAccountId, theyReadAt, voiceState, names) {
       referenceId: p.referenceId
     });
   }
+  if (m.kind === "order") {
+    // An order from the shop's Bazaar price list, paid when it was placed.
+    const o = m.order || {};
+    const v = voiceState || {};
+    return Object.assign(base, {
+      kind: "order",
+      items: (o.items || []).map((l) => ({ qty: l.qty, name: l.title, lineText: hellooMoneyText((Number(l.price) || 0) * (Number(l.qty) || 0), o.currency) })),
+      totalText: hellooMoneyText(o.total, o.currency),
+      total: o.total,
+      currency: o.currency,
+      note: o.note || "",
+      paid: true,
+      status: o.status || "placed",
+      referenceId: m.payment && m.payment.referenceId,
+      onStatus: v.onStatus,
+      onRefund: v.onRefund,
+      statusBusy: Boolean(v.statusBusy)
+    });
+  }
   if (m.kind === "payment") {
     const p = m.payment || {};
     return Object.assign(base, {
@@ -256,7 +277,9 @@ function hellooChatRowFrom(chat, photos) {
         text: chat.last.preview,
         from: chat.last.from === chat.person.accountId ? "them" : "me",
         at: new Date(chat.lastAt),
-        read: Boolean(chat.theyReadAt && new Date(chat.theyReadAt) >= new Date(chat.lastAt))
+        read: Boolean(chat.theyReadAt && new Date(chat.theyReadAt) >= new Date(chat.lastAt)),
+        // Their last message paid to reach you: the row says so.
+        paidText: chat.last.paid && chat.last.paid.amount ? hellooMoneyText(chat.last.paid.amount, chat.last.paid.currency) : ""
       }
     : null;
   if (person) person.online = Boolean(chat.online);

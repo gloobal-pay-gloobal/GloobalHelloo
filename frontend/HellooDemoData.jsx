@@ -14,12 +14,12 @@ function hellooDemoData(P, ME) {
     {id:2,kind:"text",from:"them",paidText:"2.00₹",text:"Offer valid till 5 Nov. T&C apply.",at:at(1.9)}]};
   const ME_AS_STRANGER_CHAT={id:"c-s",person:P.priya,messages:[{kind:"system",text:"You agreed to Priya's price · 2.00₹ per message"},{kind:"day",text:"Today"},{id:1,kind:"text",from:"me",paidText:"2.00₹",text:"Hi Priya, I'm Rahul from the Jaipur meetup — can I ask about the design course?",at:at(0.2),delivered:true}]};
   const PRICES={people:{price:2,blocked:false},business:{price:2,blocked:false}};
-  const SPAMCHAT_ME={id:"c-rm",person:SPAM,messages:[{kind:"system",text:"Rohit pays ₹3/min to call you"},{kind:"day",text:"Today"},{id:1,kind:"call",from:"them",seconds:3000,paidText:"150.00₹",at:at(0.5)},{id:2,kind:"refund",from:"me",amountText:"75.00₹ │ GEU",percent:50,ofText:"150.00₹",what:"50 min call",at:at(0.4)}]};
-  const SPAMCHAT_THEM={id:"c-rm2",person:{...ME},messages:[{kind:"system",text:"You agreed to Sanjeev's price · 3.00₹ per minute"},{kind:"day",text:"Today"},{id:1,kind:"call",from:"me",seconds:3000,paidText:"150.00₹",at:at(0.5)},{id:2,kind:"refund",from:"them",amountText:"75.00₹ │ GEU",percent:50,ofText:"150.00₹",what:"50 min call",at:at(0.4)}]};
+  const SPAMCHAT_ME={id:"c-rm",person:SPAM,messages:[{kind:"system",text:"Rohit pays ₹3/min to call you"},{kind:"day",text:"Today"},{id:1,kind:"call",from:"them",seconds:3000,paidText:"150.00₹",at:at(0.5)},{id:2,kind:"refund",from:"me",amountText:"75.00₹ │ CEL",percent:50,ofText:"150.00₹",what:"50 min call",at:at(0.4)}]};
+  const SPAMCHAT_THEM={id:"c-rm2",person:{...ME},messages:[{kind:"system",text:"You agreed to Sanjeev's price · 3.00₹ per minute"},{kind:"day",text:"Today"},{id:1,kind:"call",from:"me",seconds:3000,paidText:"150.00₹",at:at(0.5)},{id:2,kind:"refund",from:"them",amountText:"75.00₹ │ CEL",percent:50,ofText:"150.00₹",what:"50 min call",at:at(0.4)}]};
   const SHOP={...P.rasoi, handle:"rasoi.ghar", city:"Alwar"};
   const EST=[{price:0,people:1180},{price:1,people:640},{price:2,people:412},{price:3,people:150},{price:5,people:60},{price:7,people:22}];
   const TXT="New: Rasoi Ghar is open on Kala Kuan Road. Chole bhature ₹60, first 100 orders get a free lassi 🥛";
-  const SHARE={when:"Today 11:40",radius:5,text:TXT,delivered:1988,opened:233,replies:41,spentText:"486.00₹ │ GEU",heldText:"500.00₹ │ GEU",leftText:"14.00₹",spentPct:97,hoursLeft:36,nextText:"150 people at ₹3",replyRows:[{person:P.priya,text:"Do you deliver to Scheme 2?",km:"1.4"},{person:{id:"q1",name:"Mohit Jain",flag:"🇮🇳"},text:"Coming at 1 with office friends",km:"0.8"},{person:{id:"q2",name:"Sunita Devi",flag:"🇮🇳"},text:"Parcel 4 plates",km:"2.6"}]};
+  const SHARE={when:"Today 11:40",radius:5,text:TXT,delivered:1988,opened:233,replies:41,spentText:"486.00₹ │ CEL",heldText:"500.00₹ │ CEL",leftText:"14.00₹",spentPct:97,hoursLeft:36,nextText:"150 people at ₹3",replyRows:[{person:P.priya,text:"Do you deliver to Scheme 2?",km:"1.4"},{person:{id:"q1",name:"Mohit Jain",flag:"🇮🇳"},text:"Coming at 1 with office friends",km:"0.8"},{person:{id:"q2",name:"Sunita Devi",flag:"🇮🇳"},text:"Parcel 4 plates",km:"2.6"}]};
   const OFFER_CHAT={id:"c-off",person:SHOP,unread:1,messages:[{kind:"system",text:"rasoi.ghar paid ₹2 to reach you · 100% yours"},{kind:"day",text:"Today"},{id:1,kind:"offer",from:"them",text:TXT,km:"1.4",paidText:"2.00₹",at:at(1)}]};
   const REQS=[{id:1,person:{id:"rq1",name:"Rahul Verma",flag:"🇮🇳",city:"Jaipur"},kind:"message",text:"Rahul from the Jaipur meetup — about the design course",when:"10 min ago"},{id:2,person:{...SPAM,name:"Rohit Mehra"},kind:"call",text:"Calling about the flat on Scheme 2, I'm the owner's son",when:"1 h ago"},{id:3,person:{id:"rq3",name:"HDFC Bank",flag:"🇮🇳",business:true},kind:"message",text:"Your KYC renewal is due — one message to confirm",when:"Yesterday"}];
   const DAYS=Array.from({length:30},(_,i)=>i+1);
@@ -78,8 +78,8 @@ function hellooSampleChats(P) {
       { kind: "day", text: "Yesterday" },
       { id: 1, kind: "text", from: "me", text: "2 chole bhature, parcel. Coming in 10 min", at: at(20), read: true },
       { id: 2, kind: "text", from: "them", text: "Ready ji 👍", at: at(19.8) },
-      { id: 3, kind: "order", from: "me", items: [{ qty: 2, name: "Chole bhature", lineText: "120.00₹" }, { qty: 1, name: "Lassi", lineText: "60.00₹" }], totalText: "180.00₹ │ GEU", note: "Parcel · 10 min", paid: true, status: "Ready", at: at(19.6) },
-      { id: 33, kind: "receipt", from: "me", amountText: "180.00₹ │ GEU", note: "Order #412", at: at(19.5) },
+      { id: 3, kind: "order", from: "me", items: [{ qty: 2, name: "Chole bhature", lineText: "120.00₹" }, { qty: 1, name: "Lassi", lineText: "60.00₹" }], totalText: "180.00₹ │ CEL", note: "Parcel · 10 min", paid: true, status: "Ready", at: at(19.6) },
+      { id: 33, kind: "receipt", from: "me", amountText: "180.00₹ │ CEL", note: "Order #412", at: at(19.5) },
       { id: 4, kind: "photo", from: "them", at: at(19.4), text: "bhature" },
       { id: 5, kind: "text", from: "them", text: "Fresh samosa @4pm today", at: at(1.2) }
     ] },
@@ -87,7 +87,7 @@ function hellooSampleChats(P) {
       { kind: "system", text: "Berlin pilot · 4 people · you're admin" },
       { id: 1, kind: "text", from: "them", text: "Lukas: Pilot dates locked — 12 Nov", at: at(5) },
       { id: 2, kind: "text", from: "them", text: "Priya: Dinner was 1,200 total, who paid what?", at: at(4) },
-      { id: 3, kind: "split", from: "me", totalText: "1,200.00₹ │ GEU", note: "Dinner", shares: [{ name: "You", amountText: "300.00₹", paid: true }, { name: "Amara", amountText: "300.00₹", paid: true }, { name: "Lukas", amountText: "300.00₹" }, { name: "Priya", amountText: "300.00₹" }], at: at(3.5) },
+      { id: 3, kind: "split", from: "me", totalText: "1,200.00₹ │ CEL", note: "Dinner", shares: [{ name: "You", amountText: "300.00₹", paid: true }, { name: "Amara", amountText: "300.00₹", paid: true }, { name: "Lukas", amountText: "300.00₹" }, { name: "Priya", amountText: "300.00₹" }], at: at(3.5) },
       { id: 4, kind: "text", from: "them", text: "Amara: Paid ✅", at: at(3.4) }
     ] },
     { id: "c-lukas", person: P.lukas, unread: 0, muted: true, messages: [
@@ -95,7 +95,7 @@ function hellooSampleChats(P) {
       { id: 2, kind: "text", from: "them", text: "Tried you on video, ping me when free", at: at(25.9) }
     ] },
     { id: "c-priya", person: P.priya, unread: 0, messages: [
-      { id: 1, kind: "receipt", from: "them", amountText: "2,000.00₹ │ GEU", note: "Rent share", at: at(30) },
+      { id: 1, kind: "receipt", from: "them", amountText: "2,000.00₹ │ CEL", note: "Rent share", at: at(30) },
       { id: 2, kind: "text", from: "me", text: "Got it, thanks Priya", at: at(29), read: true }
     ] }
   ];

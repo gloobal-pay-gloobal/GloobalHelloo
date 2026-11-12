@@ -69,7 +69,19 @@ var HELLOO_THEME_KEY = "helloo.theme.v1";
 // Writes a theme into T and HT. Callers re-render after.
 function applyHellooTheme(key) {
   const theme = HELLOO_THEMES.find((x) => x.key === key) || HELLOO_THEMES[0];
-  Object.assign(T, theme.t, { fontWordmark: theme.key === "paper" ? "Inter, sans-serif" : T.fontWordmark });
+  const values = Object.assign({}, theme.t, { fontWordmark: theme.key === "paper" ? "Inter, sans-serif" : T.fontWordmark });
+  // Gloobal's T became a set of getters over its active palette (its themes,
+  // 0233–0235), so a value can no longer be written onto T itself: it goes
+  // into the palette T reads from. A key T does not carry yet gets a getter
+  // of the same kind. (An older Gloobal bundle, with a plain T, still works.)
+  if (typeof GLOOBAL_PALETTE_ACTIVE === "object" && GLOOBAL_PALETTE_ACTIVE) {
+    Object.assign(GLOOBAL_PALETTE_ACTIVE, values);
+    for (const k of Object.keys(values)) {
+      if (!(k in T)) Object.defineProperty(T, k, { enumerable: true, configurable: true, get() { return GLOOBAL_PALETTE_ACTIVE[k]; } });
+    }
+  } else {
+    Object.assign(T, values);
+  }
   for (const k of HELLOO_THEME_STYLE_KEYS) HT[k] = undefined;
   Object.assign(HT, { free: theme.t.positive, freeSoft: theme.t.positiveSoft, bubbleMeInk: "#fff" }, theme.ht);
   try { if (typeof document !== "undefined") { document.documentElement.style.colorScheme = theme.dark ? "dark" : "light"; document.body && (document.body.style.background = theme.t.bg); } } catch (e) { /* no DOM */ }
