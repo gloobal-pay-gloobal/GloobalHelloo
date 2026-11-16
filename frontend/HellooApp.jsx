@@ -1207,7 +1207,7 @@ function HellooRoot() {
 
   // ── A call fills the screen ──────────────────────────────────────────
   if (call && me) {
-    return shell(<HellooCallScreen person={call.person} video={call.video} state={call.state} seconds={call.seconds} muted={call.muted} cameraOff={call.cameraOff} speaker={call.speaker} incoming={call.direction === "in"} onAccept={answerCall} onEnd={hangUp} onMute={toggleMute} onCamera={toggleCamera} onSpeaker={toggleSpeaker} onFlip={flipCamera} onMinimise={call.state === "live" ? () => setToast("Keep the call open to stay connected") : hangUp} onChat={() => { if (call.chatId) { hangUp(); openChat(call.chatId); } }} localVideoRef={localVideoRef} remoteVideoRef={remoteVideoRef} remoteAudioRef={remoteAudioRef} />);
+    return shell(<HellooCallScreen person={call.person} me={me} video={call.video} state={call.state} seconds={call.seconds} muted={call.muted} cameraOff={call.cameraOff} speaker={call.speaker} incoming={call.direction === "in"} onAccept={answerCall} onEnd={hangUp} onMute={toggleMute} onCamera={toggleCamera} onSpeaker={toggleSpeaker} onFlip={flipCamera} onMinimise={call.state === "live" ? () => setToast("Keep the call open to stay connected") : hangUp} onChat={() => { if (call.chatId) { hangUp(); openChat(call.chatId); } }} localVideoRef={localVideoRef} remoteVideoRef={remoteVideoRef} remoteAudioRef={remoteAudioRef} />);
   }
 
   if (stage === "splash" || stage === "splash-in") return shell(<HellooSplash />);
