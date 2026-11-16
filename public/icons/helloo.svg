@@ -1,7 +1,1 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" width="100" height="100"><rect width="100" height="100" rx="22" fill="#F7F6FB"/><g>
-  <rect x="20" y="22" width="28" height="26" rx="7" fill="#1B1838"/><path d="M11 13 L33 22 L20 35 Z" fill="#1B1838"/>
-  <rect x="52" y="52" width="28" height="26" rx="7" fill="#1B1838"/><path d="M89 87 L67 78 L80 65 Z" fill="#1B1838"/>
-  <path d="M27 47 C27 64 36 72 52 72" fill="none" stroke="#1B1838" stroke-width="10.5" stroke-linecap="round"/>
-  <circle cx="28" cy="35" r="2.5" fill="#2563EB"/><circle cx="34" cy="35" r="2.5" fill="#DC2626"/><circle cx="40" cy="35" r="2.5" fill="#fff"/>
-  <circle cx="60" cy="65" r="2.5" fill="#2563EB"/><circle cx="66" cy="65" r="2.5" fill="#DC2626"/><circle cx="72" cy="65" r="2.5" fill="#fff"/>
-</g></svg>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" width="100" height="100"><defs><linearGradient id="g" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#4F46E5"/><stop offset="0.6" stop-color="#7C3AED"/><stop offset="1" stop-color="#C026D3"/></linearGradient></defs><rect width="100" height="100" rx="22" fill="url(#g)"/><g transform="translate(10 8) scale(0.4)"><path d="M143.8 56.2 A62 62 0 1 0 162 100 H150" fill="none" stroke="#fff" stroke-width="30" stroke-linecap="round" stroke-linejoin="round"/><path d="M47 132 L26 184 L84 160 Z" fill="#fff" stroke="#fff" stroke-width="8" stroke-linejoin="round"/><circle cx="84" cy="100" r="13" fill="#7CF5C4"/><circle cx="116" cy="100" r="13" fill="#FFB3CD"/></g></svg>
