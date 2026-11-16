@@ -12,39 +12,76 @@ import { useState as useStateH11, useEffect as useEffectH11, useRef as useRefH11
 var HELLOO_SITE = "https://gloobalhelloo.netlify.app";
 var HELLOO_GLOOBAL_SITE = "https://gloobalv3.netlify.app";
 
+// ── Sides ───────────────────────────────────────────────────────────────
+//
+// One GLOOBAL account can use Helloo as the person or as a shop it runs.
+// The side in use is remembered per account on this phone and sent with
+// every Helloo request as ?as= : "self", or the shop's account id. Empty
+// means nothing was chosen (an account with no shop never chooses).
+var HELLOO_FACE_KEY = "helloo.face";
+var hellooFaceNow = { account: "", as: "" };
+function hellooFaceLoad(accountId) {
+  let saved = null;
+  try { saved = JSON.parse(localStorage.getItem(HELLOO_FACE_KEY) || "null"); } catch (e) { /* private window */ }
+  hellooFaceNow = saved && accountId && saved.account === accountId && typeof saved.as === "string" ? { account: accountId, as: saved.as } : { account: accountId || "", as: "" };
+  return hellooFaceNow.as;
+}
+function hellooFaceSave(accountId, as) {
+  hellooFaceNow = { account: accountId || "", as: as || "" };
+  try { localStorage.setItem(HELLOO_FACE_KEY, JSON.stringify(hellooFaceNow)); } catch (e) { /* private window */ }
+}
+function hellooAs(path) {
+  const as = hellooFaceNow.as;
+  return as ? `${path}${path.indexOf("?") === -1 ? "?" : "&"}as=${encodeURIComponent(as)}` : path;
+}
+var hellooHttp = {
+  get: (path, options) => gloobalApiClient.get(hellooAs(path), options),
+  post: (path, body, options) => gloobalApiClient.post(hellooAs(path), body, options),
+  put: (path, body, options) => gloobalApiClient.put(hellooAs(path), body, options)
+};
+// When a shop takes calls, in a few words: "Calls 10:00–18:00".
+function hellooCallsText(calls) {
+  if (!calls || calls.mode === "always") return "Always";
+  return calls.mode === "off" ? "Off" : `${calls.from}–${calls.to}`;
+}
+
 var hellooApi = {
-  contacts: () => gloobalApiClient.get("/api/helloo/contacts"),
-  lookup: (id) => gloobalApiClient.get(`/api/helloo/people/lookup?id=${encodeURIComponent(id)}`),
-  photos: (ids) => gloobalApiClient.post("/api/helloo/photos", { ids }),
-  chats: () => gloobalApiClient.get("/api/helloo/chats"),
-  open: (withId) => gloobalApiClient.post("/api/helloo/chats", { with: withId }),
+  // Who this account can be here. Asked without a side, so a stale one
+  // can never lock the account out of finding its sides again.
+  faces: () => gloobalApiClient.get("/api/helloo/faces"),
+  saveCalls: (calls) => hellooHttp.put("/api/helloo/faces/calls", calls),
+  contacts: () => hellooHttp.get("/api/helloo/contacts"),
+  lookup: (id) => hellooHttp.get(`/api/helloo/people/lookup?id=${encodeURIComponent(id)}`),
+  photos: (ids) => hellooHttp.post("/api/helloo/photos", { ids }),
+  chats: () => hellooHttp.get("/api/helloo/chats"),
+  open: (withId, face) => hellooHttp.post("/api/helloo/chats", face ? { with: withId, face } : { with: withId }),
   messages: (chatId, before) =>
-    gloobalApiClient.get(`/api/helloo/chats/${encodeURIComponent(chatId)}/messages?limit=50${before ? `&before=${encodeURIComponent(before)}` : ""}`),
+    hellooHttp.get(`/api/helloo/chats/${encodeURIComponent(chatId)}/messages?limit=50${before ? `&before=${encodeURIComponent(before)}` : ""}`),
   send: (chatId, body) =>
-    gloobalApiClient.post(`/api/helloo/chats/${encodeURIComponent(chatId)}/messages`, body, { timeoutMs: GLOOBAL_API_COLD_START_TIMEOUT_MS }),
-  read: (chatId) => gloobalApiClient.post(`/api/helloo/chats/${encodeURIComponent(chatId)}/read`, {}),
-  voice: (messageId) => gloobalApiClient.get(`/api/helloo/voice/${encodeURIComponent(messageId)}`),
-  media: (messageId) => gloobalApiClient.get(`/api/helloo/media/${encodeURIComponent(messageId)}`),
-  prefs: (chatId, prefs) => gloobalApiClient.post(`/api/helloo/chats/${encodeURIComponent(chatId)}/prefs`, prefs),
-  clear: (chatId) => gloobalApiClient.post(`/api/helloo/chats/${encodeURIComponent(chatId)}/clear`, {}),
-  orderStatus: (messageId, status) => gloobalApiClient.post(`/api/helloo/messages/${encodeURIComponent(messageId)}/order`, { status }),
-  remove: (messageId, everyone) => gloobalApiClient.post(`/api/helloo/messages/${encodeURIComponent(messageId)}/delete`, { everyone: Boolean(everyone) }),
-  presence: (accountId) => gloobalApiClient.get(`/api/helloo/people/${encodeURIComponent(accountId)}/presence`),
-  block: (accountId, blocked) => gloobalApiClient.post("/api/helloo/block", { accountId, blocked }),
-  blocked: () => gloobalApiClient.get("/api/helloo/blocked"),
-  reach: () => gloobalApiClient.get("/api/helloo/reach"),
-  saveReach: (prices) => gloobalApiClient.put("/api/helloo/reach", prices),
-  allow: (accountId, allowed) => gloobalApiClient.post("/api/helloo/reach/allow", { accountId, allowed }),
-  reachCard: (accountId) => gloobalApiClient.get(`/api/helloo/people/${encodeURIComponent(accountId)}/reach`),
-  ask: (to, text, kind) => gloobalApiClient.post("/api/helloo/asks", { to, text, kind: kind || "message" }),
-  asks: () => gloobalApiClient.get("/api/helloo/asks"),
-  answerAsk: (id, action) => gloobalApiClient.post(`/api/helloo/asks/${encodeURIComponent(id)}`, { action }),
-  earnings: (month) => gloobalApiClient.get(`/api/helloo/earnings${month ? `?month=${encodeURIComponent(month)}` : ""}`),
-  together: (accountId) => gloobalApiClient.get(`/api/helloo/people/${encodeURIComponent(accountId)}/together`),
-  startCall: (to, video) => gloobalApiClient.post("/api/helloo/calls", { to, video: Boolean(video) }),
-  calls: () => gloobalApiClient.get("/api/helloo/calls"),
-  activeCall: () => gloobalApiClient.get("/api/helloo/calls/active"),
-  callAction: (id, action) => gloobalApiClient.post(`/api/helloo/calls/${encodeURIComponent(id)}/${action}`, {})
+    hellooHttp.post(`/api/helloo/chats/${encodeURIComponent(chatId)}/messages`, body, { timeoutMs: GLOOBAL_API_COLD_START_TIMEOUT_MS }),
+  read: (chatId) => hellooHttp.post(`/api/helloo/chats/${encodeURIComponent(chatId)}/read`, {}),
+  voice: (messageId) => hellooHttp.get(`/api/helloo/voice/${encodeURIComponent(messageId)}`),
+  media: (messageId) => hellooHttp.get(`/api/helloo/media/${encodeURIComponent(messageId)}`),
+  prefs: (chatId, prefs) => hellooHttp.post(`/api/helloo/chats/${encodeURIComponent(chatId)}/prefs`, prefs),
+  clear: (chatId) => hellooHttp.post(`/api/helloo/chats/${encodeURIComponent(chatId)}/clear`, {}),
+  orderStatus: (messageId, status) => hellooHttp.post(`/api/helloo/messages/${encodeURIComponent(messageId)}/order`, { status }),
+  remove: (messageId, everyone) => hellooHttp.post(`/api/helloo/messages/${encodeURIComponent(messageId)}/delete`, { everyone: Boolean(everyone) }),
+  presence: (accountId) => hellooHttp.get(`/api/helloo/people/${encodeURIComponent(accountId)}/presence`),
+  block: (accountId, blocked) => hellooHttp.post("/api/helloo/block", { accountId, blocked }),
+  blocked: () => hellooHttp.get("/api/helloo/blocked"),
+  reach: () => hellooHttp.get("/api/helloo/reach"),
+  saveReach: (prices) => hellooHttp.put("/api/helloo/reach", prices),
+  allow: (accountId, allowed) => hellooHttp.post("/api/helloo/reach/allow", { accountId, allowed }),
+  reachCard: (accountId) => hellooHttp.get(`/api/helloo/people/${encodeURIComponent(accountId)}/reach`),
+  ask: (to, text, kind) => hellooHttp.post("/api/helloo/asks", { to, text, kind: kind || "message" }),
+  asks: () => hellooHttp.get("/api/helloo/asks"),
+  answerAsk: (id, action) => hellooHttp.post(`/api/helloo/asks/${encodeURIComponent(id)}`, { action }),
+  earnings: (month) => hellooHttp.get(`/api/helloo/earnings${month ? `?month=${encodeURIComponent(month)}` : ""}`),
+  together: (accountId) => hellooHttp.get(`/api/helloo/people/${encodeURIComponent(accountId)}/together`),
+  startCall: (to, video, face) => hellooHttp.post("/api/helloo/calls", face ? { to, video: Boolean(video), face } : { to, video: Boolean(video) }),
+  calls: () => hellooHttp.get("/api/helloo/calls"),
+  activeCall: () => hellooHttp.get("/api/helloo/calls/active"),
+  callAction: (id, action) => hellooHttp.post(`/api/helloo/calls/${encodeURIComponent(id)}/${action}`, {})
 };
 
 // "Last seen today at 14:05" / "yesterday at 21:10" / "12 Oct".
@@ -147,6 +184,8 @@ function hellooPersonFrom(card, photos) {
     gloobalId: card.gloobalId,
     name: card.name || card.gloobalId || "",
     handle: card.handle || null,
+    // A shop's calling hours ({ mode, from, to, open }); null for a person.
+    calls: card.handle ? card.calls || null : null,
     iso: country.iso,
     flag: country.flag,
     country: country.name,
