@@ -238,7 +238,7 @@ import { Clock as ClockHours, Copy as Copy6 } from "lucide-react";
 import { useState as useState81, useEffect as useEffect76 } from "react";
 import { BadgeIndianRupee as SplashPaid, Globe as SplashWorld, Percent as SplashShare } from "lucide-react";
 import { useState as useState53, useEffect as useEffect50, useRef as useRef30 } from "react";
-import { Camera as Camera6, Check as Check9, X as X12, MapPin as MapPin5, Loader as Loader5, Pencil as Pencil4, QrCode as QrCode2, Share2 as Share26, Copy as Copy5, Eye as Eye3, EyeOff as EyeOff4, Store as Store3, ShieldCheck as ShieldCheck2, ChevronRight as ChevronRight9, Contact as Contact4, ArrowLeftRight, Volume2 as VolumeOn1, VolumeX as VolumeOff1, Palette as PaletteSu, Percent as PercentSu, Sparkles as SparklesSu, MessageCircle as MessageSu, Phone as PhoneSu, Instagram as InstagramSu, Plus as PlusSu, Clock as ClockSu } from "lucide-react";
+import { Camera as Camera6, Check as Check9, X as X12, MapPin as MapPin5, Loader as Loader5, Pencil as Pencil4, QrCode as QrCode2, Share2 as Share26, Copy as Copy5, Eye as Eye3, EyeOff as EyeOff4, Store as Store3, ShieldCheck as ShieldCheck2, ChevronRight as ChevronRight9, Contact as Contact4, ArrowLeftRight, Volume2 as VolumeOn1, VolumeX as VolumeOff1, Palette as PaletteSu, Percent as PercentSu, Sparkles as SparklesSu, MessageCircle as MessageSu, Phone as PhoneSu, Instagram as InstagramSu, Plus as PlusSu, Clock as ClockSu, Utensils as UtensilsPt, ShoppingBag as ShoppingBagPt, CalendarCheck as CalendarCheckPt, GraduationCap as GraduationCapPt, Image as ImagePt, Ticket as TicketPt, HeartHandshake as HeartHandshakePt, Wallet as WalletPt, LayoutGrid as LayoutGridPt } from "lucide-react";
 import { useState as useState86, useEffect as useEffect82, useMemo as useMemo20 } from "react";
 import { useState as useState85, useEffect as useEffect81, useRef as useRef45 } from "react";
 import { useState as useState88, useEffect as useEffect84, useRef as useRef47, useMemo as useMemo21 } from "react";
@@ -274,7 +274,7 @@ import { useState as useState62, useEffect as useEffect59, useRef as useRef35 } 
 import {
   UtensilsCrossed as BzFood, ShoppingBasket as BzGrocery, Cake as BzSweets, Shirt as BzFashion, Scissors as BzBeauty,
   Pill as BzHealth, Smartphone as BzElectronics, Wrench as BzRepair, Hammer as BzHome, GraduationCap as BzEducation,
-  Bus as BzTravel, Palette as BzArt, PartyPopper as BzEvents, Store as BzOther,
+  Bus as BzTravel, Palette as BzArt, PartyPopper as BzEvents, Store as BzOther, Clapperboard as BzCreator, HeartHandshake as BzCommunity, Tractor as BzFarm, HardHat as BzWork,
   LocateFixed as LocateFixed2, Loader as Loader7, Flame as BzFlame, SearchX as BzSearchOff, ChevronRight as ChevronRight10,
   History as BzRecent, Star as BzStar,
   Gift as BzFestive, Search as BzSuggest, SlidersHorizontal as BzFilter, X as BzX,
@@ -15786,10 +15786,16 @@ function SymbolDialPad({ value, onChange, length, showLogo = true, soundWhileTyp
   const momentumRef = useRef3(null);
   const suppressClickRef = useRef3(false);
   const [logoFlips, setLogoFlips] = useState5(0);
-  // 0241: the back is the app's logo — the white-square stamp, its mark
-  // in the logo colour of the hour (the same five, the same two-hour walk
-  // as the icon on Home), instead of a random wash with the old "g".
-  const logoInk = useGloobalLogoColor();
+  // The back is the app's logo: the mark in WHITE on a full-strength
+  // colour, a different one each time the dial turns over (never the same
+  // twice running). It was the mark in the colour of the hour on a white
+  // disc, which read as "just a logo on white" beside the coloured keys.
+  const [logoBackColor, setLogoBackColor] = useState5(() => randomLogoFlipColor());
+  useEffect5(() => {
+    // Picked as the turn STARTS (odd = logo side coming up), while that
+    // face is still pointing away, so the colour never changes on screen.
+    if (logoFlips % 2 === 1) setLogoBackColor((prev) => randomLogoFlipColor(prev));
+  }, [logoFlips]);
   const [crossColor, setCrossColor] = useState5(() => randomLogoFlipColor());
   useEffect5(() => {
     const interval = setInterval(() => {
@@ -16196,9 +16202,9 @@ function SymbolDialPad({ value, onChange, length, showLogo = true, soundWhileTyp
       display: "flex",
       alignItems: "center",
       justifyContent: "center",
-      background: "#FFFFFF",
-      border: `1px solid rgba(${T.accentRgb},0.18)`,
-      boxShadow: `0 0 0 3px rgba(${T.accentRgb},0.32), 0 12px 28px rgba(${T.accentDeepRgb},0.2)`,
+      background: logoBackColor,
+      border: "1px solid rgba(255,255,255,0.55)",
+      boxShadow: `0 0 0 3px ${logoBackColor}52, 0 12px 28px ${logoBackColor}55`,
       transform: "rotateY(180deg)",
       backfaceVisibility: "hidden",
       WebkitBackfaceVisibility: "hidden",
@@ -16211,7 +16217,7 @@ function SymbolDialPad({ value, onChange, length, showLogo = true, soundWhileTyp
     height={logoSize * 0.78}
     aria-hidden="true"
     style={{ userSelect: "none" }}
-  ><path fill={logoInk.hex} fillRule="evenodd" d={GLOOBAL_LOGO_MARK_PATH} style={{ transition: "fill 0.6s ease" }} /></svg></div>}</div></div></div>;
+  ><path fill="#FFFFFF" fillRule="evenodd" d={GLOOBAL_LOGO_MARK_PATH} /></svg></div>}</div></div></div>;
 }
 // ── WHAT THE PAD SHOWS, AND WHEN IT SENDS ──────────────────────────────
 //
@@ -18441,6 +18447,74 @@ function gloobalPaymentAmountOnly(amount) {
   return gloobalPaymentLineSentence("{amount} " + (typeof COIN_TICKER !== "undefined" ? COIN_TICKER : "CEL"), amount);
 }
 
+// ── HOW IT IS SAID ──────────────────────────────────────────────────────
+//
+// The Payment sound screen's other choices, kept on this phone beside the
+// line and the clip:
+//   mode        "line" (speak the words), "clip" (the shop's audio), or
+//               "chime" (the two notes and nothing else)
+//   voice       "auto" (the voice that suits the line's letters), "hi", "en"
+//   speed       "slow" | "normal" | "fast"
+//   clipAmount  after a clip, say "…100 CEL" (on unless switched off)
+// Nothing saved means what the app did before this screen existed: the clip
+// if there is one, otherwise the words, voice by the letters, amount said.
+var GLOOBAL_PAYMENT_SOUND_KEY = "gloobal.paymentSound";
+var GLOOBAL_PAYMENT_SPEEDS = { slow: 0.78, normal: 0.95, fast: 1.2 };
+function gloobalPaymentSoundPrefs() {
+  var saved = {};
+  try {
+    if (typeof localStorage !== "undefined") saved = JSON.parse(localStorage.getItem(GLOOBAL_PAYMENT_SOUND_KEY) || "{}") || {};
+  } catch (e) {
+    saved = {};
+  }
+  var hasClip = !!gloobalPaymentClipLoad();
+  var mode = saved.mode === "chime" ? "chime" : saved.mode === "line" ? "line" : saved.mode === "clip" ? "clip" : hasClip ? "clip" : "line";
+  if (mode === "clip" && !hasClip) mode = "line";
+  return {
+    mode: mode,
+    voice: saved.voice === "hi" || saved.voice === "en" ? saved.voice : "auto",
+    speed: GLOOBAL_PAYMENT_SPEEDS[saved.speed] ? saved.speed : "normal",
+    clipAmount: saved.clipAmount !== false
+  };
+}
+function gloobalPaymentSoundPrefsSave(prefs) {
+  try {
+    var p = prefs || {};
+    localStorage.setItem(GLOOBAL_PAYMENT_SOUND_KEY, JSON.stringify({
+      mode: p.mode === "chime" || p.mode === "clip" ? p.mode : "line",
+      voice: p.voice === "hi" || p.voice === "en" ? p.voice : "auto",
+      speed: GLOOBAL_PAYMENT_SPEEDS[p.speed] ? p.speed : "normal",
+      clipAmount: p.clipAmount !== false
+    }));
+    return true;
+  } catch (e) {
+    return false;
+  }
+}
+// One announcement, played the way `how` says: the chime, then the words,
+// or the clip (and the amount), or nothing more. `how` is the saved choice
+// for a real payment and the unsaved draft for "hear it" on the screen.
+function gloobalPlayPaymentSound(how, amount, currency, language) {
+  var h = how || {};
+  var say = { voice: h.voice, speed: h.speed };
+  return gloobalPlayChimeTone().then(function () {
+    if (h.mode === "chime") return true;
+    if (h.mode === "clip" && h.clip) {
+      return gloobalPlayClip(h.clip).then(function (ok) {
+        return h.clipAmount === false ? ok : gloobalSpeak(gloobalPaymentAmountOnly(amount), say);
+      });
+    }
+    var line = String(h.line || "").trim();
+    return gloobalSpeak(line ? gloobalPaymentLineSentence(line, amount) : gloobalChimeSentence(amount, currency, language), say);
+  });
+}
+// "Hear it" on the Payment sound screen: the draft as it stands, from a tap.
+function gloobalPreviewPaymentSound(draft, amount, currency) {
+  gloobalChimeUnlock();
+  try { if (typeof window !== "undefined" && window.speechSynthesis && window.speechSynthesis.cancel) window.speechSynthesis.cancel(); } catch (e) { /* nothing was speaking */ }
+  return gloobalPlayPaymentSound(draft, amount || 100, currency, typeof navigator !== "undefined" ? navigator.language : "en");
+}
+
 // What a payment of `amount` will say on this phone right now.
 function gloobalPaymentSentence(amount, currency, language) {
   var custom = gloobalPaymentLineLoad();
@@ -18456,15 +18530,26 @@ function gloobalPreviewPaymentLine(template, currency) {
   return gloobalPlayChimeTone().then(function () { return gloobalSpeak(sentence); });
 }
 
-function gloobalSpeak(sentence) {
+// CEL is a word, said "sel" — never the letters C, E, L, which is what a
+// phone's voice does with three capitals. So the spoken text (only that;
+// what is shown stays CEL) carries a spelling the voice reads as a word:
+// "Cell" for a Latin-letter voice, "सेल" inside a Hindi sentence.
+function gloobalSpokenText(text, lang) {
+  var hindi = String(lang || "").toLowerCase().indexOf("hi") === 0 && /[\u0900-\u097F]/.test(text);
+  return String(text || "").replace(/(^|[^A-Za-z])CEL(?![A-Za-z])/gi, function (m, before) { return before + (hindi ? "सेल" : "Cell"); });
+}
+function gloobalSpeak(sentence, how) {
   return new Promise(function (resolve) {
     try {
       if (typeof window === "undefined" || !window.speechSynthesis || typeof SpeechSynthesisUtterance === "undefined") {
         return resolve(false);
       }
+      // The shop's choice of voice wins over the one the letters suggest.
+      var want = how && how.voice === "hi" ? "hi-IN" : how && how.voice === "en" ? "en-IN" : sentence.lang;
+      sentence = { text: gloobalSpokenText(sentence.text, want), lang: want };
       var u = new SpeechSynthesisUtterance(sentence.text);
       u.lang = sentence.lang;
-      u.rate = 0.95;
+      u.rate = (how && GLOOBAL_PAYMENT_SPEEDS[how.speed]) || 0.95;
       u.volume = 1;
       var voices = window.speechSynthesis.getVoices ? window.speechSynthesis.getVoices() : [];
       var match = voices.filter(function (v) { return v.lang && v.lang.toLowerCase() === sentence.lang.toLowerCase(); })[0] ||
@@ -18495,13 +18580,11 @@ function gloobalPlayPaymentChime(payment) {
   var amount = Number(p.amount);
   if (!Number.isFinite(amount) || amount <= 0) return Promise.resolve(false);
   var language = p.language || (typeof navigator !== "undefined" ? navigator.language : "en");
-  var sentence = gloobalPaymentSentence(amount, p.currency, language);
-  var clip = gloobalPaymentClipLoad();
+  var how = gloobalPaymentSoundPrefs();
+  how.line = gloobalPaymentLineLoad();
+  how.clip = gloobalPaymentClipLoad();
   gloobalChimeQueue = gloobalChimeQueue.then(function () {
-    return gloobalPlayChimeTone().then(function () {
-      if (!clip) return gloobalSpeak(sentence);
-      return gloobalPlayClip(clip).then(function () { return gloobalSpeak(gloobalPaymentAmountOnly(amount)); });
-    });
+    return gloobalPlayPaymentSound(how, amount, p.currency, language);
   }).catch(function () { return false; });
   return gloobalChimeQueue;
 }
@@ -23922,7 +24005,9 @@ function soundPaySayLine(line) {
         return;
       }
       if (text && typeof window !== "undefined" && window.speechSynthesis && typeof SpeechSynthesisUtterance !== "undefined") {
-        const u = new SpeechSynthesisUtterance(text);
+        // CEL is said as a word, not spelled (gloobalSpokenText, paymentChime.js).
+        const hindiLine = /[\u0900-\u097F]/.test(text);
+        const u = new SpeechSynthesisUtterance(typeof gloobalSpokenText === "function" ? gloobalSpokenText(text, hindiLine ? "hi-IN" : "en-IN") : text);
         // Devanagari is read by a Hindi voice; Latin letters (English or
         // Hinglish) by an Indian-English one, which says "bhai" as written.
         u.lang = /[\u0900-\u097F]/.test(text) ? "hi-IN" : "en-IN";
@@ -28599,6 +28684,16 @@ function ReceiptModal({ receipt, onClose, onDone, onRevealShare, shareTabRequest
     value={<ColoredGloobalId id={receipt.id} />}
     mono
   />}</>}{
+    /* What it was for — the basket this payment paid, as the server kept
+       it on the payment. On the payment's own tab only: the Creator Share
+       is a different movement and was not "for" anything. The lines are in
+       the payment's currency, which is the shop's. */
+    !onShareTab && Array.isArray(receipt.items) && receipt.items.length > 0 && <div data-testid="receipt-items"><ReceiptSectionLabel>For</ReceiptSectionLabel>{receipt.items.map((line, i) => <ReceiptRow
+      key={i}
+      label={Number(line.quantity) > 1 ? `${line.title} × ${line.quantity}` : line.title}
+      value={moneyCoded(Number(line.amount) || 0, receipt.currencyCode)}
+    />)}</div>
+  }{
     /* Transaction ID — twenty symbols in one row, inside a dashed box at the
        foot of the ticket. Each tab shows ITS OWN reference: the payment and
        its Creator Share are two movements between two different pairs of
@@ -33702,7 +33797,12 @@ function receiptForRow(t, direction, ctx) {
     ? findSharePaymentSource(t, c.sendHistory || [], c.receiveHistory || [])
     : null;
 
-  const receipt = buildHistoryReceipt(t, direction, c.dialCountry, c.ccy, source);
+  const built = buildHistoryReceipt(t, direction, c.dialCountry, c.ccy, source);
+  // What the payment was for — the basket's lines the server kept on it —
+  // on the payer's receipt and the shop's alike. Not on a Creator Share
+  // leg, which was not "for" anything.
+  const receipt = built && Array.isArray(t.items) && t.items.length && t.kind !== "share"
+    ? Object.assign({}, built, { items: t.items }) : built;
   // Paid at a shop: the receipt offers the way into its store (0138).
   if (receipt && t.creatorHandle && direction !== "received" && t.kind !== "share") {
     return Object.assign({}, receipt, { creatorHandle: t.creatorHandle });
@@ -43054,15 +43154,21 @@ function CreatorNameBox({ value, onChange, placeholder, label, tone, quiet = fal
 // cannot be skipped: until it exists the Creator side cannot take money.
 var CREATOR_SETUP_STEPS = [
   { key: "name", title: "Your shop name", row: "Name & logo" },
+  // "What do people come to you for?" — the kind of page, its words and
+  // its parts (shopTheme.js, SHOP_PAGE_TYPES). Second, so everything after
+  // it is asked of a page that already has a shape.
+  { key: "type", title: "Your page type", row: "Page type" },
   { key: "sell", title: "What you sell", row: "What you sell" },
   { key: "where", title: "Where & when", row: "Where & when" },
   { key: "look", title: "How it looks", row: "Look & QR message" },
   { key: "share", title: "Creator Share", row: "Creator Share" }
 ];
 
-// The ready looks offered in setup. Each sets every dial at once, the same
-// way the Look screen's Style does; the full set stays on that screen.
-var CREATOR_SETUP_LOOKS = ["chai", "mithai", "kirana", "pharmacy", "dhaba", "boutique"];
+// The looks offered at setup: the app's twenty, the same list as Look's
+// Style and Appearance (it was six shop-only presets). A function, because
+// shopTheme.js is concatenated after this file and its list is not built
+// yet when this one loads.
+function creatorSetupLooks() { return SHOP_THEME_KEYS; }
 
 // Creator Share's quick picks. Whole numbers to tap, and a slider beside
 // them for anything in between, to 0.01 — what My Share has always taken.
@@ -43135,6 +43241,9 @@ function CreatorSetupScreen({
   onSave,
   onSaveStep,
   onSaveShare,
+  // Adds the starter items ticked in the page type step to the shop's
+  // list: (rows) => true, or the sentence saying why not.
+  onAddStarterItems,
   onSkip,
   onClose,
   onOpenPage,
@@ -43199,8 +43308,60 @@ function CreatorSetupScreen({
   const [reachOn, setReachOn] = useState53(() => ({
     whatsapp: Boolean(contacts.whatsapp), phone: Boolean(contacts.phone), instagram: Boolean(contacts.instagram)
   }));
+  // The kind of page, its words and its parts. `pageTouched` is whether a
+  // type was PICKED on this visit: only then are its layout dials written,
+  // so opening this step to flip one switch does not reset a shop's layout.
+  const [page, setPage] = useState53(() => {
+    const sh = (creator && creator.shop) || {};
+    return {
+      pageType: SHOP_PAGE_TYPES[sh.pageType] ? sh.pageType : "",
+      itemButton: SHOP_ITEM_BUTTONS[sh.itemButton] ? sh.itemButton : "add",
+      listName: SHOP_LIST_NAMES[sh.listName] ? sh.listName : "",
+      hideList: sh.hideList === true, hideWhere: sh.hideWhere === true,
+      hideContacts: sh.hideContacts === true, hideReviews: sh.hideReviews === true
+    };
+  });
+  const [pageTouched, setPageTouched] = useState53(false);
+  // "Which one is closest?" under the type: a Bazaar category and
+  // sub-category, the same two "What you sell" saves. `kindTouched` so the
+  // step only writes them when one was actually tapped here.
+  const [kindQuery, setKindQuery] = useState53("");
+  const [kindTouched, setKindTouched] = useState53(false);
+  const pickPageType = (key) => { setPageTouched(true); setPage((p) => Object.assign({}, p, shopPageTypeDials(key))); };
+  // `fromSearch`: the tap came from the search results at the top, which
+  // reach across every page type — so it sets the TYPE the kind belongs
+  // to as well, and never un-picks (a search result is not a toggle).
+  const pickKind = (cat, sub, fromSearch) => {
+    const same = !fromSearch && category === cat && subcategory === sub;
+    setKindTouched(true);
+    setCategoryRaw(cat);
+    setSubcategory(same ? "" : sub);
+    if (cat === category2) setCategory2("");
+    setStarterPicks({});
+    if (fromSearch) {
+      const type = shopPageTypeForKind(cat, sub);
+      if (type && type !== page.pageType) pickPageType(type);
+      setKindQuery("");
+    }
+  };
+  // The starter items ticked for this kind: { title: "the price typed" }.
+  // A title is in here when its box is ticked, with "" until a price is.
+  const [starterPicks, setStarterPicks] = useState53({});
+  const starterRows = !page.hideList && category && subcategory ? (SHOP_KIND_STARTERS[`${category}.${subcategory}`] || []) : [];
+  const starterPrice = (title) => Number(String(starterPicks[title] == null ? "" : starterPicks[title]).replace(/,/g, "").trim());
+  const kindChips = (groups, fromSearch) => groups.map((g) => <div key={g.category} style={{ marginTop: 10 }}><div style={{ fontSize: 10.5, fontWeight: 800, letterSpacing: 0.6, textTransform: "uppercase", color: T.inkFaint, marginBottom: 6 }}>{g.label}</div><div style={{ display: "flex", flexWrap: "wrap", gap: 7 }}>{g.kinds.map((k) => {
+    const on = category === g.category && subcategory === k.sub;
+    return <button
+      key={k.sub}
+      type="button"
+      data-testid={`page-kind-${g.category}-${k.sub}`}
+      aria-pressed={on}
+      onClick={() => pickKind(g.category, k.sub, fromSearch)}
+      style={{ ...pick(on), borderRadius: 999, padding: "8px 13px", fontSize: 12.5, fontWeight: 700 }}
+    >{k.label}</button>;
+  })}</div></div>);
   // The ready look picked in step four, if any.
-  const [lookKey, setLookKey] = useState53((creator && creator.shop && creator.shop.theme) || "");
+  const [lookKey, setLookKey] = useState53((creator && creator.shop && creator.shop.theme && shopThemeKey(creator.shop.theme)) || "");
   // Creator Share, as a percentage.
   const [rate, setRate] = useState53(() => Math.min(7, Math.max(0, Number(shareRate) || 0)));
   // Every face is drawn in the person's name — the three tiles, the live
@@ -43291,8 +43452,8 @@ function CreatorSetupScreen({
   // The card is painted from the same resolver the shop page uses, so the
   // setup screen and the page it sets up look like one thing. A look picked
   // in step four shows here at once, in the font chosen in step one.
-  const lookBase = lookKey && SHOP_THEMES[lookKey] ? creatorSetupLookDials(lookKey) : ((creator && creator.shop) || {});
-  const look = resolveShopTheme(Object.assign({}, (creator && creator.shop) || {}, lookBase, { font }));
+  const lookBase = lookKey && SHOP_THEMES[lookKey] ? creatorSetupLookDials(lookKey, creator && creator.shop) : ((creator && creator.shop) || {});
+  const look = resolveShopTheme(Object.assign({}, (creator && creator.shop) || {}, lookBase, pageTouched ? shopPageTypeDials(page.pageType) : {}, page, { font }));
   const fontFace = SHOP_FONTS[font] || SHOP_FONTS.grotesk;
   const shownName = enough ? (twoParts ? `${first.trim()} ${last.trim()}` : first.trim()) : "Your shop";
   const quickKeys = SHOP_FONT_QUICK.map((q) => q.key);
@@ -43407,10 +43568,18 @@ function CreatorSetupScreen({
       for (const key of ["whatsapp", "phone", "instagram"]) shown[key] = reachOn[key] ? String(contacts[key] || "").trim() : "";
       return { patch: { addressParts, addressPublic, hours, contacts: shown } };
     }
+    if (k === "type") {
+      // The words and the parts always; the layout a type sets only when a
+      // type was picked just now.
+      return {
+        patch: kindTouched && category ? { category, subcategory: subcategory || "" } : {},
+        shop: Object.assign({}, pageTouched ? shopPageTypeDials(page.pageType) : {}, page)
+      };
+    }
     if (k === "look") {
       return {
         patch: { scanNote: scanNote.trim(), scanNoteStyle },
-        shop: lookKey && SHOP_THEMES[lookKey] ? Object.assign(creatorSetupLookDials(lookKey), { font }) : null
+        shop: lookKey && SHOP_THEMES[lookKey] ? Object.assign(creatorSetupLookDials(lookKey, creator && creator.shop), { font }) : null
       };
     }
     return null;
@@ -43430,12 +43599,28 @@ function CreatorSetupScreen({
       if (!ok) setStepError("Creator Share was not changed. You can set it again from your shop.");
       return Boolean(ok);
     }
+    // Starter items ticked in the page type step: each needs the owner's
+    // own price before anything is saved, so a half-priced list never
+    // reaches customers.
+    const starters = k === "type" ? starterRows.filter(([title]) => title in starterPicks) : [];
+    if (starters.some(([title]) => !(starterPrice(title) > 0))) {
+      setStepError("Type a price for each item you ticked, or untick it.");
+      return false;
+    }
     const body = stepPatch(k);
     if (!body || !onSaveStep) return true;
     const answer = await onSaveStep(body.patch, body.shop);
     if (!answer || !answer.ok) {
       setStepError((answer && answer.message) || "Could not save that right now.");
       return false;
+    }
+    if (starters.length && onAddStarterItems) {
+      const added = await onAddStarterItems(starters.map(([title, note]) => ({ title, note, price: starterPrice(title) })));
+      if (added !== true) {
+        setStepError(typeof added === "string" && added ? added : "Your page type was saved, but the items could not be added right now.");
+        return false;
+      }
+      setStarterPicks({});
     }
     if (k === "name") setSavedAs({ handle: (answer.creator && answer.creator.handle) || preview, first: first.trim(), last: last.trim(), logo });
     return true;
@@ -43643,6 +43828,97 @@ function CreatorSetupScreen({
   }}>{moreName ? `Using ${moreName}` : `${Object.keys(SHOP_FONTS).length - SHOP_FONT_QUICK.length} more, each in your name`}</span></span><ChevronRight9 size={16} color={T.inkFaint} /></button></>)}</> : null}{
 
   /* ── 2. WHAT YOU SELL ─────────────────────────────────────────────── */
+  /* ── 2. PAGE TYPE ─────────────────────────────────────────────────── */
+  step === "type" ? <><div style={{ margin: "16px 2px 2px" }}><div style={{ fontSize: 20, fontWeight: 800, color: T.ink, fontFamily: T.fontDisplay, lineHeight: 1.25 }}>What do people come to you for?</div><div style={{ fontSize: 12.5, fontWeight: 600, color: T.inkSoft, lineHeight: 1.45, marginTop: 4 }}>One tap shapes your page: the layout, the button and the words. You can change any of it after.</div></div><input
+    data-testid="page-kind-search"
+    value={kindQuery}
+    onChange={(e) => setKindQuery(e.target.value)}
+    placeholder="Search what you do — hair, taxi, tuition…"
+    maxLength={30}
+    style={{ ...fieldBox, padding: "11px 14px", fontSize: 14, marginTop: 12 }}
+  />{kindQuery.trim() ? (() => {
+    /* Typed words search every kind anywhere — its name, its category and
+       the other words people use for it. One tap on a result sets the page
+       type AND the kind. */
+    const found = shopKindGroups("", kindQuery, BAZAAR_CATEGORY_INFO, BAZAAR_SUBCATEGORY_INFO);
+    return <div data-testid="page-kind-results" style={{ background: T.surface, borderRadius: 18, padding: "4px 14px 14px", marginTop: 10, boxShadow: T.shadowCard }}>{found.length ? kindChips(found, true) : <div style={{ fontSize: 12.5, fontWeight: 600, color: T.inkSoft, lineHeight: 1.5, marginTop: 10 }}>Nothing close to “{kindQuery.trim()}”. Try another word, or clear the search and pick a page type below — you can describe your shop in your own two words under <b style={{ color: T.ink }}>What you sell → Other</b>.</div>}</div>;
+  })() : <div style={{ display: "grid", gridTemplateColumns: "repeat(2, minmax(0, 1fr))", gap: 9, marginTop: 12 }}>{SHOP_PAGE_TYPE_KEYS.map((key) => {
+    const t = SHOP_PAGE_TYPES[key];
+    const on = page.pageType === key;
+    const Icon = { menu: UtensilsPt, store: ShoppingBagPt, services: CalendarCheckPt, classes: GraduationCapPt, portfolio: ImagePt, bookings: TicketPt, giving: HeartHandshakePt, pay: WalletPt }[key];
+    return <button
+      key={key}
+      type="button"
+      data-testid={`page-type-${key}`}
+      aria-pressed={on}
+      onClick={() => pickPageType(key)}
+      className="v2-tap"
+      style={{
+        border: "none", cursor: "pointer", fontFamily: "inherit", textAlign: "left", padding: "11px 11px 10px", borderRadius: 16,
+        background: on ? T.accentSoft : T.surface, boxShadow: on ? `0 0 0 2px ${T.accent}, ${T.shadowCard}` : T.shadowCard
+      }}
+    ><span style={{ width: 34, height: 34, borderRadius: 11, background: t.color, display: "flex", alignItems: "center", justifyContent: "center", marginBottom: 7 }}><Icon size={18} color="#fff" /></span><span style={{ display: "block", fontSize: 13.5, fontWeight: 800, color: T.ink }}>{t.name}</span><span style={{ display: "block", fontSize: 11, fontWeight: 600, color: T.inkSoft, lineHeight: 1.35, marginTop: 2 }}>{t.who}</span></button>;
+  })}</div>}{page.pageType && !kindQuery.trim() ? <>{
+    /* Which one, exactly. The type's own kinds, grouped by category; or,
+       once something is typed, every kind anywhere that is near the words
+       — "hair" brings the stylist, the salon, the barber and the parlour. */
+    section("Which one is closest?", null, (() => {
+      const groups = shopKindGroups(page.pageType, "", BAZAAR_CATEGORY_INFO, BAZAAR_SUBCATEGORY_INFO);
+      return <div data-testid="page-kinds" style={{ marginTop: -10 }}>{kindChips(groups, false)}<div style={{ fontSize: 11.5, color: T.inkFaint, lineHeight: 1.45, margin: "12px 2px 0" }}>This is also where people find you in Pay &amp; Services.</div></div>;
+    })())
+  }{
+    /* A first list for this kind. Tick what you sell and type YOUR price;
+       the figure in the empty box is only a typical one, shown for a rupee
+       account. Nothing is added until Save, and only ticked rows are. */
+    starterRows.length ? section("Start your list", null, <div data-testid="page-starters" style={{ marginTop: -8 }}><div style={{ fontSize: 12, fontWeight: 600, color: T.inkSoft, lineHeight: 1.45, marginBottom: 4 }}>Tick what you offer and type your price. You can add photos and more items on your page later.</div>{starterRows.map(([title, note, typical], i) => {
+      const on = title in starterPicks;
+      return <div key={title} style={{ display: "flex", alignItems: "center", gap: 10, padding: "9px 0", borderTop: i ? `1px solid ${T.line}` : "none" }}><button
+        type="button"
+        role="checkbox"
+        aria-checked={on}
+        aria-label={title}
+        data-testid={`page-starter-${i}`}
+        onClick={() => setStarterPicks((p) => { const n = { ...p }; if (title in n) delete n[title]; else n[title] = ""; return n; })}
+        style={{ flex: 1, minWidth: 0, display: "flex", alignItems: "center", gap: 10, border: "none", background: "transparent", padding: 0, textAlign: "left", fontFamily: "inherit", cursor: "pointer" }}
+      ><span aria-hidden="true" style={{ width: 22, height: 22, flexShrink: 0, borderRadius: 7, boxSizing: "border-box", border: on ? "none" : `1.5px solid ${T.inkFaint}`, background: on ? T.accent : T.surface, display: "flex", alignItems: "center", justifyContent: "center" }}>{on ? <Check9 size={14} color="#fff" strokeWidth={3} /> : null}</span><span style={{ minWidth: 0 }}><span style={{ display: "block", fontSize: 13.5, fontWeight: 700, color: T.ink }}>{title}</span>{note ? <span style={{ display: "block", fontSize: 11, color: T.inkFaint }}>{note}</span> : null}</span></button>{on ? <input
+        data-testid={`page-starter-price-${i}`}
+        value={starterPicks[title]}
+        onChange={(e) => { const v = e.target.value.replace(/[^0-9.]/g, "").slice(0, 9); setStarterPicks((p) => ({ ...p, [title]: v })); }}
+        inputMode="decimal"
+        aria-label={`Price of ${title}${ccy ? ` in ${ccy}` : ""}`}
+        placeholder={ccy === "INR" ? String(typical) : "Price"}
+        style={{ ...fieldBox, width: 92, flexShrink: 0, padding: "8px 10px", fontSize: 14, textAlign: "right" }}
+      /> : null}</div>;
+    })}{ccy ? <div style={{ fontSize: 11.5, color: T.inkFaint, lineHeight: 1.45, margin: "8px 2px 0" }}>Prices are in {ccy}, like the rest of your list.</div> : null}</div>) : null
+  }{
+    /* How a customer will see it: two made-up items in this page's words
+       and layout. The prices are GeuFigure, the app's own figure, exactly
+       as on the real page — a page type never touches how money reads. */
+    section("How a customer sees it", null, page.hideList
+      ? <div data-testid="page-preview" style={{ fontSize: 12.5, fontWeight: 600, color: T.inkSoft, lineHeight: 1.5 }}>No list. Your page shows your name and one button: <b style={{ color: T.ink }}>Pay {shownName}</b>.</div>
+      : <div data-testid="page-preview"><div style={{ fontSize: 10.5, fontWeight: 800, letterSpacing: 0.7, textTransform: "uppercase", color: T.inkSoft, marginBottom: 4 }}>{look.listName}</div><div style={look.layout === "grid" ? { display: "grid", gridTemplateColumns: "minmax(0, 1fr) minmax(0, 1fr)", gap: 9 } : {}}>{((rows) => (rows.length ? rows : [["Your first item", "A short note", 100], ["Your second item", "", 250]]))(shopKindStarters(category, subcategory, page.pageType).slice(0, 2)).map(([title, note, price], i) => {
+        const btn = <span style={{ height: 26, minWidth: 26, padding: look.itemWord ? "0 11px" : 0, borderRadius: 999, display: "inline-flex", alignItems: "center", justifyContent: "center", fontSize: 11.5, fontWeight: 800, flexShrink: 0, ...shopButtonStyle(look) }}>{look.itemWord || <PlusSu size={14} />}</span>;
+        const pic = <span aria-hidden="true" style={{ display: "block", flexShrink: 0, width: look.layout === "grid" ? "100%" : 42, aspectRatio: look.layout === "grid" ? String(look.photo.ratio) : "1", borderRadius: look.photo.radius === "50%" && look.layout !== "grid" ? "50%" : look.corners.photo, background: `linear-gradient(135deg, ${look.soft}, ${look.color}66)` }} />;
+        return look.layout === "grid"
+          ? <div key={i} style={{ minWidth: 0, borderRadius: look.corners.card, border: `1px solid ${T.line}`, padding: 8 }}>{pic}<span style={{ display: "block", fontSize: 12.5, fontWeight: 700, color: T.ink, marginTop: 7 }}>{title}</span><span style={{ display: "block", fontSize: 10.5, color: T.inkFaint, minHeight: 14 }}>{note}</span><span style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 6, marginTop: 6 }}><GeuFigure amount={price} currency={ccy} size={11.5} />{btn}</span></div>
+          : <div key={i} style={{ display: "flex", alignItems: "center", gap: 10, padding: "9px 0", borderTop: i ? `1px solid ${T.line}` : "none" }}>{pic}<span style={{ flex: 1, minWidth: 0 }}><span style={{ display: "block", fontSize: 13, fontWeight: 700, color: T.ink }}>{title}</span><span style={{ display: "block", fontSize: 11, color: T.inkFaint }}>{note}</span></span><GeuFigure amount={price} currency={ccy} size={12} />{btn}</div>;
+      })}</div></div>)
+  }{section("On your page", null, <div style={{ marginTop: -12 }}>{SHOP_PAGE_PARTS.map((part) => <div key={part.key} data-testid={`page-part-${part.key}`}>{switchRow(part.name, part.note, !page[part.field], () => setPage((p) => ({ ...p, [part.field]: !p[part.field] })), part.name)}</div>)}</div>)}{page.hideList ? null : <>{section("The button on each item", null, <><div style={{ display: "flex", flexWrap: "wrap", gap: 7 }}>{SHOP_ITEM_BUTTON_KEYS.map((key) => <button
+    key={key}
+    type="button"
+    data-testid={`page-button-${key}`}
+    aria-pressed={page.itemButton === key}
+    onClick={() => setPage((p) => ({ ...p, itemButton: key }))}
+    style={{ ...pick(page.itemButton === key), borderRadius: 999, padding: "8px 13px", fontSize: 12.5, fontWeight: 700 }}
+  >{key === "add" ? "+ (plain)" : SHOP_ITEM_BUTTONS[key].name}</button>)}</div><div style={{ fontSize: 11.5, color: T.inkFaint, lineHeight: 1.45, margin: "10px 2px 0" }}>Only the word changes. Every one of these puts the item in the basket, and the customer pays the same way.</div></>)}{section("What you call your list", null, <div style={{ display: "flex", flexWrap: "wrap", gap: 7 }}>{SHOP_LIST_NAME_KEYS.map((key) => <button
+    key={key}
+    type="button"
+    data-testid={`page-list-${key}`}
+    aria-pressed={page.listName === key}
+    onClick={() => setPage((p) => ({ ...p, listName: p.listName === key ? "" : key }))}
+    style={{ ...pick(page.listName === key), borderRadius: 999, padding: "8px 13px", fontSize: 12.5, fontWeight: 700 }}
+  >{SHOP_LIST_NAMES[key].name}</button>)}</div>)}</>}</> : null}</> : null}{
+
   step === "sell" ? <>{section("", null, <>{
     /* One of fourteen, so "Food & Chai" on Pay & Services gathers every
        chai stall however each one spells chai. Optional: a shop with no
@@ -43730,7 +44006,7 @@ function CreatorSetupScreen({
   /></label>)}<div style={{ fontSize: 11.5, color: T.inkFaint, lineHeight: 1.45, margin: "10px 2px 0" }}>Anybody who opens your shop page sees these as buttons. Leave any empty to hide it.</div></>)}</> : null}{
 
   /* ── 4. LOOK ──────────────────────────────────────────────────────── */
-  step === "look" ? <>{section("Pick a look", PaletteSu, <><div style={{ display: "grid", gridTemplateColumns: "repeat(3, minmax(0, 1fr))", gap: 8 }}>{CREATOR_SETUP_LOOKS.map((key) => {
+  step === "look" ? <>{section("Pick a look", PaletteSu, <><div style={{ display: "grid", gridTemplateColumns: "repeat(3, minmax(0, 1fr))", gap: 8 }}>{creatorSetupLooks().map((key) => {
     const t = SHOP_THEMES[key];
     const l = resolveShopTheme({ theme: key });
     const on = lookKey === key;
@@ -43853,15 +44129,16 @@ function CreatorSetupScreen({
   step === "hub" ? <div style={{
     marginTop: 12, background: T.surface, borderRadius: 20, overflow: "hidden", boxShadow: T.shadowCard
   }}>{CREATOR_SETUP_STEPS.map((s, i) => {
-    const Icon = { name: Pencil4, sell: Store3, where: MapPin5, look: PaletteSu, share: PercentSu }[s.key];
+    const Icon = { name: Pencil4, type: LayoutGridPt, sell: Store3, where: MapPin5, look: PaletteSu, share: PercentSu }[s.key];
     const line = {
       name: [tagline.trim() || savedAs.handle || preview].filter(Boolean).join(" · "),
+      type: page.pageType ? [SHOP_PAGE_TYPES[page.pageType].name, subInfo ? subInfo[1] : "", SHOP_ITEM_BUTTONS[page.itemButton].word ? `“${SHOP_ITEM_BUTTONS[page.itemButton].word}” button` : "", page.hideList ? "no list" : ""].filter(Boolean).join(" · ") : "Menu, Store, Services, Classes…",
       sell: [catInfo && catInfo.label, subInfo && subInfo[1], listed ? "in बाज़ार" : "not listed"].filter(Boolean).join(" · "),
       where: [addressParts && (addressParts.city || addressParts.area), hours ? "hours set" : "no hours", addressPublic ? "address shown" : "address private"].filter(Boolean).join(" · "),
       look: [lookKey && SHOP_THEMES[lookKey] ? SHOP_THEMES[lookKey].name : look.name, scanNote.trim() ? `“${scanNote.trim()}”` : ""].filter(Boolean).join(" · "),
       share: rate > 0 ? `${creatorShareText(rate)}% back on every payment` : "None"
     }[s.key];
-    const done = { name: Boolean(savedAs.handle), sell: Boolean(category), where: Boolean(hours || (addressParts && addressParts.city)), look: true, share: true }[s.key];
+    const done = { name: Boolean(savedAs.handle), type: Boolean(page.pageType), sell: Boolean(category), where: Boolean(hours || (addressParts && addressParts.city)), look: true, share: true }[s.key];
     return <button
       key={s.key}
       type="button"
@@ -44019,16 +44296,23 @@ function CreatorSetupScreen({
   /></div>;
 }
 
-// Every dial a ready look sets, the same replacement Look's Style makes:
-// picking "Chai Stall" gives Chai Stall, not Chai Stall's colour on
-// whatever corners were there before.
-function creatorSetupLookDials(key) {
-  const base = SHOP_THEMES[key] || SHOP_THEMES.gloobal;
+// What picking a look in setup saves. A look is a colour and a page; the
+// shop's own dials (font, corners, cards…) stay as the owner has them, and
+// take the usual starting values on a shop that has none yet. A shop that
+// already wears this look keeps its own colour too, so going back through
+// setup and pressing Save changes nothing it did not show.
+function creatorSetupLookDials(key, current) {
+  const base = SHOP_THEMES[key] || SHOP_THEMES[SHOP_THEME_DEFAULT];
+  const cur = current && typeof current === "object" ? current : {};
+  const was = cur.theme ? shopThemeBase(cur.theme) : base;
+  const keep = (field, fallback) => (cur[field] != null && cur[field] !== "" ? cur[field] : was[field] || fallback);
+  const same = cur.theme && shopThemeKey(cur.theme) === key;
   return {
-    theme: key, color: base.color, font: base.font, corners: base.corners,
-    cards: base.cards, density: base.density, photoShape: base.photoShape, dark: base.dark,
-    layout: base.layout || "list", buttons: base.buttons || "filled", heroStyle: base.heroStyle || "gradient",
-    coverStyle: base.coverStyle || "photo", pattern: base.pattern || "dots"
+    theme: key, color: same && cur.color ? cur.color : base.color, dark: same ? Boolean(keep("dark", false)) : false,
+    font: keep("font", base.font), corners: keep("corners", base.corners),
+    cards: keep("cards", base.cards), density: keep("density", base.density), photoShape: keep("photoShape", base.photoShape),
+    layout: keep("layout", "list"), buttons: keep("buttons", "filled"), heroStyle: keep("heroStyle", "gradient"),
+    coverStyle: keep("coverStyle", "photo"), pattern: keep("pattern", "dots")
   };
 }
 
@@ -44074,77 +44358,231 @@ function creatorShareText(rate) {
 //     but made to mean the one true thing available here: whether the
 //     name is live. Green once a handle exists — people can pay you at
 //     it — and grey before that.
-// What the counter soundbox says when a payment lands: the shop's own
-// sentence (paymentChime.js). Closed, one row showing it with a sample
-// amount; open, ready lines, a box to type in, Hear it, and back to the
-// standard sentence.
-function PaymentLineRow({ onToast }) {
-  const [line, setLine] = useState53(() => gloobalPaymentLineLoad());
-  const [open, setOpen] = useState53(false);
-  const [clip, setClip] = useState53(() => gloobalPaymentClipLoad());
+// What the counter soundbox says when a payment lands (paymentChime.js).
+//
+// On the profile it is one row: what the phone will do, and a chevron. The
+// row opens the Payment sound screen, which is where it is chosen:
+//
+//   * a card at the top that shows exactly what will be heard, with a play
+//     button and three sample amounts to try it with;
+//   * three ways — speak a line, play my own audio clip, or the chime only;
+//   * for a spoken line: the line, three ready ones, the voice and the speed;
+//   * for a clip: record, upload, remove, and whether the amount is said after.
+//
+// Nothing is kept until Save, so trying things changes nothing a customer
+// hears. It replaced a fold-out with chips and a box asking for "{amount}".
+function PaymentSoundText({ template, amount, pill }) {
+  const line = String(template || "").trim();
+  const parts = /\{amount\}/i.test(line) ? line.split(/\{amount\}/i) : ["", ". " + line];
+  return <>{parts.map((part, i) => <span key={i}>{i > 0 && <span style={pill}>{amount}</span>}{part}</span>)}</>;
+}
+var PAYMENT_SOUND_TRY = [10, 100, 2500];
+function PaymentSoundScreen({ onBack, onToast, currency }) {
+  const [draft, setDraft] = useState53(() => ({ ...gloobalPaymentSoundPrefs(), line: gloobalPaymentLineLoad(), clip: gloobalPaymentClipLoad() }));
+  const [amount, setAmount] = useState53(100);
+  const [playing, setPlaying] = useState53(false);
   const [recording, setRecording] = useState53(false);
   const [busy, setBusy] = useState53(false);
+  const [clipSeconds, setClipSeconds] = useState53(0);
   const recRef = useRef30(null);
   const fileRef = useRef30(null);
-  useEffect50(() => () => { if (recRef.current) recRef.current.stop(); }, []);
-  const change = (text) => { setLine(text); if (!gloobalPaymentLineSave(text)) onToast?.("Couldn't save your line on this phone"); };
-  const keepClip = (url) => {
-    if (!gloobalPaymentClipSave(url)) { onToast?.("No room to keep that clip on this phone"); return; }
-    setClip(url);
+  const aliveRef = useRef30(true);
+  useEffect50(() => () => {
+    aliveRef.current = false;
+    if (recRef.current) recRef.current.stop();
+    try { window.speechSynthesis && window.speechSynthesis.cancel(); } catch (e) { /* nothing speaking */ }
+  }, []);
+  // How long the clip is, for the card. A recording straight off the
+  // microphone often reports no length at all, and then none is shown.
+  useEffect50(() => {
+    setClipSeconds(0);
+    if (!draft.clip || typeof Audio === "undefined") return;
+    let live = true;
+    try {
+      const a = new Audio();
+      a.preload = "metadata";
+      a.onloadedmetadata = () => { if (live && Number.isFinite(a.duration) && a.duration > 0) setClipSeconds(Math.min(5, a.duration)); };
+      a.src = draft.clip;
+    } catch (e) { /* no length shown */ }
+    return () => { live = false; };
+  }, [draft.clip]);
+  const set = (patch) => setDraft((d) => ({ ...d, ...patch }));
+  const hear = (over) => {
+    if (playing || recording) return;
+    setPlaying(true);
+    gloobalPreviewPaymentSound({ ...draft, ...(over || {}) }, amount, currency).then(() => {}, () => {}).then(() => { if (aliveRef.current) setPlaying(false); });
   };
   const record = async () => {
     if (recording) { if (recRef.current) recRef.current.stop(); return; }
     const session = soundPayRecordLine();
     recRef.current = session;
     setRecording(true);
-    try { keepClip(await session.done); } catch (e) { onToast?.(soundPayClipError(e)); } finally { recRef.current = null; setRecording(false); }
+    try { const url = await session.done; if (aliveRef.current) set({ clip: url, mode: "clip" }); }
+    catch (e) { onToast?.(soundPayClipError(e)); }
+    finally { recRef.current = null; if (aliveRef.current) setRecording(false); }
   };
   const upload = async (e) => {
     const file = e.target.files && e.target.files[0];
     e.target.value = "";
     if (!file) return;
     setBusy(true);
-    try { keepClip(await soundPayClipFromFile(file)); } catch (err) { onToast?.(soundPayClipError(err)); } finally { setBusy(false); }
+    try { const url = await soundPayClipFromFile(file); if (aliveRef.current) set({ clip: url, mode: "clip" }); }
+    catch (err) { onToast?.(soundPayClipError(err)); }
+    finally { if (aliveRef.current) setBusy(false); }
   };
-  const sample = clip ? "Your audio clip, then the amount" : line.trim() ? gloobalPaymentLineSentence(line, 100).text : "The standard announcement";
-  const chip = (active) => ({ padding: "7px 12px", borderRadius: 999, border: `1.5px solid ${active ? T.accent : T.line}`, background: active ? "rgba(124,92,255,0.1)" : T.surface, color: active ? T.accent : T.inkSoft, fontSize: 12.5, fontWeight: 700, fontFamily: "inherit", cursor: "pointer", whiteSpace: "nowrap" });
+  const save = () => {
+    if (draft.mode === "clip" && !draft.clip) { onToast?.("Record or upload a clip first"); return; }
+    if (!gloobalPaymentClipSave(draft.clip)) { onToast?.("No room to keep that clip on this phone"); return; }
+    if (!gloobalPaymentLineSave(draft.line) || !gloobalPaymentSoundPrefsSave(draft)) { onToast?.("Couldn't save on this phone"); return; }
+    onToast?.("Payment sound saved");
+    onBack();
+  };
+  const shown = amount.toLocaleString("en-IN");
+  const ticker = typeof COIN_TICKER !== "undefined" ? COIN_TICKER : "CEL";
+  const typed = draft.line.trim();
+  const heroPill = { display: "inline-block", padding: "0 8px", margin: "0 3px 0 0", borderRadius: 9, background: "rgba(255,255,255,0.24)" };
+  const inkPill = { display: "inline-block", padding: "1px 8px", margin: "0 4px 0 0", borderRadius: 8, background: T.accentSoft, color: T.accent, fontWeight: 800, fontSize: 12.5 };
+  const card = { background: T.surface, borderRadius: 20, padding: "14px 14px 16px", boxShadow: T.shadowCard, display: "flex", flexDirection: "column", gap: 10 };
+  const caps = { fontSize: 10.5, fontWeight: 800, letterSpacing: "0.09em", color: T.inkSoft, textTransform: "uppercase" };
+  const pick = (active) => ({ flex: 1, height: 40, borderRadius: 12, border: `1.5px solid ${active ? T.accent : T.line}`, background: active ? T.accentSoft : T.surface, color: active ? T.accent : T.inkSoft, fontSize: 13, fontWeight: 700, fontFamily: "inherit", cursor: "pointer" });
+  const MODES = [["line", "Speak a line"], ["clip", "My audio clip"], ["chime", "Chime only"]];
+  const bars = [8, 16, 26, 14, 22, 12, 30, 16, 10, 24, 14, 26, 8, 18, 12, 6];
+  return <div data-testid="payment-sound-screen" style={{ position: "fixed", inset: 0, zIndex: 700, background: T.bg, display: "flex", flexDirection: "column", fontFamily: T.fontBody }}>
+    <style>{`@keyframes paymentSoundBar { 0%, 100% { transform: scaleY(0.35); } 50% { transform: scaleY(1); } }
+      @media (prefers-reduced-motion: reduce) { .payment-sound-bar { animation: none !important; } }`}</style>
+    <div style={{ display: "flex", alignItems: "center", gap: 12, padding: "calc(18px + env(safe-area-inset-top, 0px)) 18px 12px", flexShrink: 0 }}>
+      <NavBackButton onClick={onBack} />
+      <span style={{ minWidth: 0 }}>
+        <span style={{ display: "block", fontSize: 16, fontWeight: 800, color: T.ink, fontFamily: T.fontDisplay }}>Payment sound</span>
+        <span style={{ display: "block", fontSize: 12, fontWeight: 600, color: T.inkSoft }}>What your phone says when you're paid</span>
+      </span>
+    </div>
+    {/* The card and the three ways stay put while the choices under them
+        scroll, so what will be heard is always in view as it is changed. */}
+    <div style={{ flexShrink: 0, padding: "2px 16px 12px", display: "flex", flexDirection: "column", gap: 12 }}>
+      {/* What will be heard, and a way to hear it. */}
+      <div data-testid="payment-sound-hero" style={{ position: "relative", overflow: "hidden", borderRadius: 22, padding: "16px 18px 18px", background: T.gradButton, color: "#fff", boxShadow: T.shadowRaised, flexShrink: 0 }}>
+        <span aria-hidden="true" style={{ position: "absolute", right: -70, top: -70, width: 230, height: 230, borderRadius: "50%", border: "22px solid rgba(255,255,255,0.08)", pointerEvents: "none" }} />
+        <div style={{ fontSize: 10.5, fontWeight: 800, letterSpacing: "0.1em", opacity: 0.85 }}>{draft.mode === "line" ? "YOUR PHONE WILL SAY" : "YOUR PHONE WILL PLAY"}</div>
+        <div data-testid="payment-sound-says" style={{ position: "relative", marginTop: 6, fontSize: 21, lineHeight: 1.3, fontWeight: 800, fontFamily: T.fontDisplay, overflowWrap: "anywhere" }}>
+          {draft.mode === "chime" ? "The chime only"
+            : draft.mode === "clip" ? (draft.clip ? `Your clip${clipSeconds ? ` · ${clipSeconds.toFixed(1)} s` : ""}` : "No clip yet")
+            : typed ? <PaymentSoundText template={typed} amount={shown} pill={heroPill} />
+            : "The standard announcement"}
+        </div>
+        <div style={{ position: "relative", marginTop: 3, fontSize: 13, fontWeight: 700, opacity: 0.9, minHeight: 18 }}>
+          {draft.mode === "chime" ? "Two notes, and no words"
+            : draft.mode === "clip" ? (!draft.clip ? "Record or upload one below" : draft.clipAmount ? <>then says “<span style={heroPill}>{shown}</span>{ticker}”</> : "and nothing after it")
+            : typed ? "" : "“Received”, then the amount in your currency"}
+        </div>
+        <div style={{ position: "relative", display: "flex", alignItems: "center", gap: 12, marginTop: 10 }}>
+          <button type="button" data-testid="payment-line-preview" aria-label={`Hear it with ${shown}`} onClick={() => hear()} disabled={playing || recording} className="v2-tap" style={{ width: 52, height: 52, flexShrink: 0, borderRadius: "50%", border: "none", background: "#fff", color: T.accent, display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer", opacity: playing || recording ? 0.75 : 1, padding: 0 }}>
+            <RpPlay size={22} fill="currentColor" style={{ marginLeft: 3 }} />
+          </button>
+          <span aria-hidden="true" style={{ flex: 1, minWidth: 0, height: 32, display: "flex", alignItems: "center", gap: 4, overflow: "hidden" }}>{bars.map((h, i) => <span key={i} className="payment-sound-bar" style={{ flex: "1 1 0", maxWidth: 12, height: h, borderRadius: 4, background: "rgba(255,255,255,0.55)", animation: playing ? `paymentSoundBar ${0.5 + (i % 4) * 0.12}s ease-in-out ${i * 0.04}s infinite` : "none" }} />)}</span>
+        </div>
+        <div style={{ position: "relative", display: "flex", alignItems: "center", gap: 8, marginTop: 12, fontSize: 12, fontWeight: 700 }}>
+          <span style={{ opacity: 0.9 }}>Try with</span>
+          {PAYMENT_SOUND_TRY.map((n) => <button key={n} type="button" data-testid={`payment-sound-try-${n}`} aria-pressed={amount === n} onClick={() => setAmount(n)} style={{ height: 26, padding: "0 11px", borderRadius: 999, border: "none", background: amount === n ? "#fff" : "rgba(255,255,255,0.2)", color: amount === n ? T.accent : "#fff", fontSize: 12, fontWeight: 800, fontFamily: "inherit", cursor: "pointer" }}>{n.toLocaleString("en-IN")}</button>)}
+        </div>
+      </div>
+      {/* The three ways. */}
+      <div role="tablist" style={{ display: "flex", gap: 4, padding: 4, borderRadius: 14, background: T.surfaceAlt, flexShrink: 0 }}>
+        {MODES.map(([key, label]) => <button key={key} type="button" role="tab" aria-selected={draft.mode === key} data-testid={`payment-sound-mode-${key}`} onClick={() => set({ mode: key })} style={{ flex: 1, height: 36, borderRadius: 11, border: "none", background: draft.mode === key ? T.surface : "transparent", boxShadow: draft.mode === key ? T.shadowCard : "none", color: draft.mode === key ? T.accent : T.inkSoft, fontSize: 12.5, fontWeight: 800, fontFamily: "inherit", cursor: "pointer", whiteSpace: "nowrap" }}>{label}</button>)}
+      </div>
+    </div>
+    <div data-testid="payment-sound-choices" style={{ flex: 1, minHeight: 0, overflowY: "auto", padding: "0 16px 18px", display: "flex", flexDirection: "column", gap: 12 }}>
+      {draft.mode === "line" && <>
+        <div style={card}>
+          <span style={caps}>Your line</span>
+          <input
+            data-testid="payment-line-input"
+            value={draft.line}
+            maxLength={GLOOBAL_PAYMENT_LINE_MAX}
+            placeholder="Leave empty for the standard announcement"
+            onChange={(e) => set({ line: e.target.value })}
+            style={{ width: "100%", boxSizing: "border-box", height: 46, borderRadius: 13, border: `1.5px solid ${T.line}`, background: T.bg, color: T.ink, fontSize: 15, fontWeight: 700, fontFamily: "inherit", padding: "0 13px", outline: "none" }}
+          />
+          <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap", fontSize: 11.5, fontWeight: 600, color: T.inkSoft, lineHeight: 1.4 }}>
+            {!/\{amount\}/i.test(draft.line) && <button type="button" data-testid="payment-line-add-amount" onClick={() => set({ line: ("{amount} " + draft.line).slice(0, GLOOBAL_PAYMENT_LINE_MAX) })} style={{ ...inkPill, border: "none", cursor: "pointer", fontFamily: "inherit", padding: "4px 10px", margin: 0 }}>+ Amount</button>}
+            <span>{/\{amount\}/i.test(draft.line) ? "{amount} is replaced by what you were paid." : typed ? "With no {amount} in the line, the amount is said first." : "Type anything you like, in any language."}</span>
+          </div>
+        </div>
+        <div style={{ ...card, gap: 0 }}>
+          <span style={{ ...caps, marginBottom: 4 }}>Or pick a ready line</span>
+          {GLOOBAL_PAYMENT_LINE_PRESETS.map((t, i) => {
+            const on = typed === t;
+            return <div key={t} style={{ display: "flex", alignItems: "center", gap: 10, padding: "10px 0", borderTop: i ? `1px solid ${T.line}` : "none" }}>
+              <button type="button" data-testid={`payment-line-preset-${i}`} aria-pressed={on} onClick={() => set({ line: t })} style={{ flex: 1, minWidth: 0, display: "flex", alignItems: "center", gap: 10, border: "none", background: "transparent", padding: 0, textAlign: "left", fontFamily: "inherit", cursor: "pointer" }}>
+                <span aria-hidden="true" style={{ width: 18, height: 18, flexShrink: 0, borderRadius: "50%", boxSizing: "border-box", border: on ? `5.5px solid ${T.accent}` : `1.5px solid ${T.inkFaint}`, background: T.surface }} />
+                <span style={{ fontSize: 13.5, fontWeight: 700, color: T.ink, lineHeight: 1.45 }}><PaymentSoundText template={t} amount="Amount" pill={inkPill} /></span>
+              </button>
+              <button type="button" aria-label="Hear this line" onClick={() => hear({ mode: "line", line: t })} disabled={playing} style={{ width: 32, height: 32, flexShrink: 0, borderRadius: "50%", border: "none", background: T.accentSoft, color: T.accent, display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer", padding: 0 }}><RpPlay size={13} fill="currentColor" style={{ marginLeft: 2 }} /></button>
+            </div>;
+          })}
+        </div>
+        <div style={card}>
+          <span style={caps}>Voice</span>
+          <div style={{ display: "flex", gap: 8 }}>{[["hi", "Hindi"], ["en", "English"], ["auto", "Automatic"]].map(([key, label]) => <button key={key} type="button" data-testid={`payment-sound-voice-${key}`} aria-pressed={draft.voice === key} onClick={() => set({ voice: key })} style={pick(draft.voice === key)}>{label}</button>)}</div>
+          <span style={{ ...caps, marginTop: 4 }}>Speed</span>
+          <div style={{ display: "flex", gap: 8 }}>{[["slow", "Slow"], ["normal", "Normal"], ["fast", "Fast"]].map(([key, label]) => <button key={key} type="button" data-testid={`payment-sound-speed-${key}`} aria-pressed={draft.speed === key} onClick={() => set({ speed: key })} style={pick(draft.speed === key)}>{label}</button>)}</div>
+          <div style={{ fontSize: 11.5, fontWeight: 600, color: T.inkFaint, lineHeight: 1.4 }}>Spoken by this phone's own voice. Automatic picks Hindi for Hindi letters and English otherwise.</div>
+        </div>
+      </>}
+      {draft.mode === "clip" && <>
+        <div style={{ ...card, alignItems: "center", textAlign: "center" }}>
+          <span style={{ ...caps, alignSelf: "flex-start" }}>Record your own voice</span>
+          <button type="button" data-testid="payment-clip-record" aria-label={recording ? "Stop recording" : "Record"} onClick={record} disabled={busy} className="v2-tap" style={{ width: 96, height: 96, borderRadius: "50%", border: "none", background: recording ? "#ef4444" : T.gradButton, color: "#fff", display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer", boxShadow: `0 0 0 10px ${recording ? "rgba(239,68,68,0.16)" : T.accentSoft}`, margin: "10px 0 8px", padding: 0 }}>
+            {recording ? <span style={{ width: 26, height: 26, borderRadius: 6, background: "#fff" }} /> : <SoundMicIcon size={34} />}
+          </button>
+          <span style={{ fontSize: 14, fontWeight: 800, color: T.ink }}>{recording ? "Recording… tap to stop" : draft.clip ? "Tap to record again" : "Tap to record"}</span>
+          <span style={{ fontSize: 12, fontWeight: 600, color: T.inkSoft }}>5 seconds at most · say anything you like</span>
+          <div style={{ display: "flex", gap: 8, width: "100%", marginTop: 6 }}>
+            <button type="button" data-testid="payment-clip-upload" onClick={() => fileRef.current && fileRef.current.click()} disabled={recording || busy} style={pick(false)}>{busy ? "Adding…" : "Upload a clip"}</button>
+            <button type="button" data-testid="payment-clip-remove" onClick={() => set({ clip: "" })} disabled={!draft.clip || recording} style={{ ...pick(false), opacity: draft.clip ? 1 : 0.45 }}>Remove clip</button>
+            <input ref={fileRef} data-testid="payment-clip-file" type="file" accept="audio/*" onChange={upload} style={{ display: "none" }} />
+          </div>
+        </div>
+        <div style={{ ...card, flexDirection: "row", alignItems: "center", gap: 12 }}>
+          <span style={{ flex: 1, minWidth: 0 }}>
+            <span style={{ display: "block", fontSize: 14, fontWeight: 800, color: T.ink }}>Say the amount after the clip</span>
+            <span style={{ display: "block", fontSize: 12, fontWeight: 600, color: T.inkSoft, marginTop: 2 }}>“…{shown} {ticker}”, so you still hear how much</span>
+          </span>
+          <ProfileToggle on={draft.clipAmount} onToggle={() => set({ clipAmount: !draft.clipAmount })} />
+        </div>
+      </>}
+      {draft.mode === "chime" && <div style={card}>
+        <span style={{ fontSize: 14, fontWeight: 800, color: T.ink }}>Just the two notes</span>
+        <span style={{ fontSize: 12.5, fontWeight: 600, color: T.inkSoft, lineHeight: 1.5 }}>Your phone plays the chime and says nothing. The amount is still on the screen and in the notification.</span>
+      </div>}
+    </div>
+    <div style={{ flexShrink: 0, padding: "10px 16px calc(14px + env(safe-area-inset-bottom, 0px))", background: T.bg, borderTop: `1px solid ${T.line}` }}>
+      <button type="button" data-testid="payment-sound-save" onClick={save} disabled={recording || busy} className="v2-tap" style={{ width: "100%", height: 52, borderRadius: 16, border: "none", background: T.gradButton, color: "#fff", fontSize: 15, fontWeight: 800, fontFamily: "inherit", cursor: "pointer" }}>Save</button>
+    </div>
+  </div>;
+}
+function PaymentLineRow({ onToast, currency }) {
+  const [open, setOpen] = useState53(false);
+  // Read again each time the screen closes, since Save is what changes it.
+  const how = gloobalPaymentSoundPrefs();
+  const line = gloobalPaymentLineLoad();
+  const sample = how.mode === "chime" ? "Chime only"
+    : how.mode === "clip" ? (how.clipAmount ? "Your audio clip, then the amount" : "Your audio clip")
+    : line ? `“${gloobalPaymentLineSentence(line, 100).text}”` : "The standard announcement";
   return <div data-testid="payment-line" style={{ padding: "12px 15px 14px", borderTop: `1px solid ${T.line}` }}>
-    <button type="button" data-testid="payment-line-open" onClick={() => setOpen((v) => !v)} style={{ width: "100%", display: "flex", alignItems: "center", gap: 13, border: "none", background: "transparent", padding: 0, cursor: "pointer", textAlign: "left", fontFamily: "inherit" }}>
+    <button type="button" data-testid="payment-line-open" onClick={() => setOpen(true)} style={{ width: "100%", display: "flex", alignItems: "center", gap: 13, border: "none", background: "transparent", padding: 0, cursor: "pointer", textAlign: "left", fontFamily: "inherit" }}>
       <Pencil4 size={18} color={T.accent} style={{ flexShrink: 0 }} />
       <span style={{ flex: 1, minWidth: 0 }}>
         <span style={{ display: "block", fontSize: 13, fontWeight: 700, color: T.ink }}>When you're paid, your phone says</span>
-        <span data-testid="payment-line-sample" style={{ display: "block", fontSize: 12, fontWeight: 600, color: T.inkSoft, marginTop: 2, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{!clip && line.trim() ? `“${sample}”` : sample}</span>
+        <span data-testid="payment-line-sample" style={{ display: "block", fontSize: 12, fontWeight: 600, color: T.inkSoft, marginTop: 2, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{sample}</span>
       </span>
-      <ChevronRight9 size={17} color={T.inkFaint} style={{ flexShrink: 0, transform: open ? "rotate(90deg)" : "none" }} />
+      <ChevronRight9 size={17} color={T.inkFaint} style={{ flexShrink: 0 }} />
     </button>
-    {open && <div data-testid="payment-line-editor" style={{ marginTop: 10, display: "flex", flexDirection: "column", gap: 10 }}>
-      <div style={{ display: "flex", gap: 6, overflowX: "auto", paddingBottom: 2 }}>{GLOOBAL_PAYMENT_LINE_PRESETS.map((t) => <button key={t} type="button" onClick={() => change(t)} style={chip(line === t)}>{gloobalPaymentLineSentence(t, 100).text}</button>)}</div>
-      <input
-        data-testid="payment-line-input"
-        value={line}
-        maxLength={GLOOBAL_PAYMENT_LINE_MAX}
-        placeholder="Type your own, with {amount} where the amount goes"
-        onChange={(e) => change(e.target.value)}
-        style={{ width: "100%", boxSizing: "border-box", height: 42, borderRadius: 12, border: `1.5px solid ${T.line}`, background: T.bg, color: T.ink, fontSize: 14, fontWeight: 600, fontFamily: "inherit", padding: "0 12px", outline: "none" }}
-      />
-      <div style={{ fontSize: 11.5, fontWeight: 600, color: T.inkFaint, lineHeight: 1.4 }}>{"{amount}"} is replaced by the amount paid. Plays while GLOOBAL is open on this phone.</div>
-      {/* Or their own sound in place of the words: five seconds at most. */}
-      <div style={{ fontSize: 12, fontWeight: 700, color: T.inkSoft }}>{clip ? "Playing your audio clip in place of the words" : "Or play your own audio clip (5 seconds at most)"}</div>
-      <div style={{ display: "flex", gap: 8 }}>
-        <button type="button" data-testid="payment-clip-record" onClick={record} disabled={busy} style={{ ...chip(recording), height: 40, flex: 1, borderColor: recording ? "#ef4444" : T.line, color: recording ? "#ef4444" : T.inkSoft }}>{recording ? "Recording… tap to stop" : "Record (5 s)"}</button>
-        <button type="button" data-testid="payment-clip-upload" onClick={() => fileRef.current && fileRef.current.click()} disabled={recording || busy} style={{ ...chip(false), height: 40, flex: 1 }}>{busy ? "Adding…" : "Upload clip"}</button>
-        {clip && <button type="button" data-testid="payment-clip-remove" onClick={() => keepClip("")} style={{ ...chip(false), height: 40 }}>Remove</button>}
-        <input ref={fileRef} data-testid="payment-clip-file" type="file" accept="audio/*" onChange={upload} style={{ display: "none" }} />
-      </div>
-      <div style={{ display: "flex", gap: 8 }}>
-        <button type="button" data-testid="payment-line-preview" onClick={() => gloobalPreviewPaymentLine(line)} disabled={recording} style={{ ...chip(true), height: 40, flex: 1 }}>Hear it with 100</button>
-        <button type="button" data-testid="payment-line-reset" onClick={() => { change(""); keepClip(""); }} disabled={!line.trim() && !clip} style={{ ...chip(false), height: 40, opacity: line.trim() || clip ? 1 : 0.5 }}>Use the standard one</button>
-      </div>
-    </div>}
+    {open && typeof document !== "undefined" && gloobalMapPortal(<PaymentSoundScreen onBack={() => setOpen(false)} onToast={onToast} currency={currency} />, document.body)}
   </div>;
 }
 
-function CreatorProfilePanel({ creator, myGloobalId, onLoad, onEdit, onOpenPage, onShowQr, onOpenLedger, onToast, paymentSoundOn = true, onTogglePaymentSound }) {
+function CreatorProfilePanel({ creator, myGloobalId, onLoad, onEdit, onOpenPage, onShowQr, onOpenLedger, onToast, paymentSoundOn = true, onTogglePaymentSound, currency }) {
   // Opening this row can be the first touch of the Creator side — the
   // other being the flip itself — so it may arrive with nothing loaded.
   useEffect50(() => {
@@ -44374,7 +44812,7 @@ function CreatorProfilePanel({ creator, myGloobalId, onLoad, onEdit, onOpenPage,
       onTogglePaymentSound();
     }} label="Sounds" />,
     !done
-  ) : null}{typeof onTogglePaymentSound === "function" && paymentSoundOn ? <PaymentLineRow onToast={onToast} /> : null}{fact(
+  ) : null}{typeof onTogglePaymentSound === "function" && paymentSoundOn ? <PaymentLineRow onToast={onToast} currency={currency} /> : null}{fact(
     "id",
     Contact4,
     idShown
@@ -45295,7 +45733,11 @@ function askPlain(text) { return String(text || "").replace(/\*\*/g, ""); }
 // Written in each voice's own letters, because a voice for another language
 // can stumble over a Latin word.
 var ASK_SPOKEN_NAME = { hi: "ग्लोबल", mr: "ग्लोबल", ta: "குளோபல்", bn: "গ্লোবাল", te: "గ్లోబల్", gu: "ગ્લોબલ", kn: "ಗ್ಲೋಬಲ್", ml: "ഗ്ലോബൽ", pa: "ਗਲੋਬਲ", ur: "گلوبل", ar: "جلوبال", ru: "Глобал", ja: "グローバル", ko: "글로벌" };
-function askSpoken(text, lang) { return askPlain(text).replace(/gloobal/gi, ASK_SPOKEN_NAME[lang] || "Global"); }
+// CEL is said as a word, not spelled (gloobalSpokenText, paymentChime.js).
+function askSpoken(text, lang) {
+  const said = askPlain(text).replace(/gloobal/gi, ASK_SPOKEN_NAME[lang] || "Global");
+  return typeof gloobalSpokenText === "function" ? gloobalSpokenText(said, lang) : said;
+}
 
 
 // src/features/support/askGloobal.jsx
@@ -46550,12 +46992,30 @@ function smartPinOrder(tiles, uses, now = Date.now()) {
 // colour, a profile saved before this feature existed all resolve to
 // GLOOBAL_SHOP_THEME, which is the purple the app already is.
 
-var SHOP_THEME_KEYS = ["gloobal", "street", "studio", "market", "night", "chai", "mithai", "boutique", "pharmacy", "dhaba", "kirana", "minimal"];
+// ── ONE SET OF THEMES, FOR ALL THREE PLACES ─────────────────────────────
+//
+// A shop's theme is one of the app's own twenty looks (constants/theme.js):
+// the same list a person picks from for their Personal side and their
+// Creator side. There used to be a second list here that existed nowhere
+// else — Street, Studio, Chai Stall, Mithai and eight more — so "theme"
+// meant one thing in Appearance and another on a shop page.
+//
+// A look gives a shop its COLOUR and its page (the look's own paper, ink
+// and lines). The shop-only dials — own colour, font, corners, cards,
+// density, photo shape, layout, buttons, cover — are still the owner's to
+// set afterwards, and picking a theme no longer resets them.
+//
+// The twelve retired themes are kept below for one reason: a shop saved
+// under one of them still has that theme's dials wherever its owner never
+// set their own, and it opens under the nearest look (SHOP_THEME_RETIRED).
+var SHOP_THEME_DEFAULT = "day.personal";
+var SHOP_THEME_RETIRED = {
+  gloobal: "day.personal", street: "rajasthan.creator", studio: "monsoon.personal", market: "peacock.creator",
+  night: "day.creator", chai: "chai.personal", mithai: "lotus.personal", boutique: "chai.personal",
+  pharmacy: "jamun.creator", dhaba: "rajasthan.creator", kirana: "chai.creator", minimal: "monsoon.personal"
+};
 
-// The four presets. Each is a whole look in one tap — and every field in it
-// is separately overridable afterwards, which is the point of D: a preset is
-// a starting position, not a cage.
-var SHOP_THEMES = {
+var SHOP_THEMES_RETIRED_DIALS = {
   gloobal: {
     name: "GLOOBAL",
     note: "The app's own look",
@@ -46662,6 +47122,493 @@ var SHOP_THEMES = {
 // The four style dials added with the ready themes. The first value of
 // each is what a shop saved before they existed gets, which is exactly
 // how such a shop already looked.
+// The twenty, built from the app's themes so the two can never drift:
+// { "day.personal": { name: "Violet", note: "Day", color, look, …dials } }.
+var SHOP_THEMES = {};
+var SHOP_THEME_KEYS = [];
+gloobalLooks().forEach(function (look) {
+  SHOP_THEME_KEYS.push(look.id);
+  SHOP_THEMES[look.id] = {
+    name: look.name,
+    note: GLOOBAL_THEMES[look.theme].name,
+    color: String(GLOOBAL_THEMES[look.theme][look.side].accent).toUpperCase(),
+    look: look.id,
+    font: "grotesk", corners: "round", cards: "raised", density: "cosy", photoShape: "rounded", dark: false
+  };
+});
+// The look a stored theme stands for: itself, the nearest look for a
+// retired one, the app's own for anything else.
+function shopThemeKey(value) {
+  return SHOP_THEMES[value] ? value : SHOP_THEME_RETIRED[value] || SHOP_THEME_DEFAULT;
+}
+
+// ── WHAT KIND OF PAGE THIS IS ───────────────────────────────────────────
+//
+// "What do people come to you for?" One answer shapes the page: how the
+// list is laid out, what the button on each item says, what the list is
+// called, and which parts are on. Eight kinds, which between them cover a
+// tea stall, a kirana, a salon, a tuition class, a photographer, a taxi, a
+// temple fund and a freelancer who only needs to be paid.
+//
+// A page type is a STARTING POSITION, like a theme: everything it sets is
+// the owner's to change afterwards. And it obeys the rule at the top of
+// this file — it changes words and layout, never how money reads. "Book"
+// and "Donate" are the same button as "Add": they put the item in the
+// basket, and the basket and Pay are the app's own.
+//
+// `who` is the examples line on the picker. `set` is what a pick writes
+// over the shop's dials; `hide` the parts that start switched off; `sample`
+// two made-up items ([title, note, price]) the setup preview draws.
+var SHOP_PAGE_TYPES = {
+  menu: { name: "Menu", who: "Chai, dhaba, café, tiffin, sweets, bakery", color: "#E8701E", sample: [["Masala chai", "Kadak, with ginger", 15], ["Samosa", "2 pieces", 30]],
+    set: { itemButton: "order", listName: "menu", layout: "list", photoShape: "circle", corners: "round" }, hide: [] },
+  store: { name: "Store", who: "Kirana, farm produce, clothes, mobiles, hardware", color: "#2F5D8C", sample: [["Basmati rice", "5 kg", 620], ["Sunflower oil", "1 litre", 165]],
+    set: { itemButton: "add", listName: "products", layout: "grid", photoShape: "rounded", corners: "soft" }, hide: [] },
+  services: { name: "Services", who: "Salon, tailor, cobbler, mechanic, plumber, clinic", color: "#0B7A55", sample: [["Haircut", "30 min", 150], ["Facial", "45 min", 400]],
+    set: { itemButton: "book", listName: "services", layout: "list", photoShape: "circle", corners: "soft" }, hide: [] },
+  classes: { name: "Classes", who: "Tuition, coaching, music, dance, yoga, gym", color: "#5E2A84", sample: [["Maths, class 10", "Mon · Wed · Fri", 1500], ["Trial class", "1 hour", 100]],
+    set: { itemButton: "join", listName: "classes", layout: "list", photoShape: "rounded", corners: "round" }, hide: [] },
+  portfolio: { name: "Portfolio", who: "Artist, photographer, YouTuber, musician, writer", color: "#C2185B", sample: [["Wedding album", "200 edited photos", 15000], ["Buy me a chai", "Support my work", 50]],
+    set: { itemButton: "support", listName: "work", layout: "grid", photoShape: "tall", corners: "sharp" }, hide: ["where"] },
+  bookings: { name: "Bookings", who: "Taxi, tours, hotel, events, tent, DJ, tickets", color: "#D98A00", sample: [["Airport drop", "Sedan, up to 4", 900], ["Day tour", "8 hours", 2500]],
+    set: { itemButton: "book", listName: "packages", layout: "list", photoShape: "wide", corners: "soft" }, hide: [] },
+  giving: { name: "Giving", who: "NGO, temple, club, fundraiser, community", color: "#A2401C", sample: [["Feed a child", "One meal", 50], ["Temple repair fund", "Any amount helps", 500]],
+    set: { itemButton: "donate", listName: "causes", layout: "list", photoShape: "wide", corners: "round" }, hide: [] },
+  pay: { name: "Just pay me", who: "Labour, maid, driver, guard, freelancer — no list, only pay", color: "#36414E", sample: [],
+    set: { itemButton: "add", listName: "", layout: "list", photoShape: "rounded", corners: "round" }, hide: ["list", "reviews"] }
+};
+var SHOP_PAGE_TYPE_KEYS = ["menu", "store", "services", "classes", "portfolio", "bookings", "giving", "pay"];
+
+// ── WHICH ONE, EXACTLY ──────────────────────────────────────────────────
+//
+// A page type is broad: "Services" is a salon and a plumber. So under the
+// type the setup asks which one is closest, from the Bazaar's own
+// categories and sub-categories (bazaar.jsx) — the same two things "What
+// you sell" saves, so the answer is also where the shop is found in Pay &
+// Services. Nothing new is stored for it.
+//
+// Each type lists the categories it draws from, and which of their
+// sub-categories ("*" for all of them). The order is the order shown.
+var SHOP_PAGE_TYPE_KINDS = {
+  menu: [["food", "*"], ["sweets", "*"]],
+  store: [["grocery", "*"], ["farm", ["farmer", "dairyfarm", "poultry", "fishery", "nursery", "seeds", "cattlefeed", "honey", "flowergrower", "mandi"]],
+    ["fashion", ["clothes", "saree", "shoes", "jewellery", "kids", "boutique", "bangles", "bags", "handloom"]],
+    ["electronics", ["mobile", "computer", "appliances"]], ["home", ["furniture", "decor", "hardware", "utensils"]],
+    ["education", ["books", "stationery"]], ["art", ["handmade", "pottery", "gifts", "framing", "idol", "bamboo", "toys"]], ["health", ["pharmacy", "optical"]]],
+  services: [["beauty", "*"], ["fashion", ["tailor", "laundry", "cobbler", "embroidery"]], ["repair", "*"],
+    ["home", ["cleaning", "pestcontrol", "movers", "gardening", "cook", "scrap", "mattress"]],
+    ["health", ["clinic", "doctor", "dentist", "lab", "physio", "ayurveda", "vet", "nurse", "ambulance"]],
+    ["electronics", ["phonerepair", "internet", "printing", "recharge", "cyber", "tvrepair"]]],
+  classes: [["education", ["tuition", "coaching", "music", "dance", "language", "computerclass", "sports", "preschool", "driving", "library", "craftclass"]], ["health", ["gym", "yoga"]]],
+  portfolio: [["creator", "*"], ["art", ["painting", "photography", "design", "handmade"]]],
+  bookings: [["travel", "*"], ["events", "*"], ["home", ["rent"]], ["farm", ["tractor"]]],
+  giving: [["community", "*"]],
+  // No list, only pay: the people paid for a day's work come first here.
+  pay: [["work", "*"], ["creator", ["freelancer", "consultant", "developer", "designer", "writer"]], ["travel", ["taxi", "auto", "erickshaw", "rickshaw", "driver", "tempo", "courier"]], ["repair", ["plumber", "electrician", "carpenter", "painter", "mason"]]]
+};
+
+// Words people say for a kind that are not its name, so typing "hair"
+// finds the barber and the salon as well as the hair stylist, and "nai"
+// finds the barber. Keyed "<category>.<sub>"; lower case.
+var SHOP_KIND_WORDS = {
+  "beauty.salon": "hair haircut unisex beauty", "beauty.parlour": "beauty parlor ladies facial threading waxing hair",
+  "beauty.barber": "hair haircut shave nai gents saloon", "beauty.hair": "hair haircut hairdresser colour color styling keratin",
+  "beauty.makeup": "bridal mua beauty", "beauty.nails": "manicure pedicure nail art", "beauty.skincare": "facial skin clinic derma",
+  "beauty.mehendi": "henna bridal", "beauty.spa": "massage", "beauty.tattoo": "piercing ink",
+  "fashion.tailor": "darzi stitching alteration boutique", "fashion.laundry": "dhobi dry clean press ironing istri presswala", "fashion.boutique": "designer clothes ladies",
+  "food.chai": "tea tapri stall", "food.streetfood": "chaat pani puri momos thela vada pav golgappa bhel tikki", "food.homekitchen": "cloud kitchen home food tiffin", "food.tiffin": "dabba mess meals",
+  "grocery.kirana": "general store provision ration", "grocery.water": "gas cylinder water can",
+  "health.doctor": "clinic physician", "health.physio": "physiotherapist", "health.optical": "spectacles glasses eye chashma", "health.vet": "pet animal dog",
+  "health.gym": "fitness trainer", "health.yoga": "meditation fitness",
+  "repair.mechanic": "garage mistri service", "repair.ac": "fridge washing machine appliance", "repair.puncture": "tyre", "repair.electrician": "wiring light",
+  "home.cook": "maid bai househelp", "home.movers": "shifting transport", "home.rent": "pg flat room broker property",
+  "education.tuition": "teacher home tutor classes", "education.coaching": "institute exam classes", "education.language": "english spoken",
+  "education.music": "guitar singing tabla", "education.driving": "car learning",
+  "travel.taxi": "cab driver car", "travel.auto": "rickshaw driver", "travel.tempo": "truck loading transport", "travel.courier": "delivery parcel",
+  "events.photovideo": "photographer videographer wedding shoot", "events.pandit": "puja priest", "events.band": "dhol baja", "events.catering": "halwai food",
+  "art.photography": "photographer photo studio", "art.design": "graphic logo",
+  "creator.youtuber": "youtube channel vlogger video", "creator.musician": "singer band music artist", "creator.writer": "author poet blogger",
+  "creator.photographer": "photo shoot", "creator.videomaker": "editor reels film", "creator.designer": "graphic ui logo", "creator.developer": "coder programmer software app website",
+  "creator.influencer": "instagram reels", "creator.freelancer": "self employed gig", "creator.consultant": "advisor ca lawyer coach", "creator.astrology": "jyotish kundli tarot",
+  "community.ngo": "charity trust foundation donation", "community.worship": "temple mandir mosque masjid church gurudwara donation",
+  "community.fundraiser": "donation help medical", "community.society": "rwa apartment maintenance", "community.club": "group association", "community.sportsclub": "cricket football team",
+  "food.eggcart": "anda egg omelette bhurji thela boiled",
+  "food.biryani": "pulao rice",
+  "food.chinese": "noodles chowmein momos manchurian thela",
+  "food.southindian": "dosa idli vada sambar uttapam",
+  "food.juice": "ganna sugarcane shake nimbu lemon soda",
+  "grocery.flourmill": "chakki atta grinding besan",
+  "grocery.milkman": "doodh doodhwala dairy",
+  "grocery.spices": "masala mirch haldi",
+  "grocery.pickles": "achar papad badi homemade",
+  "grocery.coconut": "nariyal pani tender",
+  "grocery.vegetables": "sabzi sabji thela mandi",
+  "grocery.fruits": "phal thela cart",
+  "sweets.homebaker": "cake home bakery cookies",
+  "fashion.cobbler": "mochi shoe repair polish chappal",
+  "fashion.embroidery": "zari zardozi kadhai aari work",
+  "fashion.bangles": "chudi bindi cosmetic manihari",
+  "fashion.handloom": "weaver bunkar khadi powerloom",
+  "fashion.bags": "purse luggage school bag",
+  "beauty.homebeauty": "parlour at home beautician facial",
+  "beauty.massage": "maalish malish champi",
+  "health.nurse": "caretaker attendant injection home nursing",
+  "health.ambulance": "emergency patient",
+  "electronics.cyber": "csc online form aadhaar pan print ticket jan seva",
+  "electronics.tvrepair": "television fridge mixer cooler washing machine",
+  "repair.cycle": "bicycle puncture saikil",
+  "repair.keymaker": "chabi lock duplicate key",
+  "repair.watch": "ghadi clock battery",
+  "repair.stove": "chulha gas cooker burner",
+  "repair.knife": "dhaar scissors sharpening",
+  "repair.mason": "mistri raj mistri construction brick plaster",
+  "repair.tiles": "marble flooring granite",
+  "repair.borewell": "motor pump boring tubewell",
+  "home.scrap": "kabadi kabadiwala raddi old newspaper iron",
+  "home.mattress": "gadda razai quilt cotton pinjara",
+  "home.utensils": "bartan steel vessel",
+  "education.library": "reading room study",
+  "education.craftclass": "silai sewing stitching class",
+  "travel.erickshaw": "toto battery rickshaw",
+  "travel.rickshaw": "cycle rickshaw riksha",
+  "travel.driver": "chauffeur car driver",
+  "travel.schoolvan": "school auto children van",
+  "art.idol": "murti moorti statue ganesh",
+  "art.bamboo": "cane basket tokri",
+  "art.toys": "khilona balloon gubbara",
+  "events.lights": "generator genset lighting",
+  "community.shg": "self help group mahila mandal samooh",
+  "community.gaushala": "cow shelter gau seva",
+  "community.school": "fees college donation",
+  "farm.farmer": "kisan kheti crops grain anaj wheat rice",
+  "farm.dairyfarm": "doodh milk cow buffalo dairy",
+  "farm.poultry": "murgi chicken eggs anda",
+  "farm.fishery": "machhli fish pond",
+  "farm.nursery": "plants paudha garden saplings",
+  "farm.seeds": "beej khad fertiliser fertilizer pesticide",
+  "farm.cattlefeed": "chara pashu aahar khal",
+  "farm.honey": "shahad madhu bee",
+  "farm.flowergrower": "phool genda rose",
+  "farm.mandi": "aadhat wholesale grain trader",
+  "farm.tractor": "jcb harvester trolley rental",
+  "work.labour": "mazdoor majdoor labor dihadi daily wage beldar",
+  "work.helper": "loader loading unloading hamal",
+  "work.porter": "coolie kuli luggage station",
+  "work.guard": "chowkidar watchman security",
+  "work.sweeper": "safai cleaner jhadu safaiwala",
+  "work.maid": "bai kaamwali househelp jhadu pocha bartan",
+  "work.babysitter": "aaya nanny child care",
+  "work.eldercare": "caretaker attendant old age patient",
+  "work.homecook": "cook rasoiya khana maharaj",
+  "work.gardener": "mali garden plants",
+  "work.rider": "delivery boy bike courier zomato swiggy",
+  "work.waiter": "catering staff server helper event"
+};
+
+// The kinds to offer: for a page type, its own (grouped by category); for
+// words typed in the search box, every kind anywhere whose name, category
+// or other words contain them — "similar and around", not just one list.
+// `cats` is [{ key, label }], `subs` is { category: [[key, label]] }: the
+// Bazaar's two tables, passed in so this file needs nothing from that one.
+function shopKindGroups(pageType, query, cats, subs) {
+  const q = String(query || "").trim().toLowerCase();
+  const groups = [];
+  const push = (cat, keys) => {
+    const info = (cats || []).find((c) => c.key === cat);
+    const rows = ((subs || {})[cat] || []).filter(([k]) => keys === "*" || keys.indexOf(k) >= 0);
+    if (info && rows.length) groups.push({ category: cat, label: info.label, kinds: rows.map(([k, label]) => ({ sub: k, label: label })) });
+  };
+  if (!q) {
+    for (const [cat, keys] of SHOP_PAGE_TYPE_KINDS[pageType] || []) push(cat, keys);
+    return groups;
+  }
+  for (const info of cats || []) {
+    const rows = ((subs || {})[info.key] || []).filter(([k, label]) => {
+      const hay = `${label} ${info.label} ${SHOP_KIND_WORDS[`${info.key}.${k}`] || ""}`.toLowerCase();
+      return q.split(/\s+/).every((word) => hay.indexOf(word) >= 0);
+    });
+    if (rows.length) groups.push({ category: info.key, label: info.label, kinds: rows.map(([k, label]) => ({ sub: k, label: label })) });
+  }
+  return groups;
+}
+
+// ── A FIRST LIST FOR EACH KIND ──────────────────────────────────────────
+//
+// Most new shops stall at "add your first item". So each kind comes with
+// a few things that kind usually sells: [title, note, a typical price].
+// Setup offers them to tick; the owner types their OWN price for each one
+// they keep. The price here is never saved — it is only what the preview
+// shows and the hint in the empty price box (and only for a rupee account,
+// since it is a rupee figure).
+var SHOP_KIND_STARTERS = {
+  "food.chai": [["Masala chai", "Kadak, with ginger", 15], ["Cutting chai", "Half glass", 10], ["Bun maska", "", 30], ["Biscuit", "", 5]],
+  "food.dhaba": [["Dal tadka", "", 120], ["Paneer butter masala", "", 180], ["Tandoori roti", "Per piece", 15], ["Thali", "Full meal", 150]],
+  "food.fastfood": [["Veg burger", "", 60], ["French fries", "", 70], ["Veg sandwich", "", 50], ["Cold drink", "", 20]],
+  "food.restaurant": [["Veg thali", "", 180], ["Paneer tikka", "", 220], ["Butter naan", "Per piece", 40], ["Gulab jamun", "2 pieces", 60]],
+  "food.cafe": [["Cappuccino", "", 120], ["Cold coffee", "", 140], ["Sandwich", "", 150], ["Brownie", "", 110]],
+  "food.tiffin": [["Daily tiffin", "One meal", 80], ["Monthly tiffin", "Lunch, 26 days", 2000], ["Extra roti", "Per piece", 8]],
+  "food.juice": [["Mosambi juice", "Glass", 40], ["Sugarcane juice", "Glass", 20], ["Mango shake", "", 60], ["Fruit plate", "", 50]],
+  "food.streetfood": [["Pani puri", "6 pieces", 30], ["Samosa", "2 pieces", 30], ["Vada pav", "", 20], ["Momos", "8 pieces", 60]],
+  "food.homekitchen": [["Home thali", "", 120], ["Rajma chawal", "", 90], ["Paratha", "2 pieces, with curd", 70]],
+  "food.paan": [["Meetha paan", "", 20], ["Saada paan", "", 15], ["Mouth freshener", "", 10]],
+  "grocery.kirana": [["Basmati rice", "5 kg", 620], ["Atta", "10 kg", 420], ["Sunflower oil", "1 litre", 165], ["Sugar", "1 kg", 48]],
+  "grocery.vegetables": [["Tomato", "1 kg", 40], ["Onion", "1 kg", 35], ["Potato", "1 kg", 30], ["Green chilli", "100 g", 10]],
+  "grocery.fruits": [["Banana", "1 dozen", 60], ["Apple", "1 kg", 160], ["Orange", "1 kg", 80], ["Papaya", "1 piece", 50]],
+  "grocery.dairy": [["Milk", "1 litre", 60], ["Curd", "500 g", 40], ["Paneer", "200 g", 90], ["Ghee", "500 ml", 330]],
+  "grocery.meat": [["Chicken", "1 kg", 240], ["Eggs", "1 tray of 30", 200], ["Fish", "1 kg", 300], ["Mutton", "1 kg", 750]],
+  "grocery.organic": [["Organic atta", "5 kg", 350], ["Cold-pressed oil", "1 litre", 380], ["Jaggery", "1 kg", 90], ["Honey", "500 g", 300]],
+  "grocery.general": [["Soap", "", 35], ["Toothpaste", "", 60], ["Biscuits", "", 20], ["Detergent", "1 kg", 110]],
+  "grocery.water": [["Water can", "20 litres", 40], ["Gas cylinder", "Refill", 950], ["Water bottles", "Case of 12", 200]],
+  "sweets.mithai": [["Kaju katli", "250 g", 250], ["Gulab jamun", "500 g", 180], ["Rasgulla", "500 g", 170], ["Jalebi", "250 g", 80]],
+  "sweets.bakery": [["Bread", "", 40], ["Veg puff", "", 20], ["Cream bun", "", 25], ["Cookies", "250 g", 90]],
+  "sweets.cakes": [["Chocolate cake", "500 g", 400], ["Black forest", "1 kg", 700], ["Cupcakes", "Box of 6", 300], ["Custom cake", "Per kg", 900]],
+  "sweets.namkeen": [["Aloo bhujia", "250 g", 70], ["Mixture", "250 g", 70], ["Mathri", "250 g", 80], ["Chips", "", 20]],
+  "sweets.icecream": [["Vanilla cup", "", 30], ["Chocolate cone", "", 50], ["Kulfi", "", 40], ["Family pack", "700 ml", 220]],
+  "sweets.dryfruits": [["Almonds", "250 g", 260], ["Cashews", "250 g", 280], ["Raisins", "250 g", 120], ["Gift box", "", 600]],
+  "fashion.tailor": [["Blouse stitching", "", 350], ["Shirt stitching", "", 400], ["Pant stitching", "", 450], ["Alteration", "Per piece", 80]],
+  "fashion.clothes": [["Shirt", "", 600], ["Jeans", "", 900], ["Kurti", "", 500], ["T-shirt", "", 350]],
+  "fashion.saree": [["Cotton saree", "", 900], ["Silk saree", "", 3500], ["Fall and pico", "", 120], ["Blouse piece", "", 250]],
+  "fashion.shoes": [["Sports shoes", "", 1200], ["Sandals", "", 450], ["Formal shoes", "", 1500], ["Slippers", "", 200]],
+  "fashion.jewellery": [["Earrings", "", 250], ["Necklace set", "", 900], ["Bangles", "Set of 12", 300], ["Ring", "", 200]],
+  "fashion.kids": [["Kids T-shirt", "", 250], ["Frock", "", 500], ["School uniform", "Set", 800], ["Kids shoes", "", 500]],
+  "fashion.boutique": [["Designer kurti", "", 1500], ["Lehenga", "", 6000], ["Custom stitching", "", 1200], ["Dupatta", "", 400]],
+  "fashion.laundry": [["Ironing", "Per piece", 8], ["Wash and iron", "Per kg", 80], ["Dry clean, saree", "", 200], ["Dry clean, suit", "", 350]],
+  "beauty.salon": [["Haircut", "30 min", 150], ["Hair colour", "1 hour", 800], ["Facial", "45 min", 400], ["Threading", "10 min", 40]],
+  "beauty.parlour": [["Threading", "Eyebrows", 40], ["Facial", "45 min", 400], ["Waxing", "Full arms", 250], ["Bridal makeup", "Ask for a date", 8000]],
+  "beauty.barber": [["Haircut", "20 min", 80], ["Shave", "10 min", 40], ["Beard trim", "10 min", 50], ["Head massage", "15 min", 60]],
+  "beauty.spa": [["Full body massage", "60 min", 1500], ["Head and shoulder massage", "30 min", 600], ["Foot massage", "30 min", 500]],
+  "beauty.mehendi": [["Simple mehendi", "One hand", 150], ["Bridal mehendi", "Both hands and feet", 3000], ["Arabic design", "Both hands", 500]],
+  "beauty.hair": [["Haircut", "30 min", 200], ["Hair colour", "1 hour", 1200], ["Blow dry", "20 min", 300], ["Keratin treatment", "3 hours", 4000]],
+  "beauty.makeup": [["Party makeup", "1 hour", 1500], ["Bridal makeup", "Ask for a date", 10000], ["Saree draping", "", 300], ["Hairstyling", "", 500]],
+  "beauty.nails": [["Manicure", "40 min", 400], ["Pedicure", "45 min", 500], ["Gel polish", "30 min", 600], ["Nail art", "Per nail", 50]],
+  "beauty.skincare": [["Clean-up", "30 min", 300], ["Gold facial", "1 hour", 900], ["De-tan", "30 min", 400], ["Skin consultation", "", 300]],
+  "beauty.tattoo": [["Small tattoo", "Up to 2 inches", 1000], ["Custom tattoo", "Per square inch", 500], ["Piercing", "", 300]],
+  "health.pharmacy": [["Paracetamol", "Strip of 10", 20], ["ORS", "Sachet", 20], ["Bandage", "", 30], ["Hand sanitiser", "100 ml", 50]],
+  "health.clinic": [["Consultation", "", 300], ["Follow-up visit", "", 150], ["Dressing", "", 100], ["Injection", "", 50]],
+  "health.dentist": [["Check-up", "", 300], ["Cleaning", "", 800], ["Filling", "Per tooth", 1000], ["Extraction", "", 700]],
+  "health.lab": [["Blood sugar", "", 80], ["CBC", "", 250], ["Thyroid profile", "", 450], ["Full body check-up", "", 1500]],
+  "health.gym": [["Monthly membership", "", 1000], ["Quarterly membership", "", 2700], ["Personal training", "Per month", 3000], ["Day pass", "", 100]],
+  "health.yoga": [["Monthly classes", "Morning batch", 1200], ["Single class", "1 hour", 150], ["Private session", "1 hour", 600]],
+  "health.doctor": [["Consultation", "", 400], ["Follow-up visit", "", 200], ["Home visit", "", 800]],
+  "health.physio": [["Assessment", "", 400], ["Session", "45 min", 500], ["Home visit", "", 800]],
+  "health.optical": [["Eye test", "", 100], ["Frame", "", 800], ["Lenses", "Pair", 600], ["Sunglasses", "", 700]],
+  "health.ayurveda": [["Consultation", "", 300], ["Abhyanga massage", "45 min", 900], ["Chyawanprash", "500 g", 250]],
+  "health.vet": [["Consultation", "", 300], ["Vaccination", "", 500], ["Grooming", "", 600], ["Deworming", "", 150]],
+  "electronics.mobile": [["Tempered glass", "", 150], ["Back cover", "", 200], ["Charger", "", 350], ["Earphones", "", 300]],
+  "electronics.phonerepair": [["Screen replacement", "", 1500], ["Battery replacement", "", 800], ["Charging port repair", "", 400], ["Software update", "", 200]],
+  "electronics.computer": [["Laptop service", "", 500], ["Windows install", "", 400], ["Mouse", "", 300], ["Keyboard", "", 500]],
+  "electronics.appliances": [["Mixer grinder", "", 2500], ["Iron", "", 800], ["Ceiling fan", "", 1600], ["LED bulb", "", 90]],
+  "electronics.recharge": [["Mobile recharge", "Service charge", 10], ["DTH recharge", "Service charge", 10], ["New SIM", "", 50]],
+  "electronics.internet": [["Broadband, monthly", "50 Mbps", 600], ["Cable TV, monthly", "", 300], ["New connection", "Installation", 1000]],
+  "electronics.printing": [["Xerox", "Per page", 2], ["Colour print", "Per page", 10], ["Passport photos", "Set of 8", 60], ["Lamination", "", 30]],
+  "repair.mechanic": [["General service", "", 800], ["Oil change", "", 500], ["Brake check", "", 300], ["Washing", "", 150]],
+  "repair.bike": [["Bike service", "", 500], ["Oil change", "", 350], ["Chain set", "", 1200], ["Washing", "", 100]],
+  "repair.car": [["Car service", "", 3000], ["Oil change", "", 1500], ["Wheel alignment", "", 600], ["Car wash", "", 300]],
+  "repair.plumber": [["Visit charge", "", 200], ["Tap repair", "", 150], ["Pipe leak repair", "", 400], ["Tank cleaning", "", 600]],
+  "repair.electrician": [["Visit charge", "", 200], ["Fan fitting", "", 250], ["Switch board repair", "", 150], ["Wiring", "Per point", 300]],
+  "repair.carpenter": [["Visit charge", "", 200], ["Door repair", "", 400], ["Furniture polish", "", 1500], ["Lock fitting", "", 250]],
+  "repair.ac": [["AC service", "", 500], ["Gas refill", "", 2500], ["Fridge repair", "Visit", 300], ["Washing machine repair", "Visit", 300]],
+  "repair.puncture": [["Puncture, bike", "", 50], ["Puncture, car", "", 100], ["Air check", "", 10], ["Tube change", "", 250]],
+  "repair.welding": [["Gate repair", "", 500], ["Grill work", "Per square foot", 150], ["Small welding job", "", 200]],
+  "repair.painter": [["Room painting", "Per room", 3000], ["Wall putty", "Per square foot", 12], ["Touch-up", "", 800]],
+  "home.furniture": [["Chair", "", 1500], ["Table", "", 3500], ["Bed", "", 12000], ["Wardrobe", "", 15000]],
+  "home.decor": [["Curtains", "Per window", 800], ["Wall clock", "", 500], ["Photo frame", "", 300], ["Lamp", "", 900]],
+  "home.hardware": [["Cement", "Bag", 400], ["Paint", "1 litre", 350], ["Screws", "Packet", 40], ["PVC pipe", "Per length", 250]],
+  "home.cleaning": [["Home deep cleaning", "1 BHK", 2500], ["Bathroom cleaning", "", 500], ["Sofa cleaning", "Per seat", 250], ["Kitchen cleaning", "", 1200]],
+  "home.pestcontrol": [["Cockroach control", "1 BHK", 900], ["Termite treatment", "Per square foot", 8], ["Mosquito control", "", 700]],
+  "home.movers": [["House shifting", "1 BHK, in city", 5000], ["Tempo with helpers", "Per trip", 1500], ["Packing material", "", 800]],
+  "home.gardening": [["Garden visit", "2 hours", 400], ["Monthly maintenance", "", 1500], ["Plants", "Per plant", 150]],
+  "home.cook": [["Cook, monthly", "Two meals a day", 6000], ["Maid, monthly", "", 3000], ["Party cooking", "Per day", 1500]],
+  "home.rent": [["Room for rent", "Per month", 6000], ["1 BHK flat", "Per month", 12000], ["Visit and brokerage", "", 1000]],
+  "education.tuition": [["Maths, class 10", "Mon · Wed · Fri", 1500], ["Science, class 10", "Tue · Thu · Sat", 1500], ["All subjects, class 1–5", "Monthly", 1200], ["Trial class", "1 hour", 100]],
+  "education.coaching": [["Monthly fee", "", 3000], ["Test series", "", 1500], ["Doubt class", "1 hour", 300], ["Study material", "", 800]],
+  "education.music": [["Guitar class", "Monthly, 8 classes", 2000], ["Singing class", "Monthly, 8 classes", 2000], ["Trial class", "", 200]],
+  "education.dance": [["Dance class", "Monthly, 8 classes", 1500], ["Wedding choreography", "Per song", 3000], ["Trial class", "", 150]],
+  "education.books": [["School textbook", "", 250], ["Notebook", "", 50], ["Novel", "", 300], ["Guide book", "", 350]],
+  "education.stationery": [["Pen", "", 10], ["Notebook", "", 50], ["Geometry box", "", 120], ["Chart paper", "", 10]],
+  "education.language": [["Spoken English", "Monthly", 1500], ["Hindi class", "Monthly", 1200], ["Trial class", "", 100]],
+  "education.computerclass": [["Basic computer course", "3 months", 3000], ["Tally", "2 months", 4000], ["Typing", "Monthly", 600]],
+  "education.sports": [["Cricket coaching", "Monthly", 2000], ["Badminton coaching", "Monthly", 1800], ["Trial session", "", 200]],
+  "education.preschool": [["Play group", "Monthly fee", 2500], ["Nursery", "Monthly fee", 3000], ["Day care", "Monthly", 4000]],
+  "education.driving": [["Car driving course", "15 days", 5000], ["Two-wheeler course", "7 days", 2000], ["Licence help", "", 1500]],
+  "travel.taxi": [["Airport drop", "Sedan, up to 4", 900], ["Local, 8 hours", "80 km", 2000], ["Outstation", "Per km", 14]],
+  "travel.auto": [["Local ride", "Per km", 15], ["Station drop", "", 100], ["School trip, monthly", "", 1200]],
+  "travel.tours": [["Day tour", "8 hours", 2500], ["Weekend package", "2 days, per person", 6000], ["Pilgrimage trip", "Per person", 3500]],
+  "travel.hotel": [["Standard room", "Per night", 1200], ["Deluxe room", "Per night", 2000], ["Extra bed", "", 400]],
+  "travel.tickets": [["Train ticket booking", "Service charge", 50], ["Bus ticket booking", "Service charge", 30], ["Flight ticket booking", "Service charge", 200]],
+  "travel.bikerental": [["Scooter", "Per day", 400], ["Bike", "Per day", 600], ["Helmet", "Per day", 50]],
+  "travel.courier": [["Local delivery", "Up to 5 km", 60], ["Parcel, up to 1 kg", "Within the city", 80], ["Document delivery", "", 50]],
+  "travel.guide": [["City walk", "3 hours", 800], ["Full-day guide", "", 2000], ["Heritage tour", "Per person", 500]],
+  "travel.tempo": [["Tempo, local trip", "", 800], ["Truck, per day", "", 4000], ["Loading helper", "Per person", 400]],
+  "art.handmade": [["Handmade candle", "", 250], ["Crochet toy", "", 400], ["Rakhi", "", 60], ["Gift hamper", "", 900]],
+  "art.pottery": [["Clay cup", "", 80], ["Flower pot", "", 200], ["Diya", "Set of 12", 120], ["Decorative vase", "", 600]],
+  "art.painting": [["Canvas painting", "12 × 16 inches", 3000], ["Portrait sketch", "A4", 800], ["Wall painting", "Per square foot", 200]],
+  "art.gifts": [["Gift box", "", 500], ["Photo mug", "", 300], ["Greeting card", "", 60], ["Photo frame", "", 350]],
+  "art.photography": [["Portrait shoot", "1 hour", 2000], ["Passport photos", "Set of 8", 60], ["Event shoot", "Per day", 8000]],
+  "art.design": [["Logo design", "", 2500], ["Invitation card design", "", 800], ["Poster design", "", 600]],
+  "art.framing": [["Photo framing", "8 × 10 inches", 300], ["Canvas stretching", "", 500], ["Certificate frame", "", 250]],
+  "events.wedding": [["Wedding planning", "Ask for a date", 50000], ["Venue decoration", "", 25000], ["Bridal entry", "", 8000]],
+  "events.decoration": [["Birthday decoration", "", 2500], ["Balloon arch", "", 1200], ["Stage decoration", "", 8000], ["Flower decoration", "", 5000]],
+  "events.catering": [["Veg plate", "Per person", 250], ["Non-veg plate", "Per person", 400], ["Snacks and tea", "Per person", 80]],
+  "events.dj": [["DJ, 4 hours", "", 6000], ["Sound system", "Per day", 3000], ["Lights", "Per day", 2500]],
+  "events.tent": [["Tent", "Per day", 5000], ["Chairs", "Per chair", 10], ["Tables", "Per table", 80], ["Stage", "", 4000]],
+  "events.flowers": [["Garland", "", 150], ["Bouquet", "", 400], ["Car decoration", "", 2500], ["Loose flowers", "Per kg", 200]],
+  "events.photovideo": [["Wedding shoot", "Per day", 25000], ["Pre-wedding shoot", "", 15000], ["Birthday shoot", "3 hours", 5000], ["Album", "", 6000]],
+  "events.pandit": [["Griha pravesh puja", "", 3100], ["Satyanarayan katha", "", 2100], ["Wedding ceremony", "", 11000]],
+  "events.band": [["Band baja", "2 hours", 8000], ["Dhol", "Per hour", 1500], ["Ghodi", "", 5000]],
+  "events.anchor": [["Wedding anchoring", "", 8000], ["Birthday hosting", "", 3000], ["Corporate event", "", 12000]],
+  "creator.youtuber": [["Buy me a chai", "Support my channel", 50], ["Shout-out", "In a video", 500], ["Brand collaboration", "Ask for details", 10000]],
+  "creator.musician": [["Live show", "2 hours", 15000], ["Custom song", "", 5000], ["Support my music", "", 100]],
+  "creator.writer": [["Article", "Up to 1,000 words", 1500], ["Signed book", "", 400], ["Support my writing", "", 100]],
+  "creator.artist": [["Commissioned artwork", "A3", 4000], ["Art print", "A4", 500], ["Support my art", "", 100]],
+  "creator.photographer": [["Portrait shoot", "1 hour", 2500], ["Product shoot", "Per product", 500], ["Wedding album", "200 edited photos", 15000]],
+  "creator.videomaker": [["Reel edit", "Up to 60 seconds", 800], ["Wedding film", "", 20000], ["YouTube video edit", "Up to 10 min", 2000]],
+  "creator.designer": [["Logo design", "", 3000], ["Social media post", "", 400], ["Brand kit", "", 8000]],
+  "creator.developer": [["Website", "5 pages", 15000], ["Bug fix", "Per hour", 800], ["App consultation", "1 hour", 1500]],
+  "creator.influencer": [["Story mention", "", 1000], ["Reel collaboration", "", 5000], ["Product review", "", 3000]],
+  "creator.podcaster": [["Support the show", "", 100], ["Guest slot", "", 2000], ["Ad read", "Per episode", 3000]],
+  "creator.freelancer": [["Hourly work", "Per hour", 500], ["Day rate", "", 3500], ["Project advance", "", 5000]],
+  "creator.consultant": [["Consultation", "1 hour", 1500], ["Document review", "", 1000], ["Monthly retainer", "", 10000]],
+  "creator.astrology": [["Kundli reading", "30 min", 500], ["Match making", "", 700], ["Tarot reading", "", 400]],
+  "community.ngo": [["Feed a child", "One meal", 50], ["School kit", "For one child", 500], ["Monthly support", "", 1000]],
+  "community.worship": [["Daily offering", "", 51], ["Annadaan", "Feeds 10 people", 501], ["Building fund", "Any amount helps", 1100]],
+  "community.club": [["Monthly membership", "", 300], ["Annual membership", "", 3000], ["Event entry", "", 200]],
+  "community.fundraiser": [["Small help", "", 100], ["Medical support", "", 1000], ["Sponsor a day", "", 5000]],
+  "community.society": [["Monthly maintenance", "", 1500], ["Festival contribution", "", 500], ["Parking charge", "Monthly", 300]],
+  "community.sportsclub": [["Monthly fee", "", 500], ["Tournament entry", "Per team", 2000], ["Ground booking", "Per hour", 800]],
+  "food.eggcart": [["Boiled egg", "2 pieces", 20], ["Omelette", "2 eggs, with bread", 40], ["Egg bhurji", "With pav", 50]],
+  "food.biryani": [["Veg biryani", "Half", 80], ["Chicken biryani", "Half", 120], ["Raita", "", 20]],
+  "food.chinese": [["Veg chowmein", "Half plate", 40], ["Veg momos", "8 pieces", 50], ["Manchurian", "", 60], ["Fried rice", "", 60]],
+  "food.southindian": [["Masala dosa", "", 60], ["Idli", "2 pieces, with sambar", 40], ["Vada", "2 pieces", 40], ["Uttapam", "", 60]],
+  "grocery.flourmill": [["Wheat grinding", "Per kg", 3], ["Fresh atta", "1 kg", 38], ["Besan", "1 kg", 90]],
+  "grocery.milkman": [["Milk, daily", "1 litre", 60], ["Milk, monthly", "1 litre a day", 1800], ["Curd", "500 g", 40]],
+  "grocery.spices": [["Haldi powder", "250 g", 70], ["Red chilli powder", "250 g", 90], ["Garam masala", "100 g", 70]],
+  "grocery.pickles": [["Mango pickle", "500 g", 150], ["Papad", "250 g", 90], ["Lemon pickle", "500 g", 140]],
+  "grocery.coconut": [["Tender coconut", "", 50], ["Coconut, with malai", "", 60], ["Dry coconut", "", 40]],
+  "sweets.homebaker": [["Chocolate cake", "500 g", 450], ["Cupcakes", "Box of 6", 300], ["Cookies", "250 g", 180]],
+  "fashion.cobbler": [["Shoe polish", "", 20], ["Sole repair", "", 80], ["Stitching", "", 30], ["Chappal repair", "", 30]],
+  "fashion.embroidery": [["Blouse embroidery", "", 600], ["Saree border work", "", 1500], ["Zari work", "Per piece", 800]],
+  "fashion.bangles": [["Glass bangles", "Dozen", 60], ["Bindi packet", "", 10], ["Lipstick", "", 120], ["Mehendi cone", "", 20]],
+  "fashion.handloom": [["Cotton saree", "Handloom", 1200], ["Khadi kurta", "", 800], ["Dupatta", "", 400]],
+  "fashion.bags": [["School bag", "", 600], ["Ladies purse", "", 400], ["Travel bag", "", 1200]],
+  "beauty.homebeauty": [["Threading at home", "Eyebrows", 80], ["Facial at home", "45 min", 600], ["Waxing at home", "Full arms", 350]],
+  "beauty.massage": [["Head massage", "15 min", 100], ["Full body massage", "60 min", 800], ["Baby massage", "", 200]],
+  "health.nurse": [["Injection at home", "", 150], ["Day care", "12 hours", 800], ["Night care", "12 hours", 1000], ["Dressing", "", 200]],
+  "health.ambulance": [["Local trip", "Within the city", 1000], ["Outstation", "Per km", 25], ["Oxygen support", "", 500]],
+  "electronics.cyber": [["Online form filling", "", 50], ["Print out", "Per page", 5], ["Aadhaar or PAN help", "", 100], ["Ticket booking", "Service charge", 50]],
+  "electronics.tvrepair": [["Visit charge", "", 200], ["TV repair", "", 600], ["Mixer repair", "", 250], ["Cooler repair", "", 300]],
+  "repair.cycle": [["Puncture", "", 30], ["Full service", "", 150], ["Brake setting", "", 40], ["Tube change", "", 150]],
+  "repair.keymaker": [["Duplicate key", "", 50], ["Lock repair", "", 150], ["Bike key", "", 150], ["Door lock opening", "", 300]],
+  "repair.watch": [["Battery change", "", 80], ["Strap change", "", 150], ["Watch service", "", 300]],
+  "repair.stove": [["Gas stove service", "", 200], ["Burner change", "", 250], ["Cooker repair", "", 100], ["Pipe change", "", 200]],
+  "repair.knife": [["Knife sharpening", "Per knife", 20], ["Scissors sharpening", "", 30], ["Axe sharpening", "", 50]],
+  "repair.mason": [["Day's work", "Per day", 900], ["Plaster", "Per square foot", 25], ["Brick work", "Per square foot", 30]],
+  "repair.tiles": [["Tile fitting", "Per square foot", 35], ["Marble polish", "Per square foot", 25], ["Bathroom tiling", "", 6000]],
+  "repair.borewell": [["Motor repair", "", 600], ["Pump fitting", "", 1000], ["Boring", "Per foot", 120]],
+  "home.scrap": [["Old newspaper", "Rate per kg", 14], ["Iron", "Rate per kg", 28], ["Plastic", "Rate per kg", 10], ["Cardboard", "Rate per kg", 8]],
+  "home.mattress": [["Cotton mattress", "Single", 1500], ["Razai filling", "", 400], ["Pillow", "", 200]],
+  "home.utensils": [["Steel plate", "", 150], ["Pressure cooker", "3 litres", 1200], ["Kadhai", "", 500], ["Steel glass", "Set of 6", 300]],
+  "education.library": [["Monthly seat", "", 600], ["Day pass", "", 40], ["Locker", "Monthly", 100]],
+  "education.craftclass": [["Tailoring course", "3 months", 3000], ["Embroidery class", "Monthly", 800], ["Mehendi class", "Monthly", 1000]],
+  "travel.erickshaw": [["Local ride", "Per seat", 10], ["Full booking", "Local", 80], ["School trip, monthly", "", 800]],
+  "travel.rickshaw": [["Local ride", "", 30], ["Market trip", "", 50], ["Hourly", "", 100]],
+  "travel.driver": [["Driver, 8 hours", "", 800], ["Outstation, per day", "", 1200], ["Monthly driver", "", 15000]],
+  "travel.schoolvan": [["Monthly, up to 3 km", "Per child", 1000], ["Monthly, up to 6 km", "Per child", 1500], ["One-way monthly", "Per child", 700]],
+  "art.idol": [["Ganesh idol", "1 foot", 600], ["Clay idol", "Small", 150], ["Custom idol", "Per foot", 1200]],
+  "art.bamboo": [["Bamboo basket", "", 150], ["Cane chair", "", 1200], ["Winnowing tray (soop)", "", 120]],
+  "art.toys": [["Balloon", "", 10], ["Toy car", "", 80], ["Soft toy", "", 250], ["Balloon bunch", "", 100]],
+  "events.lights": [["Light decoration", "Per day", 3000], ["Generator", "Per day", 2500], ["LED wall", "Per day", 8000]],
+  "community.shg": [["Monthly saving", "", 100], ["Membership", "", 50], ["Group product", "", 200]],
+  "community.gaushala": [["Feed a cow", "One day", 101], ["Monthly seva", "", 1100], ["Medical care", "", 501]],
+  "community.school": [["Monthly fee", "", 1500], ["Admission fee", "", 2000], ["Exam fee", "", 300]],
+  "farm.farmer": [["Wheat", "Per quintal", 2400], ["Rice", "Per quintal", 2800], ["Fresh vegetables", "Per kg", 30]],
+  "farm.dairyfarm": [["Cow milk", "1 litre", 55], ["Buffalo milk", "1 litre", 70], ["Ghee", "1 kg", 700], ["Paneer", "1 kg", 380]],
+  "farm.poultry": [["Eggs", "Tray of 30", 190], ["Desi eggs", "Dozen", 140], ["Live chicken", "Per kg", 160]],
+  "farm.fishery": [["Rohu", "Per kg", 200], ["Catla", "Per kg", 220], ["Fish seed", "Per 1,000", 400]],
+  "farm.nursery": [["Flower plant", "", 60], ["Fruit sapling", "", 150], ["Indoor plant", "", 200], ["Pot", "", 80]],
+  "farm.seeds": [["Wheat seed", "Per kg", 45], ["Urea", "Bag", 270], ["DAP", "Bag", 1350], ["Pesticide", "", 350]],
+  "farm.cattlefeed": [["Cattle feed", "50 kg bag", 1300], ["Khal", "Per kg", 40], ["Chara", "Per quintal", 600]],
+  "farm.honey": [["Honey, small jar", "500 g", 300], ["Honey, large jar", "1 kg", 550], ["Bee wax", "250 g", 200]],
+  "farm.flowergrower": [["Marigold", "Per kg", 80], ["Rose", "Per kg", 200], ["Garland flowers", "Per kg", 120]],
+  "farm.mandi": [["Wheat", "Per quintal", 2450], ["Paddy", "Per quintal", 2300], ["Mustard", "Per quintal", 5600]],
+  "farm.tractor": [["Tractor ploughing", "Per hour", 800], ["JCB", "Per hour", 1200], ["Trolley trip", "", 600], ["Harvester", "Per acre", 2000]],
+  "work.labour": [["Day's work", "Per day", 500], ["Half day", "", 300], ["Overtime", "Per hour", 80]],
+  "work.helper": [["Loading, per trip", "", 300], ["Day's work", "Per day", 500], ["Shifting help", "", 600]],
+  "work.porter": [["Per bag", "", 50], ["Trolley load", "", 150], ["Station to taxi", "", 100]],
+  "work.guard": [["Day shift", "12 hours", 700], ["Night shift", "12 hours", 800], ["Monthly", "", 15000]],
+  "work.sweeper": [["Daily sweeping", "Monthly", 800], ["One-time cleaning", "", 400], ["Drain cleaning", "", 500]],
+  "work.maid": [["Jhadu pocha", "Monthly", 1200], ["Utensils", "Monthly", 1000], ["Clothes washing", "Monthly", 1200], ["All work", "Monthly", 3500]],
+  "work.babysitter": [["Day care at home", "Monthly", 6000], ["Per day", "8 hours", 400], ["Per hour", "", 80]],
+  "work.eldercare": [["Day care", "12 hours", 700], ["Night care", "12 hours", 800], ["Monthly, live-in", "", 15000]],
+  "work.homecook": [["One meal a day", "Monthly", 3000], ["Two meals a day", "Monthly", 5000], ["Party cooking", "Per day", 1500]],
+  "work.gardener": [["Garden visit", "2 hours", 300], ["Monthly care", "", 1200], ["Tree trimming", "", 500]],
+  "work.rider": [["Local delivery", "Up to 5 km", 60], ["Per km", "", 12], ["Day hire", "8 hours", 700]],
+  "work.waiter": [["Event service", "Per day", 700], ["Half day", "", 400], ["Head waiter", "Per day", 1000]]
+};
+
+// The starter rows for a kind; a page type's own two samples when the
+// kind has none (or none was picked).
+function shopKindStarters(category, sub, pageType) {
+  const own = SHOP_KIND_STARTERS[`${category}.${sub}`];
+  if (own && own.length) return own;
+  const t = SHOP_PAGE_TYPES[pageType];
+  return t ? t.sample : [];
+}
+
+// The page type a kind belongs to: the first that lists it, in the order
+// the picker shows them. This is what lets a search for "hair" set the
+// type and the kind in one tap.
+function shopPageTypeForKind(category, sub) {
+  for (const key of SHOP_PAGE_TYPE_KEYS) {
+    for (const [cat, keys] of SHOP_PAGE_TYPE_KINDS[key] || []) {
+      if (cat === category && (keys === "*" || keys.indexOf(sub) >= 0)) return key;
+    }
+  }
+  return "";
+}
+
+// The word on each item's button. "add" is the plain + the page always
+// had; the rest are that same button wearing a word.
+var SHOP_ITEM_BUTTONS = {
+  add: { name: "Add", word: "" }, order: { name: "Order", word: "Order" }, book: { name: "Book", word: "Book" },
+  join: { name: "Join", word: "Join" }, enquire: { name: "Enquire", word: "Enquire" },
+  support: { name: "Support", word: "Support" }, donate: { name: "Donate", word: "Donate" }
+};
+var SHOP_ITEM_BUTTON_KEYS = ["add", "order", "book", "join", "enquire", "support", "donate"];
+
+// What the list is called: the heading a customer reads, and the line on
+// the owner's own "add one" button. "" is what the page said before.
+var SHOP_LIST_NAMES = {
+  "": { name: "What they sell", add: "Add something you sell" },
+  menu: { name: "Menu", add: "Add a dish to your menu" },
+  products: { name: "Products", add: "Add a product" },
+  services: { name: "Services", add: "Add a service" },
+  classes: { name: "Classes", add: "Add a class" },
+  work: { name: "My work", add: "Add a piece of your work" },
+  packages: { name: "Packages", add: "Add a package" },
+  causes: { name: "Causes", add: "Add a cause" }
+};
+var SHOP_LIST_NAME_KEYS = ["menu", "products", "services", "classes", "work", "packages", "causes"];
+
+// The parts of a page an owner can switch off. Everything is on unless it
+// was switched off, so a shop saved before this existed shows all of it.
+var SHOP_PAGE_PARTS = [
+  { key: "list", field: "hideList", name: "Your list", note: "Items with their prices" },
+  { key: "where", field: "hideWhere", name: "Timings and address", note: "Open or closed, with Directions" },
+  { key: "contacts", field: "hideContacts", name: "WhatsApp, Call and Instagram", note: "The buttons under your name" },
+  { key: "reviews", field: "hideReviews", name: "Reviews", note: "Stars and what people wrote" }
+];
+
+// Everything picking a page type writes: its words, its layout, and its
+// parts (the ones it hides off, every other one back on).
+function shopPageTypeDials(key) {
+  const t = SHOP_PAGE_TYPES[key];
+  if (!t) return {};
+  const out = Object.assign({ pageType: key }, t.set);
+  for (const part of SHOP_PAGE_PARTS) out[part.field] = t.hide.indexOf(part.key) >= 0;
+  return out;
+}
+
 var SHOP_BUTTON_STYLES = { filled: { name: "Filled" }, outline: { name: "Outline" }, soft: { name: "Soft" } };
 var SHOP_HERO_STYLES = { gradient: { name: "Gradient" }, solid: { name: "Solid" }, glass: { name: "Glass" }, minimal: { name: "Minimal" } };
 var SHOP_COVER_STYLES = { photo: { name: "Photo" }, gradient: { name: "Colour" }, pattern: { name: "Pattern" } };
@@ -46844,8 +47791,13 @@ function shopHeroInk(color) {
   return { from, to: shopHexMix(from, "#000000", 0.3), glow: `${from}55` };
 }
 
+// A theme's starting dials. A retired theme keeps its own (font, corners,
+// dark and the rest) under its new look's colour, so a shop saved as
+// "Chai Stall" still has Chai Stall's round photos and Baloo type.
 function shopThemeBase(key) {
-  return SHOP_THEMES[key] || SHOP_THEMES.gloobal;
+  const look = SHOP_THEMES[shopThemeKey(key)];
+  const old = SHOP_THEMES_RETIRED_DIALS[key];
+  return old && !SHOP_THEMES[key] ? Object.assign({}, old, { name: look.name, note: look.note, color: look.color, look: look.look }) : look;
 }
 
 // A stored colour is only honoured if it is one of ours.
@@ -46856,6 +47808,8 @@ function shopThemeBase(key) {
 function shopThemeColor(value, fallback) {
   const raw = typeof value === "string" ? value.trim().toUpperCase() : "";
   for (const c of SHOP_COLORS) if (c.toUpperCase() === raw) return c;
+  // …or the colour of one of the twenty looks, which is what a theme sets.
+  for (const k of SHOP_THEME_KEYS) if (SHOP_THEMES[k].color === raw) return raw;
   return fallback;
 }
 
@@ -46866,8 +47820,10 @@ function shopThemeColor(value, fallback) {
 // as the app's own look rather than as a hole.
 function resolveShopTheme(shop) {
   const s = shop && typeof shop === "object" ? shop : {};
-  const key = SHOP_THEME_KEYS.indexOf(s.theme) >= 0 ? s.theme : "gloobal";
-  const base = shopThemeBase(key);
+  const key = shopThemeKey(s.theme);
+  const base = shopThemeBase(s.theme);
+  // The look's own palette, for the page: its paper, ink and lines.
+  const pal = gloobalLookPalette(key, key.split(".")[1]);
 
   const color = shopThemeColor(s.color, base.color);
   const fontKey = SHOP_FONTS[s.font] ? s.font : base.font;
@@ -46911,12 +47867,27 @@ function resolveShopTheme(shop) {
     // colour: a light shop gets a pale tint of it instead of the app's
     // lavender, a dark shop a near-black leaning toward it. Cards stay
     // white on a light page so prices sit on the same ground everywhere.
-    page: dark ? shopHexMix("#120E0C", color, 0.09) : shopHexMix("#FFFFFF", color, 0.07),
-    surface: dark ? shopHexMix("#221B17", color, 0.08) : T.surface,
-    ink: dark ? "#F3EBE1" : T.ink,
-    inkSoft: dark ? "#C3B5A5" : T.inkSoft,
-    inkFaint: dark ? "#9A8B7B" : T.inkFaint,
-    line: dark ? shopHexMix("#2E2620", color, 0.16) : shopHexMix(T.line, color, 0.18)
+    //
+    // Under the theme's own colour the page IS the look — the same paper,
+    // ink and lines that look has in the app. An owner's own colour tints
+    // the paper and lines toward itself instead, as it always did.
+    // The kind of page, its words and its parts (SHOP_PAGE_TYPES).
+    pageType: SHOP_PAGE_TYPES[s.pageType] ? s.pageType : "",
+    itemButton: SHOP_ITEM_BUTTONS[s.itemButton] ? s.itemButton : "add",
+    itemWord: (SHOP_ITEM_BUTTONS[s.itemButton] || SHOP_ITEM_BUTTONS.add).word,
+    listName: (SHOP_LIST_NAMES[s.listName] || SHOP_LIST_NAMES[""]).name,
+    listAdd: (SHOP_LIST_NAMES[s.listName] || SHOP_LIST_NAMES[""]).add,
+    hideList: s.hideList === true,
+    hideWhere: s.hideWhere === true,
+    hideContacts: s.hideContacts === true,
+    hideReviews: s.hideReviews === true,
+    look: key,
+    page: dark ? shopHexMix("#120E0C", color, 0.09) : color === base.color ? pal.bg : shopHexMix("#FFFFFF", color, 0.07),
+    surface: dark ? shopHexMix("#221B17", color, 0.08) : pal.surface,
+    ink: dark ? "#F3EBE1" : pal.ink,
+    inkSoft: dark ? "#C3B5A5" : pal.inkSoft,
+    inkFaint: dark ? "#9A8B7B" : pal.inkFaint,
+    line: dark ? shopHexMix("#2E2620", color, 0.16) : color === base.color ? pal.line : shopHexMix(pal.line, color, 0.18)
   };
 }
 
@@ -48704,14 +49675,19 @@ function CreatorPageItemRow({ item, qty, owner, lens, ccyCode, theme, onAdd, onR
       ><Plus7 size={14} /></button></span>
       : <button
         onClick={onAdd}
-        aria-label={`Add ${item.title}`}
+        data-testid="shop-item-add"
+        aria-label={`${theme.itemWord || "Add"} ${item.title}`}
         style={{
-          width: 28, height: 28, borderRadius: theme.corners.pill, border: "none",
+          // A plain + is a 28px disc; a word ("Book", "Donate") is the same
+          // button as a pill. Either way it adds the item to the basket.
+          width: theme.itemWord ? "auto" : 28, minWidth: 28, height: 28, padding: theme.itemWord ? "0 11px" : 0,
+          borderRadius: theme.itemWord ? 999 : theme.corners.pill, border: "none",
           display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0, cursor: "pointer",
+          fontSize: 11.5, fontWeight: 800, fontFamily: "inherit", whiteSpace: "nowrap",
           // The shop's chosen button style — filled, outline or soft.
           ...shopButtonStyle(theme)
         }}
-      ><Plus7 size={15} /></button>)
+      >{theme.itemWord || <Plus7 size={15} />}</button>)
   }</span></div>;
 }
 
@@ -48808,9 +49784,10 @@ function CreatorPageItemCard({ item, qty, owner, lens, ccyCode, theme, onAdd, on
       ><Plus7 size={13} /></button></span>
       : <button
         onClick={onAdd}
-        aria-label={`Add ${item.title}`}
-        style={ctl({ right: 6, bottom: 6, width: 32, height: 32, borderRadius: "50%", ...shopButtonStyle(theme), ...(theme.buttons === "filled" ? {} : { background: T.surface }) })}
-      ><Plus7 size={16} /></button>)}</div><span style={{
+        data-testid="shop-item-add"
+        aria-label={`${theme.itemWord || "Add"} ${item.title}`}
+        style={ctl({ right: 6, bottom: 6, width: theme.itemWord ? "auto" : 32, minWidth: 32, height: 32, padding: theme.itemWord ? "0 12px" : 0, borderRadius: theme.itemWord ? 999 : "50%", fontSize: 11.5, fontWeight: 800, fontFamily: "inherit", ...shopButtonStyle(theme), ...(theme.buttons === "filled" ? {} : { background: T.surface }) })}
+      >{theme.itemWord || <Plus7 size={16} />}</button>)}</div><span style={{
     display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical", overflow: "hidden",
     fontSize: 13, fontWeight: 700, color: theme.ink, lineHeight: 1.3, marginTop: 8, overflowWrap: "anywhere", minHeight: 34
   }}>{item.title}</span><span style={{
@@ -48867,16 +49844,24 @@ function CreatorPage({
   const [reviewSummary, setReviewSummary] = useState54((creator && creator.reviews) || null);
   // Recomputed on each render; the page is rarely open across a closing
   // time, and reopening it shows the new state.
-  const openState = openHoursLabel(creator && creator.hours, new Date());
+  // The parts of the page its owner switched off (shopTheme.js,
+  // SHOP_PAGE_PARTS). Timings, contacts and reviews go for everybody, so
+  // the owner sees the page a customer sees; the list goes for customers
+  // only, because the owner still has to be able to manage it.
+  const pageParts = (creator && creator.shop) || {};
+  const hideList = pageParts.hideList === true && !isOwner;
+  const hideWhere = pageParts.hideWhere === true;
+  const hideReviews = pageParts.hideReviews === true;
+  const openState = hideWhere ? { text: "", open: false } : openHoursLabel(creator && creator.hours, new Date());
   const contacts = (creator && creator.contacts) || {};
-  const hasContacts = Boolean(contacts.whatsapp || contacts.phone || contacts.instagram);
+  const hasContacts = pageParts.hideContacts !== true && Boolean(contacts.whatsapp || contacts.phone || contacts.instagram);
   // Today's specials, in menu order, three at most.
-  const specials = (Array.isArray(creator && creator.items) ? creator.items : []).filter((i) => i.special).slice(0, 3);
+  const specials = hideList ? [] : (Array.isArray(creator && creator.items) ? creator.items : []).filter((i) => i.special).slice(0, 3);
 
   // What somebody typed in the shop's own search bar.
   const [itemQuery, setItemQuery] = useState54("");
 
-  const allItems = Array.isArray(creator && creator.items) ? creator.items : [];
+  const allItems = !hideList && Array.isArray(creator && creator.items) ? creator.items : [];
   const items = (activeCat
     ? allItems.filter((i) => String(i.category || "").trim() === activeCat)
     : allItems).filter((i) => shopItemMatches(i, itemQuery));
@@ -49081,7 +50066,7 @@ function CreatorPage({
   }{
     /* The stars, once there are three reviews to average — and a tap on
        them opens the reviews, which is where anybody would look next. */
-    shopReviewHasAverage(reviewSummary) ? <button
+    !hideReviews && shopReviewHasAverage(reviewSummary) ? <button
       onClick={() => setReviewsOpen(true)}
       aria-label={`Rated ${reviewSummary.average} from ${shopReviewCountLabel(reviewSummary.count)}`}
       style={{
@@ -49097,7 +50082,7 @@ function CreatorPage({
        set hours. A green dot when open, a grey one when not: the state is
        the dot and the word, not a colour alone. */
     openState.text ? <span style={{
-      display: "inline-flex", alignItems: "center", gap: 6, marginTop: 6, marginLeft: shopReviewHasAverage(reviewSummary) ? 6 : 0,
+      display: "inline-flex", alignItems: "center", gap: 6, marginTop: 6, marginLeft: !hideReviews && shopReviewHasAverage(reviewSummary) ? 6 : 0,
       padding: "3px 9px 3px 7px", borderRadius: 999, background: skin.chip,
       fontSize: 11.5, fontWeight: 800, color: skin.ink
     }}><span aria-hidden="true" style={{
@@ -49124,8 +50109,10 @@ function CreatorPage({
     marginTop: 16, paddingTop: 12, borderTop: `1px solid ${skin.line}`
   }}>{[
     { key: "share", label: "Share", Icon: Share25, onClick: onShare || (() => shareCreatorShop(creator, onToast)) },
-    { key: "feedback", label: isOwner ? "Feedback" : "Review", Icon: MessageSquare, onClick: onFeedback || (() => setReviewsOpen(true)) }
-  ].concat(isOwner && onEditLook ? [
+    // No Review button on a page whose owner switched reviews off; the
+    // owner's own Feedback (to GLOOBAL) is a different thing and stays.
+    hideReviews && !isOwner ? null : { key: "feedback", label: isOwner ? "Feedback" : "Review", Icon: MessageSquare, onClick: onFeedback || (() => setReviewsOpen(true)) }
+  ].filter(Boolean).concat(isOwner && onEditLook ? [
     // The owner's way into the look of their own shop, on the shop itself
     // rather than buried in a settings list — which is where somebody
     // standing in front of their page actually wants it.
@@ -49181,9 +50168,9 @@ function CreatorPage({
   }}>{[
     ["Creator name", creator.handle || "—"],
     ["GLOOBAL ID", creator.symbolId || "—"],
-    creator.addressPublic && (creator.address || creator.addressParts) ? ["Address", creatorAddressLines(creator.addressParts, creator.address)] : null,
+    !hideWhere && creator.addressPublic && (creator.address || creator.addressParts) ? ["Address", creatorAddressLines(creator.addressParts, creator.address)] : null,
     // The week, one line a day, when hours are set.
-    openHoursClean(creator.hours) ? ["Hours", openHoursClean(creator.hours).days.map((d, i) => `${OPEN_HOURS_DAYS[i]}  ${d.closed ? "Closed" : (d.open === d.close ? "24 hours" : `${openHoursClock(d.open)} – ${openHoursClock(d.close)}`)}`)] : null
+    !hideWhere && openHoursClean(creator.hours) ? ["Hours", openHoursClean(creator.hours).days.map((d, i) => `${OPEN_HOURS_DAYS[i]}  ${d.closed ? "Closed" : (d.open === d.close ? "24 hours" : `${openHoursClock(d.open)} – ${openHoursClock(d.close)}`)}`)] : null
   ].filter(Boolean).filter(([, v]) => (Array.isArray(v) ? v.length : true)).map(([k, v], i) => <div
     key={k}
     style={{
@@ -49198,7 +50185,7 @@ function CreatorPage({
     /* Directions, when the owner pinned the shop AND made the address
        public — the server sends the point under the same rule as the
        text, so this cannot show for a private address. */
-    creator.addressPublic && creatorAddressHasPoint(creator.addressParts) ? <a
+    !hideWhere && creator.addressPublic && creatorAddressHasPoint(creator.addressParts) ? <a
       href={creatorAddressDirectionsUrl(creator.addressParts)}
       target="_blank"
       rel="noopener noreferrer"
@@ -49328,7 +50315,7 @@ function CreatorPage({
   >{c || "All"}</button>)}</div> : null}</div> : null}
   {(!isOwner || tab === "Selling") && <>{
     // allItems, not items: a search with no results is not an empty shop.
-    !isOwner && allItems.length === 0
+    hideList ? null : !isOwner && allItems.length === 0
       ? <div style={{
         background: theme.surface, borderRadius: 16, padding: "26px 18px", textAlign: "center",
         boxShadow: theme.dark ? "none" : T.shadowCard, marginTop: 16
@@ -49340,7 +50327,7 @@ function CreatorPage({
         color: theme.inkSoft, margin: `${theme.density.sectionGap}px 0 10px`
       }}>{searching
         ? `${items.length} ${items.length === 1 ? "result" : "results"} for “${itemQuery.trim()}”`
-        : (activeCat || "What they sell")}</div>}{
+        : (activeCat || theme.listName)}</div>}{
         isOwner ? <button
           onClick={() => { setSaveError(""); setDraft({ id: null, title: "", price: "", note: "", category: "", badge: "", photos: [], soldOut: false, special: false }); }}
           style={{
@@ -49348,8 +50335,10 @@ function CreatorPage({
             border: `1.6px dashed ${theme.dark ? theme.line : shopHexMix("#FFFFFF", theme.color, 0.45)}`, background: theme.dark ? "none" : "rgba(255,255,255,0.55)", borderRadius: theme.corners.card, padding: 16,
             color: theme.dark ? theme.color : theme.hero.from, fontSize: 13, fontWeight: 800, fontFamily: "inherit", cursor: "pointer", marginBottom: 9
           }}
-        ><Plus7 size={15} />Add something you sell</button> : null
-      }{(() => {
+        ><Plus7 size={15} />{theme.listAdd}</button> : null
+      }{isOwner && pageParts.hideList === true ? <div data-testid="shop-list-hidden-note" style={{
+        fontSize: 11.5, fontWeight: 600, lineHeight: 1.45, color: theme.inkSoft, margin: "0 2px 10px"
+      }}>Your list is switched off, so customers only see Pay. Turn it on under Edit your shop → Page type.</div> : null}{(() => {
         /* One list of items, drawn as rows or as a two-column grid —
            whichever the owner picked under Look. Same props either way, so
            the two layouts cannot disagree about what an item is. */
@@ -50831,7 +51820,7 @@ function RentFilterSheet({ filters, count, onChange, onClose, onToast }) {
   return <div data-testid="rent-filter-sheet" style={{ position: "fixed", inset: 0, zIndex: 330, display: "flex", flexDirection: "column", justifyContent: "flex-end" }}><div data-testid="rent-filter-dim" onClick={onClose} aria-hidden="true" style={{ position: "absolute", inset: 0, background: `rgba(${T.inkRgb},0.42)` }} /><div style={{ position: "relative", background: T.bg, borderRadius: "24px 24px 0 0", padding: "16px 18px calc(18px + env(safe-area-inset-bottom, 0px))", boxShadow: T.shadowRaised }}>
     <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}><b style={{ fontSize: 16, color: T.ink, fontFamily: T.fontDisplay }}>Filter</b><button type="button" data-testid="rent-filter-reset" onClick={() => { setMore(false); onChange({ ...RENT_FIND_DEFAULT, here: f.place ? null : f.here }); }} style={{ border: "none", background: "none", fontSize: 12.5, fontWeight: 800, color: T.accent, cursor: "pointer", fontFamily: "inherit" }}>Reset</button></div>
     {group("Rent up to")}<div style={{ display: "flex", gap: 6, overflowX: "auto", paddingBottom: 2 }}>{RP_MAX_CHIPS.map(([v, l]) => rpChip(`max-${v}`, l, f.max === v, () => set({ max: v })))}</div>
-    {group("How far")}<div style={{ display: "flex", gap: 6, overflowX: "auto", paddingBottom: 2 }}>{RP_KM_CHIPS.map(([v, l]) => rpChip(`km-${v}`, busy ? "…" : l, f.km === v && !!f.here, () => pickKm(v)))}{rpChip("km-more", "+ More", more, () => setMore(!more))}</div>
+    {group("How far")}<div style={{ display: "flex", gap: 6, overflowX: "auto", paddingBottom: 2 }}>{RP_KM_CHIPS.map(([v, l]) => rpChip(`km-${v}`, busy ? "…" : l, f.km === v && !!f.here, () => pickKm(v)))}{GLOOBAL_PLACE_SEARCH_READY ? rpChip("km-more", "+ More", more, () => setMore(!more)) : null}</div>
     {f.place ? <div data-testid="rent-where-picked" style={{ display: "flex", alignItems: "center", gap: 8, marginTop: 8, fontSize: 12.5, fontWeight: 700, color: T.ink }}><span style={{ flex: 1, minWidth: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>Around {f.place}</span><button type="button" data-testid="rent-where-clear" onClick={() => set({ place: "", here: null, km: 0 })} style={{ border: "none", background: "none", padding: 0, fontSize: 12.5, fontWeight: 800, color: T.accent, cursor: "pointer", fontFamily: "inherit", flexShrink: 0 }}>Use my location</button></div> : null}
     {more ? <RentWhereSearch onPick={(p) => { set({ here: { lat: p.lat, lng: p.lng }, place: p.name, km: f.km || RP_KM_AROUND_PLACE }); setMore(false); }} /> : null}
     {group("Show as")}<div style={{ display: "flex", background: T.surfaceAlt, borderRadius: 14, padding: 4 }}>{[["list", "List", RpListIcon], ["map", "Map", RpMapIcon]].map(([k, l, I]) => { const on = f.mapOn === (k === "map"); return <button key={k} type="button" data-testid={`rent-filter-${k}`} aria-pressed={on} onClick={() => set({ mapOn: k === "map" })} style={{ flex: 1, border: "none", borderRadius: 11, padding: 9, display: "flex", alignItems: "center", justifyContent: "center", gap: 6, fontSize: 13, fontWeight: 800, cursor: "pointer", fontFamily: "inherit", background: on ? T.surface : "transparent", color: on ? T.ink : T.inkSoft, boxShadow: on ? T.shadowCard : "none" }}><I size={15} />{l}</button>; })}</div>
@@ -51333,6 +52322,17 @@ function GloobalMapMarker({ map, lat, lng, anchor = "bottom", z = 1, children })
 // ── THE OWNER: PLACE YOUR STORE ─────────────────────────────────────────
 // The pin stays in the middle and the map moves under it, the way a cab app
 // does: a finger never covers what it's placing. The address follows.
+// ── SEARCHING FOR ANOTHER PLACE IS SWITCHED OFF ─────────────────────────
+//
+// "Search another place" (the Bazaar map's + More, and the rent filter's)
+// asks GloobalApi.geoSearch for a pin code, city or place by name. The
+// server has no route for it yet — it needs an outside place-search
+// service that has not been chosen — so every search answered "No place
+// found", which reads as the app being broken. Until that route exists the
+// buttons that open the search are not drawn. Set this to true in the same
+// change that adds GET /api/geo/search and they come back as they were.
+var GLOOBAL_PLACE_SEARCH_READY = false;
+
 function GloobalPinScreen({ start, typed, countryIso, onCancel, onConfirm, onToast }) {
   const [at, setAt] = useState96(start && Number.isFinite(Number(start.lat)) ? { lat: Number(start.lat), lng: Number(start.lng), zoom: GLOOBAL_MAP_PIN_ZOOM } : null);
   useBackClose(true, onCancel);
@@ -51550,7 +52550,7 @@ function BazaarMap({ center, placeName = "", radiusKm, shops = [], query = "", o
     {failed ? <div data-testid="map-failed" style={{ position: "absolute", inset: 0, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: 12, padding: 30, textAlign: "center", fontSize: 13.5, fontWeight: 700, color: T.inkSoft, lineHeight: 1.5 }}>The map couldn't load. Check your connection.<button type="button" onClick={onBackToList} style={{ border: "none", borderRadius: 13, padding: "11px 18px", background: T.gradButton, color: "#fff", fontWeight: 800, fontFamily: "inherit", cursor: "pointer" }}>See the list</button></div> : null}
     <div style={{ position: "absolute", top: 0, left: 0, right: 0, zIndex: 4, padding: "calc(12px + env(safe-area-inset-top, 0px)) 14px 0", pointerEvents: "none" }}>
       <div style={{ display: "flex", gap: 8, pointerEvents: "auto" }}><NavBackButton onClick={onBackToList} /><div data-testid="map-title" style={{ flex: 1, minWidth: 0, height: 42, background: T.surface, borderRadius: 15, boxShadow: T.shadowCard, display: "flex", alignItems: "center", gap: 8, padding: "0 13px", fontSize: 14, fontWeight: 650, color: T.ink }}><BmFind size={16} color={T.inkFaint} style={{ flexShrink: 0 }} /><span style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{query || <><GloobalWordmark /> बाज़ार</>}{placeName ? ` · ${placeName}` : ""}</span></div></div>
-      <div style={{ display: "flex", gap: 6, overflowX: "auto", margin: "9px -14px 0", padding: "0 14px 8px", pointerEvents: "auto" }}>{BAZAAR_MAP_RADII.map((km) => chip(`${km}`, `${km} km`, radiusKm === km, () => onRadius(km)))}{chip("more", "+ More", more, () => setMore(true))}</div>
+      <div style={{ display: "flex", gap: 6, overflowX: "auto", margin: "9px -14px 0", padding: "0 14px 8px", pointerEvents: "auto" }}>{BAZAAR_MAP_RADII.map((km) => chip(`${km}`, `${km} km`, radiusKm === km, () => onRadius(km)))}{GLOOBAL_PLACE_SEARCH_READY ? chip("more", "+ More", more, () => setMore(true)) : null}</div>
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", pointerEvents: "auto" }}><b data-testid="map-count" style={{ fontSize: 11.5, background: "rgba(255,255,255,0.93)", color: T.ink, padding: "6px 10px", borderRadius: 999 }}>{pinned.length} बाज़ार {pinned.length === 1 ? "store" : "stores"} on map</b><span style={{ display: "flex", background: T.surface, padding: 3, borderRadius: 12, boxShadow: T.shadowCard }}><button type="button" data-testid="map-to-list" onClick={onBackToList} style={{ border: "none", background: "none", padding: "5px 11px", fontSize: 12, fontWeight: 750, color: T.inkSoft, fontFamily: "inherit", cursor: "pointer" }}>List</button><span style={{ padding: "5px 11px", fontSize: 12, fontWeight: 750, borderRadius: 9, background: T.accentSoft, color: T.accent }}>Map</span></span></div>
     </div>
     {!shop && !failed && map ? pinned.length ? <div style={{ position: "absolute", left: 0, right: 0, bottom: "calc(12px + env(safe-area-inset-bottom, 0px))", zIndex: 4 }}>
@@ -51585,7 +52585,7 @@ function BazaarMap({ center, placeName = "", radiusKm, shops = [], query = "", o
 // captureBrowserGeo — the app's one place for asking. It is kept for this
 // visit only, never saved, and sent with the search but stored nowhere.
 
-// The same fourteen, in the same order, as server/lib/bazaar.js. The order
+// The same eighteen, in the same order, as server/lib/bazaar.js. The order
 // here is only the setup screen's; Pay & Services orders them by payments.
 var BAZAAR_CATEGORY_INFO = [
   { key: "food", label: "Food & Chai", Icon: BzFood },
@@ -51601,6 +52601,10 @@ var BAZAAR_CATEGORY_INFO = [
   { key: "travel", label: "Travel & Transport", Icon: BzTravel },
   { key: "art", label: "Art & Craft", Icon: BzArt },
   { key: "events", label: "Events", Icon: BzEvents },
+  { key: "farm", label: "Farm & Fresh", Icon: BzFarm },
+  { key: "work", label: "Daily work & Help", Icon: BzWork },
+  { key: "creator", label: "Creators & Freelance", Icon: BzCreator },
+  { key: "community", label: "Community & Giving", Icon: BzCommunity },
   { key: "other", label: "Other", Icon: BzOther }
 ];
 
@@ -51608,19 +52612,23 @@ var BAZAAR_CATEGORY_INFO = [
 // The second step under each category (0141). Same keys, same order as
 // server/lib/bazaar.js BAZAAR_SUBCATEGORIES — a test keeps them equal.
 var BAZAAR_SUBCATEGORY_INFO = {
-  food: [["chai", "Chai"], ["dhaba", "Dhaba"], ["fastfood", "Fast food"], ["restaurant", "Restaurant"], ["cafe", "Café"], ["tiffin", "Tiffin"], ["juice", "Juice"]],
-  grocery: [["kirana", "Kirana"], ["vegetables", "Vegetables"], ["fruits", "Fruits"], ["dairy", "Dairy"], ["meat", "Meat & fish"], ["organic", "Organic"]],
-  sweets: [["mithai", "Mithai"], ["bakery", "Bakery"], ["cakes", "Cakes"], ["namkeen", "Namkeen"], ["icecream", "Ice cream"]],
-  fashion: [["tailor", "Tailor"], ["clothes", "Clothes"], ["saree", "Saree"], ["shoes", "Shoes"], ["jewellery", "Jewellery"], ["kids", "Kids"]],
-  beauty: [["salon", "Salon"], ["parlour", "Parlour"], ["barber", "Barber"], ["spa", "Spa"], ["mehendi", "Mehendi"]],
-  health: [["pharmacy", "Pharmacy"], ["clinic", "Clinic"], ["dentist", "Dentist"], ["lab", "Lab tests"], ["gym", "Gym"], ["yoga", "Yoga"]],
-  electronics: [["mobile", "Mobiles"], ["phonerepair", "Phone repair"], ["computer", "Computers"], ["appliances", "Appliances"], ["recharge", "Recharge"]],
-  repair: [["mechanic", "Mechanic"], ["bike", "Bike"], ["car", "Car"], ["plumber", "Plumber"], ["electrician", "Electrician"], ["carpenter", "Carpenter"]],
-  home: [["furniture", "Furniture"], ["decor", "Decor"], ["hardware", "Hardware"], ["cleaning", "Cleaning"], ["pestcontrol", "Pest control"]],
-  education: [["tuition", "Tuition"], ["coaching", "Coaching"], ["music", "Music"], ["dance", "Dance"], ["books", "Books"], ["stationery", "Stationery"]],
-  travel: [["taxi", "Taxi"], ["auto", "Auto"], ["tours", "Tours"], ["hotel", "Hotel"], ["tickets", "Tickets"]],
-  art: [["handmade", "Handmade"], ["pottery", "Pottery"], ["painting", "Painting"], ["gifts", "Gifts"], ["photography", "Photography"]],
-  events: [["wedding", "Wedding"], ["decoration", "Decoration"], ["catering", "Catering"], ["dj", "DJ"], ["tent", "Tent"], ["flowers", "Flowers"]],
+  food: [["chai", "Chai"], ["dhaba", "Dhaba"], ["fastfood", "Fast food"], ["restaurant", "Restaurant"], ["cafe", "Café"], ["tiffin", "Tiffin"], ["juice", "Juice"], ["streetfood", "Street food"], ["homekitchen", "Home kitchen"], ["paan", "Paan"], ["eggcart", "Egg & omelette cart"], ["biryani", "Biryani"], ["chinese", "Chinese & momos"], ["southindian", "Dosa & idli"]],
+  grocery: [["kirana", "Kirana"], ["vegetables", "Vegetables"], ["fruits", "Fruits"], ["dairy", "Dairy"], ["meat", "Meat & fish"], ["organic", "Organic"], ["general", "General store"], ["water", "Water & gas"], ["flourmill", "Flour mill (chakki)"], ["milkman", "Milk delivery"], ["spices", "Spices & masala"], ["pickles", "Pickle & papad"], ["coconut", "Coconut water"]],
+  sweets: [["mithai", "Mithai"], ["bakery", "Bakery"], ["cakes", "Cakes"], ["namkeen", "Namkeen"], ["icecream", "Ice cream"], ["dryfruits", "Dry fruits"], ["homebaker", "Home baker"]],
+  fashion: [["tailor", "Tailor"], ["clothes", "Clothes"], ["saree", "Saree"], ["shoes", "Shoes"], ["jewellery", "Jewellery"], ["kids", "Kids"], ["boutique", "Boutique"], ["laundry", "Laundry & ironing"], ["cobbler", "Cobbler (mochi)"], ["embroidery", "Embroidery & zari"], ["bangles", "Bangles & cosmetics"], ["handloom", "Handloom & weaving"], ["bags", "Bags"]],
+  beauty: [["salon", "Salon"], ["parlour", "Parlour"], ["barber", "Barber"], ["spa", "Spa"], ["mehendi", "Mehendi"], ["hair", "Hair stylist"], ["makeup", "Makeup artist"], ["nails", "Nails"], ["skincare", "Skin care"], ["tattoo", "Tattoo"], ["homebeauty", "Beauty at home"], ["massage", "Massage (maalish)"]],
+  health: [["pharmacy", "Pharmacy"], ["clinic", "Clinic"], ["dentist", "Dentist"], ["lab", "Lab tests"], ["gym", "Gym"], ["yoga", "Yoga"], ["doctor", "Doctor"], ["physio", "Physiotherapy"], ["optical", "Optician"], ["ayurveda", "Ayurveda"], ["vet", "Vet & pets"], ["nurse", "Nurse & caretaker"], ["ambulance", "Ambulance"]],
+  electronics: [["mobile", "Mobiles"], ["phonerepair", "Phone repair"], ["computer", "Computers"], ["appliances", "Appliances"], ["recharge", "Recharge"], ["internet", "Internet & cable"], ["printing", "Print & xerox"], ["cyber", "Cyber café & forms"], ["tvrepair", "TV & appliance repair"]],
+  repair: [["mechanic", "Mechanic"], ["bike", "Bike"], ["car", "Car"], ["plumber", "Plumber"], ["electrician", "Electrician"], ["carpenter", "Carpenter"], ["ac", "AC & fridge"], ["puncture", "Puncture"], ["welding", "Welding"], ["painter", "Painter"], ["cycle", "Cycle repair"], ["keymaker", "Key maker"], ["watch", "Watch repair"], ["stove", "Gas stove & cooker repair"], ["knife", "Knife sharpening"], ["mason", "Mason (raj mistri)"], ["tiles", "Tiles & marble"], ["borewell", "Borewell & pump"]],
+  home: [["furniture", "Furniture"], ["decor", "Decor"], ["hardware", "Hardware"], ["cleaning", "Cleaning"], ["pestcontrol", "Pest control"], ["movers", "Packers & movers"], ["gardening", "Gardening"], ["cook", "Cook & maid"], ["rent", "Rent & property"], ["scrap", "Scrap dealer (kabadi)"], ["mattress", "Mattress & quilt maker"], ["utensils", "Utensils"]],
+  education: [["tuition", "Tuition"], ["coaching", "Coaching"], ["music", "Music"], ["dance", "Dance"], ["books", "Books"], ["stationery", "Stationery"], ["language", "Languages"], ["computerclass", "Computer class"], ["sports", "Sports coaching"], ["preschool", "Play school"], ["driving", "Driving school"], ["library", "Library & reading room"], ["craftclass", "Tailoring & craft class"]],
+  travel: [["taxi", "Taxi"], ["auto", "Auto"], ["tours", "Tours"], ["hotel", "Hotel"], ["tickets", "Tickets"], ["bikerental", "Bike rental"], ["courier", "Courier & delivery"], ["guide", "Guide"], ["tempo", "Tempo & truck"], ["erickshaw", "E-rickshaw"], ["rickshaw", "Cycle rickshaw"], ["driver", "Driver on hire"], ["schoolvan", "School van"]],
+  art: [["handmade", "Handmade"], ["pottery", "Pottery"], ["painting", "Painting"], ["gifts", "Gifts"], ["photography", "Photography"], ["design", "Design"], ["framing", "Framing"], ["idol", "Idol & statue maker"], ["bamboo", "Bamboo & cane work"], ["toys", "Toys & balloons"]],
+  events: [["wedding", "Wedding"], ["decoration", "Decoration"], ["catering", "Catering"], ["dj", "DJ"], ["tent", "Tent"], ["flowers", "Flowers"], ["photovideo", "Photo & video"], ["pandit", "Pandit & puja"], ["band", "Band & dhol"], ["anchor", "Anchor & host"], ["lights", "Lights & generator"]],
+  farm: [["farmer", "Farmer"], ["dairyfarm", "Dairy farm"], ["poultry", "Poultry & eggs"], ["fishery", "Fish farm"], ["nursery", "Plant nursery"], ["seeds", "Seeds & fertiliser"], ["cattlefeed", "Cattle feed"], ["honey", "Honey & bee keeping"], ["flowergrower", "Flower grower"], ["mandi", "Mandi trader"], ["tractor", "Tractor & JCB"]],
+  work: [["labour", "Daily labour"], ["helper", "Helper & loader"], ["porter", "Porter (coolie)"], ["guard", "Security guard"], ["sweeper", "Sweeper & cleaner"], ["maid", "Maid"], ["babysitter", "Babysitter (aaya)"], ["eldercare", "Elder care"], ["homecook", "Home cook"], ["gardener", "Gardener (mali)"], ["rider", "Delivery rider"], ["waiter", "Waiter & event staff"]],
+  creator: [["youtuber", "YouTuber"], ["musician", "Musician"], ["writer", "Writer"], ["artist", "Artist"], ["photographer", "Photographer"], ["videomaker", "Video maker"], ["designer", "Designer"], ["developer", "Developer"], ["influencer", "Influencer"], ["podcaster", "Podcaster"], ["freelancer", "Freelancer"], ["consultant", "Consultant"], ["astrology", "Astrology"]],
+  community: [["ngo", "NGO"], ["worship", "Place of worship"], ["club", "Club"], ["fundraiser", "Fundraiser"], ["society", "Housing society"], ["sportsclub", "Sports club"], ["shg", "Self-help group"], ["gaushala", "Gaushala"], ["school", "School & college"]],
   other: []
 };
 
@@ -53921,20 +54929,16 @@ function ShopThemeEditor({ shop, cover, symbolId, creator = null, ccyCode = "USD
   useEffect57(() => { Object.keys(SHOP_FONTS).forEach(ensureShopFont); }, []);
   const theme = resolveShopTheme(draft);
 
-  // Picking a theme REPLACES the dials rather than merging over them.
+  // Picking a theme sets the COLOUR and nothing else.
   //
-  // The alternative — keeping whatever corners somebody had set — means
-  // tapping "Studio" gives a thing that is not Studio, and the preset stops
-  // meaning anything. Everything stays editable immediately afterwards, and
-  // Undo puts the previous look back in one tap.
+  // The themes are the app's twenty looks now, and a look is a colour and
+  // a page; the font, corners, cards and the rest are the shop's own dials
+  // and stay where the owner left them. (When the list was twelve shop
+  // presets, each with its own dials, a pick replaced the lot.) Undo still
+  // puts the previous look back in one tap.
   const applyTheme = (key) => {
-    const base = SHOP_THEMES[key] || SHOP_THEMES.gloobal;
-    set({
-      theme: key, color: base.color, font: base.font, corners: base.corners,
-      cards: base.cards, density: base.density, photoShape: base.photoShape, dark: base.dark,
-      layout: base.layout || "list", buttons: base.buttons || "filled", heroStyle: base.heroStyle || "gradient",
-      coverStyle: base.coverStyle || "photo", pattern: base.pattern || "dots"
-    });
+    const base = SHOP_THEMES[key] || SHOP_THEMES[SHOP_THEME_DEFAULT];
+    set({ theme: key, color: base.color, dark: false });
   };
 
   const save = async () => {
@@ -54004,7 +55008,7 @@ function ShopThemeEditor({ shop, cover, symbolId, creator = null, ccyCode = "USD
     style: <div style={{ display: "grid", gridTemplateColumns: "repeat(3, minmax(0, 1fr))", gap: 8 }}>{SHOP_THEME_KEYS.map((key) => {
       const t = SHOP_THEMES[key];
       const look = resolveShopTheme({ theme: key });
-      const on = draft.theme === key;
+      const on = shopThemeKey(draft.theme) === key;
       const ground = (t.coverStyle === "pattern") ? shopPatternCss(t.pattern, look.color, look.dark)
         : `linear-gradient(140deg, ${look.hero.from}, ${look.hero.to})`;
       return <button
@@ -60184,6 +61188,26 @@ function DashboardScreen({ dialCountry, onLogout, onOpenSend, onPayCreator, onPa
     creator={creatorProfile}
     onSave={saveCreatorProfile}
     onSaveStep={saveCreatorStep}
+    onAddStarterItems={async (rows) => {
+      // The starter items ticked in setup, added to the END of the shop's
+      // list. The route replaces the whole list, so the list is read
+      // first and sent back with the new rows after it; one whose name is
+      // already there is left alone, so saving the step twice adds nothing.
+      try {
+        const current = await GloobalApi.getCreatorItems(creatorSymbol);
+        const have = new Set(current.map((i) => String(i.title || "").trim().toLowerCase()));
+        const fresh = (Array.isArray(rows) ? rows : []).filter((r) => r && r.title && !have.has(String(r.title).trim().toLowerCase()));
+        if (!fresh.length) return true;
+        const next = current.map((i) => ({
+          title: i.title, price: i.price, note: i.note, photos: i.photos || (i.photo ? [i.photo] : []),
+          category: i.category, badge: i.badge, soldOut: i.soldOut, special: Boolean(i.special)
+        })).concat(fresh.map((r) => ({ title: String(r.title), price: Number(r.price), note: String(r.note || ""), photos: [], category: "", badge: "", soldOut: false, special: false })));
+        await GloobalApi.saveCreatorItems(creatorSymbol, next, current);
+        return true;
+      } catch (e) {
+        return (e && e.body && typeof e.body.message === "string" && e.body.message) ? e.body.message : "Your page type was saved, but the items could not be added right now.";
+      }
+    }}
     onSaveShare={saveShareFromSetup}
     startStep={creatorSetupStart}
     shareRate={myShareRate}
@@ -60388,14 +61412,16 @@ function DashboardScreen({ dialCountry, onLogout, onOpenSend, onPayCreator, onPa
     }}
     suppliers={creatorSuppliers}
     purchases={creatorPurchases}
-    onPay={({ amount, creator }) => {
+    onPay={({ amount, creator, lines }) => {
       // Hands the basket's total to the REAL Send flow — the receiver
       // filled in, the amount carried across, and the PIN, the ledger and
       // the receipt all the ordinary ones. Nothing is paid from this
       // screen; it only decides who and how much.
       setOpenCreator(null);
       requestCloseMore();
-      if (onPayCreator) onPayCreator({ creator, amount });
+      // The basket's lines go with it, so the payment can say what it
+      // was for (App.jsx, openSendToCreator).
+      if (onPayCreator) onPayCreator({ creator, amount, lines });
     }}
   /></ScreenErrorBoundary>}{assetDetail && <div style={{ position: "fixed", inset: 0, zIndex: 340, background: T.bg, display: "flex", flexDirection: "column", overflow: "hidden" }}><div style={{ display: "flex", alignItems: "center", gap: 12, padding: "calc(18px + env(safe-area-inset-top, 0px)) 18px 14px", flexShrink: 0 }}><NavBackButton onClick={requestCloseAssetDetail} /><span style={{ fontSize: 16, fontWeight: 800, color: T.ink, fontFamily: T.fontDisplay }}>{assetDetail.row.business}</span></div><div style={{ flex: 1, minHeight: 0, overflowY: "auto", WebkitOverflowScrolling: "touch", padding: "6px 18px 30px", display: "flex", flexDirection: "column", gap: 16 }}><div style={{ borderRadius: T.radiusLg, background: T.surface, boxShadow: T.shadowCard, padding: "18px 18px 14px" }}><div style={{ fontSize: 12, fontWeight: 600, color: T.inkSoft }}>Current value</div><div style={{ fontSize: 26, fontWeight: 800, color: T.positive, fontFamily: T.fontDisplay, marginTop: 3, whiteSpace: "nowrap" }}>{geuLensBarMoney(assetDetail.row.value, ccyCode, displayLens, ccyCode)}</div><div style={{ fontSize: 11.5, color: T.inkFaint, marginTop: 2 }}>{assetDetail.row.monthsAccrued === 0 ? "Just earned" : `${(assetDetail.row.monthsAccrued / 12).toFixed(1)} yr into growing toward ${geuLensBarMoney(assetDetail.target, ccyCode, displayLens, ccyCode)}`}</div>{
     /* Growth curve: cashback (t=0) compounding at 1%/month up
@@ -60557,6 +61583,7 @@ function DashboardScreen({ dialCountry, onLogout, onOpenSend, onPayCreator, onPa
     onOpenLedger={() => setShowCreatorLedger(true)}
     paymentSoundOn={paymentSoundOn}
     onTogglePaymentSound={() => flipSecurity("paymentSound", !paymentSoundOn)}
+    currency={ccyCode}
     onToast={showToast2}
     onOpenPage={async () => {
       // Read back through the same route a buyer uses, so the owner sees
@@ -61977,6 +63004,9 @@ function SendMoneyScreen({ onClose, sender, prefillReceiver = null, prefillChoic
       // this payment lands (closeComplaintByReturn).
       complaintId: prefillReceiver.complaintId || null,
       rentPlaceId: prefillReceiver.rentPlaceId || null,
+      // The basket this payment is for, from the shop's page.
+      basketLines: prefillReceiver.basketLines || null,
+      basketTotal: prefillReceiver.basketTotal || 0,
       // Already masked. This value originates in GET /api/users/resolve (via
       // App.jsx's handleSendToScanned), which now masks before it answers —
       // see the note where maskMobileNumber used to be defined.
@@ -62062,6 +63092,8 @@ function SendMoneyScreen({ onClose, sender, prefillReceiver = null, prefillChoic
     // addressed by. Empty for a local simulation, which has no server row for
     // a link to lead to — that receipt keeps the long form it always had.
     let confirmedReceiptCode = "";
+    // What the payment was for, as the server kept it.
+    let confirmedItems = null;
     let confirmedShareReceiptCode = "";
     // The figures the server RECORDED for this payment — its debit, its
     // credit and its rate. Receipt display only (buildTransactionSnapshot's
@@ -62166,6 +63198,7 @@ function SendMoneyScreen({ onClose, sender, prefillReceiver = null, prefillChoic
         // beside them, and carried only so the share sheet has a URL that
         // does not percent-encode to 180 characters.
         if (remote.receiptCode) confirmedReceiptCode = remote.receiptCode;
+        if (Array.isArray(remote.items) && remote.items.length) confirmedItems = remote.items;
         if (remote.shareReceiptCode) confirmedShareReceiptCode = remote.shareReceiptCode;
         confirmedRecorded = {
           debitAmount: remote.debitAmount,
@@ -62259,6 +63292,10 @@ function SendMoneyScreen({ onClose, sender, prefillReceiver = null, prefillChoic
     });
     // Paid at a shop: the row is listed under the shop's creator name and
     // the receipt carries the way into its store.
+    if (confirmedItems) {
+      historyEntry.items = confirmedItems;
+      receipt2.items = confirmedItems;
+    }
     if (bottom.creatorHandle) {
       historyEntry.creatorHandle = bottom.creatorHandle;
       historyEntry.personName = historyEntry.name;
@@ -64754,7 +65791,7 @@ var COVERAGE_LIT = ["#A78BFA", "#5EEAD4", "#FCA5A5", "#FDE68A", "#93C5FD", "#F9A
 var COVERAGE_CATEGORY_LABEL = {
   people: "People", food: "Food & Chai", grocery: "Grocery", sweets: "Sweets & Bakery", fashion: "Fashion", beauty: "Beauty & Salon",
   health: "Health & Pharmacy", electronics: "Electronics", repair: "Repair", home: "Home services", education: "Education",
-  travel: "Travel", art: "Art & Craft", events: "Events", other: "Other"
+  travel: "Travel", art: "Art & Craft", events: "Events", farm: "Farm & Fresh", work: "Daily work & Help", creator: "Creators & Freelance", community: "Community & Giving", other: "Other"
 };
 var COVERAGE_PALETTE = ["#5B34E6", "#8B5CF6", "#0E7490", "#14B8A6", "#C4B5FD", "#F59E0B"];
 
@@ -69976,6 +71013,14 @@ function gloobalIsEssentialsDraw(entry) {
   return Boolean(entry) && entry.txnType === "disbursement" && (!entry.payoutReason || entry.payoutReason === "essentials");
 }
 
+// The basket lines to send with a payment: the receiver's, while the amount
+// being paid is still the basket's total. null otherwise.
+function gloobalBasketItemsFor(receiver, payAmount) {
+  const lines = receiver && receiver.basketLines;
+  if (!Array.isArray(lines) || !lines.length) return undefined;
+  if (Math.abs(Number(payAmount) - Number(receiver.basketTotal)) > 0.011) return undefined;
+  return lines;
+}
 function mapServerTransaction(row, viewerSymbolId) {
   // The server's own record of when this happened — the instant every list
   // sorts by (transactionOrder.js) and the instant the row's date and time
@@ -70168,6 +71213,9 @@ function mapServerTransaction(row, viewerSymbolId) {
     // a second mapping to keep in step with the first.
     coin: row.coin || null,
     txnId: row.referenceId || row.id || "",
+    // What it was for, when it was paid from a shop's basket: the lines the
+    // server kept on the payment, the same for the payer and the shop.
+    items: Array.isArray(row.items) && row.items.length ? row.items : null,
     // The Creator Share this payment carried, as the server recorded it.
     //
     // Hardcoded 0 before, which is why the receipt's Creator Share tab
@@ -70673,6 +71721,11 @@ function GloobalId() {
         complaintId: (receiver && receiver.complaintId) || undefined,
         // Rent for a saved place (0195): the place's page counts it.
         rentPlaceId: (receiver && receiver.rentPlaceId) || undefined,
+        // What this payment is for: the basket filled on the shop's page.
+        // Sent only while the amount is still the basket's total — once the
+        // payer changes the amount it is no longer a payment for that
+        // basket. The server checks the same thing and is the authority.
+        items: gloobalBasketItemsFor(receiver, destinationAmount ?? amount),
         // The ID this device already minted for the payment, so the record
         // MongoDB stores is the same one the sender's receipt, complaint
         // window and location report are keyed by — and, because the
@@ -70700,8 +71753,24 @@ function GloobalId() {
       // are different movements between different pairs of parties and must
       // not be identifiable by the same reference.
       const share = (result && result.shareTransaction) || null;
+      // A shop buying from another shop: the lines also go into the
+      // buyer's own "Buying" history (their purchases from this supplier).
+      // After the payment, never before — a line must not exist for money
+      // that did not move — and a failure here costs a book-keeping row,
+      // not the payment.
+      if (Array.isArray(result && result.items) && result.items.length && activeShareRole === "merchant" && receiver && receiver.creatorHandle) {
+        const lineCurrency = transaction.currency || destinationCurrency || currency || "";
+        GloobalApi.recordCreatorPurchase(senderSymbolId, {
+          supplierSymbolId: receiverSymbolId,
+          supplierHandle: receiver.creatorHandle,
+          lines: result.items.map((l) => ({ title: l.title, quantity: l.quantity, amount: l.amount, currency: lineCurrency })),
+          transactionRef: transaction.referenceId || txnId || ""
+        }).catch(() => {});
+      }
       return {
         ok: true,
+        // What it was for, as the server kept it (null when it kept none).
+        items: Array.isArray(result && result.items) && result.items.length ? result.items : null,
         transactionId: transaction.referenceId || txnId || "",
         // The short handle the payment's receipt link is addressed by (see
         // GET /t/ and Transaction.receiptCode). Carried alongside the
@@ -71438,7 +72507,10 @@ function GloobalId() {
   }, [dialCountry]);
   // A creator on the Send screen, from their own page or from Pay again on
   // a shop's receipt (which has already read the shop as it is now).
-  const openSendToCreator = (creator, amount) => {
+  // `lines` is the basket this payment is for ([{ title, quantity, amount }]),
+  // when it came from a shop's page. They ride with the receiver to the
+  // Send screen and on to the server, which keeps them on the payment.
+  const openSendToCreator = (creator, amount, lines) => {
     if (!creator) return;
     const iso = String(creator.countryIso || "").toUpperCase();
     const creatorCountry = COUNTRY_BY_ISO[iso] || dialCountry;
@@ -71453,7 +72525,10 @@ function GloobalId() {
       mobileNumber: "",
       currency: COUNTRY_CURRENCY[creatorCountry.iso] || "USD",
       registered: true,
-      prefillAmount: Number(amount) > 0 ? String(Number(amount).toFixed(2)) : ""
+      prefillAmount: Number(amount) > 0 ? String(Number(amount).toFixed(2)) : "",
+      basketLines: Array.isArray(lines) && lines.length && Number(amount) > 0
+        ? lines.map((l) => ({ title: String(l.title || ""), quantity: Number(l.quantity) || 1, amount: Number(l.amount) || 0 })) : null,
+      basketTotal: Number(amount) > 0 ? Number(amount) : 0
     });
     setActiveScreen("send");
   };
@@ -74367,7 +75442,7 @@ function GloobalId() {
     // The amount is carried as a prefill rather than paid outright,
     // because the founder's rule for this button is that the payer still
     // sees the figure on the Send screen and confirms it there.
-    onPayCreator={({ creator, amount }) => openSendToCreator(creator, amount)}
+    onPayCreator={({ creator, amount, lines }) => openSendToCreator(creator, amount, lines)}
     // The dashboard's quick-pay box: a person it found and checked goes to
     // Send exactly as a scanned QR does — same prefill, same confirm.
     onPayPerson={(payee) => {
@@ -76289,8 +77364,10 @@ function GloobalMessageOnHelloo({ person }) {
 // ───── helloo: screens/Chats.jsx ─────
 // frontend/screens/Chats.jsx
 //
-// Home. The list of conversations, a search that also understands a
-// GLOOBAL ID, and one button to start something: the Start sheet, which
+// Home. NOT a list of conversations: a chat list is a history anyone can
+// read at a glance, so none is drawn until a name is typed (hellooClient,
+// hellooChatsFor). A search box that also understands a GLOOBAL ID, a
+// count of what is new, and one button to start something: the Start sheet, which
 // is the only place a new person enters your Helloo — by ID, by QR, or
 // from the people you have already paid on Gloobal.
 
@@ -76317,7 +77394,9 @@ function HellooChatsScreen({ me, chats, onOpen, onStart, onScan, onSearch, query
   // always comes up empty reads as a part of the app that does not work.
   const filters = [["all", "All", 0], ["unread", "Unread", chats.filter((c) => c.unread).length], chats.some((c) => c.person.group) && ["groups", "Groups", 0], chats.some((c) => c.person.handle) && ["shops", "Shops", 0]].filter(Boolean);
   const shown = chats.filter((c) => filter === "all" || (filter === "unread" && c.unread) || (filter === "groups" && c.person.group) || (filter === "shops" && c.person.handle));
-  return <HellooScreen><HellooTop big title={<span style={{ fontSize: 26 }}><HellooWordmark /></span>} right={<><HellooRoundButton Icon={HlScan} label="Scan a GLOOBAL QR" onClick={onScan} /><button onClick={onMe} aria-label="Me: profile, price and settings" className="v2-tap" style={{ border: "none", background: "none", padding: 0, cursor: "pointer", borderRadius: "50%", display: "inline-flex" }}><HellooMeAvatar me={me} size={40} /></button></>} /><div style={{ padding: "0 16px 10px", flexShrink: 0 }}><label style={{ display: "flex", alignItems: "center", gap: 8, background: T.surface, border: `1px solid ${T.line}`, borderRadius: 999, padding: "10px 14px" }}><HlSearch size={17} color={T.inkFaint} /><input value={query} onChange={(e) => onSearch && onSearch(e.target.value)} placeholder="Search a name or GLOOBAL ID" style={{ flex: 1, minWidth: 0, border: "none", outline: "none", background: "none", fontSize: 14, color: T.ink, fontFamily: T.fontBody }} /></label><div style={{ display: "flex", gap: 8, marginTop: 10, overflowX: "auto", scrollbarWidth: "none" }}>{filters.map(([k, l, n]) => <HellooChip key={k} on={filter === k} count={n} onClick={() => onFilter && onFilter(k)}>{l}</HellooChip>)}</div></div><div style={{ flex: 1, minHeight: 0, overflowY: "auto", padding: "0 16px 90px" }}>{banner}<HellooRequestsRow requests={requests} onOpen={onRequests} />{shown.length === 0 && empty ? empty : <HellooCard>{shown.map((c, i) => <HellooChatRow key={c.id} chat={c} onOpen={onOpen} first={i === 0} onHold={onHold} />)}</HellooCard>}<div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 6, marginTop: 14, fontSize: 11.5, fontWeight: 700, color: HT.free }}><HlLock size={13} />Private to you and the people you talk to</div></div><button onClick={onStart} data-testid="helloo-new-chat" className="v2-tap" style={{ position: "absolute", right: 16, bottom: "calc(16px + env(safe-area-inset-bottom, 0px))", height: 52, padding: "0 20px 0 16px", borderRadius: HT.radius != null ? Math.min(HT.radius, 26) : 26, border: "none", background: T.gradButton, boxShadow: HT.buttonGlow || "0 12px 28px rgba(76,29,149,0.35)", display: "flex", alignItems: "center", gap: 8, cursor: "pointer", color: HT.onAccent || "#fff", fontSize: 14.5, fontWeight: 800, fontFamily: T.fontBody }}><HlPencil size={18} color={HT.onAccent || "#fff"} />New chat</button></HellooScreen>;
+  return <HellooScreen><HellooTop big title={<span style={{ fontSize: 26 }}><HellooWordmark /></span>} right={<><HellooRoundButton Icon={HlScan} label="Scan a GLOOBAL QR" onClick={onScan} /><button onClick={onMe} aria-label="Me: profile, price and settings" className="v2-tap" style={{ border: "none", background: "none", padding: 0, cursor: "pointer", borderRadius: "50%", display: "inline-flex" }}><HellooMeAvatar me={me} size={40} /></button></>} /><div style={{ padding: "0 16px 10px", flexShrink: 0 }}><label style={{ display: "flex", alignItems: "center", gap: 8, background: T.surface, border: `1px solid ${T.line}`, borderRadius: 999, padding: "10px 14px" }}><HlSearch size={17} color={T.inkFaint} /><input value={query} onChange={(e) => onSearch && onSearch(e.target.value)} data-testid="helloo-find" autoComplete="off" autoCorrect="off" autoCapitalize="off" spellCheck={false} placeholder="Type a name to open a chat" style={{ flex: 1, minWidth: 0, border: "none", outline: "none", background: "none", fontSize: 14, color: T.ink, fontFamily: T.fontBody }} /></label>{/* The filters sort what a search found. With nothing typed there is
+            nothing to sort — and "Unread" on its own would be the list. */
+          query.trim() && shown.length > 1 ? <div style={{ display: "flex", gap: 8, marginTop: 10, overflowX: "auto", scrollbarWidth: "none" }}>{filters.map(([k, l, n]) => <HellooChip key={k} on={filter === k} count={n} onClick={() => onFilter && onFilter(k)}>{l}</HellooChip>)}</div> : null}</div><div style={{ flex: 1, minHeight: 0, overflowY: "auto", padding: "0 16px 90px" }}>{banner}<HellooRequestsRow requests={requests} onOpen={onRequests} />{shown.length === 0 ? empty : <HellooCard>{shown.map((c, i) => <HellooChatRow key={c.id} chat={c} onOpen={onOpen} first={i === 0} onHold={onHold} />)}</HellooCard>}<div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 6, marginTop: 14, fontSize: 11.5, fontWeight: 700, color: HT.free }}><HlLock size={13} />Private to you and the people you talk to</div></div><button onClick={onStart} data-testid="helloo-new-chat" className="v2-tap" style={{ position: "absolute", right: 16, bottom: "calc(16px + env(safe-area-inset-bottom, 0px))", height: 52, padding: "0 20px 0 16px", borderRadius: HT.radius != null ? Math.min(HT.radius, 26) : 26, border: "none", background: T.gradButton, boxShadow: HT.buttonGlow || "0 12px 28px rgba(76,29,149,0.35)", display: "flex", alignItems: "center", gap: 8, cursor: "pointer", color: HT.onAccent || "#fff", fontSize: 14.5, fontWeight: 800, fontFamily: T.fontBody }}><HlPencil size={18} color={HT.onAccent || "#fff"} />New chat</button></HellooScreen>;
 }
 
 // The Start sheet: three ways a person comes in, one group.
@@ -77258,7 +78337,49 @@ function hellooChatRowFrom(chat, photos) {
       }
     : null;
   if (person) person.online = Boolean(chat.online);
-  return { id: chat.id, person, unread: chat.unread || 0, muted: Boolean(chat.muted), pinned: Boolean(chat.pinned), messages: last ? [last] : [], lastAt: chat.lastAt, theyReadAt: chat.theyReadAt };
+  // The name on a chat is the one YOU saved it under, when you saved one:
+  // "Papa", "()+". Their own account name is kept beside it for the places
+  // that must say who they really are (a payment, their profile).
+  const savedName = typeof chat.savedName === "string" ? chat.savedName : "";
+  if (person && savedName) { person.accountName = person.name; person.name = savedName; }
+  return { id: chat.id, person, unread: chat.unread || 0, muted: Boolean(chat.muted), pinned: Boolean(chat.pinned), savedName, private: Boolean(chat.private), messages: last ? [last] : [], lastAt: chat.lastAt, theyReadAt: chat.theyReadAt };
+}
+
+// ── FINDING A CHAT ──────────────────────────────────────────────────────
+//
+// Home shows no chats. A chat list is a history anyone can read at a
+// glance — who you talk to, and how lately — so Helloo keeps it off the
+// screen and a chat is CALLED UP by typing its name:
+//
+//   * an ordinary chat appears as soon as the first letters of its name
+//     are typed (the start of any word in it), or four or more symbols of
+//     its GLOOBAL ID;
+//   * a PRIVATE chat appears only when its whole saved name is typed,
+//     exactly. "()" does not find "()+", and a private chat is never found
+//     by the person's own name or ID. A near miss looks the same as a name
+//     that does not exist: an empty screen.
+//
+// `privateLocked` is the pause after too many wrong tries (HellooApp):
+// while it holds, private chats do not answer at all.
+var HELLOO_PRIVATE_NAME_MIN = 3;
+function hellooNameKey(value) {
+  return String(value == null ? "" : value).replace(/\s+/g, " ").trim().toLowerCase();
+}
+function hellooChatsFor(rows, query, privateLocked) {
+  const q = hellooNameKey(query);
+  if (!q) return [];
+  const raw = String(query || "").trim();
+  return (rows || []).filter((c) => {
+    if (c.private) return !privateLocked && hellooNameKey(c.savedName) === q;
+    const name = hellooNameKey(c.person && c.person.name);
+    if (name.indexOf(q) === 0 || name.split(" ").some((word) => word.indexOf(q) === 0)) return true;
+    return raw.length >= 4 && String((c.person && c.person.gloobalId) || "").indexOf(raw) >= 0;
+  });
+}
+// Whether typed text is exactly some private chat's saved name.
+function hellooIsPrivateName(rows, query) {
+  const q = hellooNameKey(query);
+  return Boolean(q) && (rows || []).some((c) => c.private && hellooNameKey(c.savedName) === q);
 }
 
 // ── Live socket ─────────────────────────────────────────────────────────
@@ -77719,7 +78840,13 @@ function HellooRoot() {
   }, [signedIn, refreshChats, refreshContacts]);
 
   const me = useMemoH9(() => hellooMeFrom(user, user && photos[user.accountId]), [user, photos]);
-  const contacts = useMemoH9(() => (contactCards || []).map((c) => hellooPersonFrom(c, photos)), [contactCards, photos]);
+  // The people on the other end of your PRIVATE chats. They are left out of
+  // every list Helloo draws — contacts, suggestions, call history — because
+  // a name in any of them is the same glance a chat list would give.
+  const privatePeople = useMemoH9(() => new Set((chatRows || []).filter((c) => c.private && c.person).map((c) => c.person.accountId)), [chatRows]);
+  const privatePeopleRef = useRefH9(privatePeople);
+  privatePeopleRef.current = privatePeople;
+  const contacts = useMemoH9(() => (contactCards || []).filter((c) => !privatePeople.has(c.accountId)).map((c) => hellooPersonFrom(c, photos)), [contactCards, photos, privatePeople]);
 
   // ── Navigation ───────────────────────────────────────────────────────
   const [tab, setTab] = useStateH9("chats");
@@ -77728,6 +78855,39 @@ function HellooRoot() {
   const [sheet, setSheet] = useStateH9(null);
   const [filter, setFilter] = useStateH9("all");
   const [query, setQuery] = useStateH9("");
+  // ── The pause after wrong tries ────────────────────────────────────────
+  //
+  // A private chat answers only to its whole saved name, and a short one
+  // ("()+") could in principle be found by trying. So tries are counted:
+  // text of three characters or more that sits in the box and is no
+  // private chat's name is one miss, and after five in a row private chats
+  // stop answering for a minute — to the right name too, so the pause
+  // tells a guesser nothing. Ordinary chats are never paused.
+  const [privateMisses, setPrivateMisses] = useStateH9(0);
+  const [privateLockUntil, setPrivateLockUntil] = useStateH9(() => { try { return Number(localStorage.getItem("helloo.privateLockUntil")) || 0; } catch (e) { return 0; } });
+  const [, setLockTick] = useStateH9(0);
+  const privateLocked = privateLockUntil > Date.now();
+  useEffectH9(() => {
+    if (!privateLocked) return undefined;
+    const id = setTimeout(() => setLockTick((n) => n + 1), Math.max(500, privateLockUntil - Date.now() + 50));
+    return () => clearTimeout(id);
+  }, [privateLockUntil, privateLocked]);
+  useEffectH9(() => {
+    const typed = hellooNameKey(query);
+    if (typed.length < HELLOO_PRIVATE_NAME_MIN || privateLocked) return undefined;
+    if (!(chatRows || []).some((c) => c.private)) return undefined;
+    const id = setTimeout(() => {
+      if (hellooIsPrivateName(chatRows, query)) { setPrivateMisses(0); return; }
+      setPrivateMisses((n) => {
+        if (n + 1 < 5) return n + 1;
+        const until = Date.now() + 60000;
+        try { localStorage.setItem("helloo.privateLockUntil", String(until)); } catch (e) { /* private window */ }
+        setPrivateLockUntil(until);
+        return 0;
+      });
+    }, 1500);
+    return () => clearTimeout(id);
+  }, [query, privateLocked, chatRows]);
   const openIdRef = useRefH9(null);
   openIdRef.current = openId;
 
@@ -78343,6 +79503,41 @@ function HellooRoot() {
   }, [screen, openId]);
   const [callFilter, setCallFilter] = useStateH9("all");
   const [contactQuery, setContactQuery] = useStateH9("");
+  // Naming a chat and making it private: { chatId, name, isPrivate, busy, error }.
+  const [nameEdit, setNameEdit] = useStateH9(null);
+  // "Forgot a private name?": the GLOOBAL PIN shows your private chats' names.
+  const [recover, setRecover] = useStateH9({ pin: "", busy: false, error: "", names: null });
+  const openNameEdit = (chat) => { setNameEdit({ chatId: chat.id, name: chat.savedName || "", isPrivate: Boolean(chat.private), busy: false, error: "" }); setSheet("savename"); };
+  const saveNameEdit = async () => {
+    if (!nameEdit || nameEdit.busy) return;
+    const name = String(nameEdit.name || "").replace(/\s+/g, " ").trim();
+    if (nameEdit.isPrivate && name.length < HELLOO_PRIVATE_NAME_MIN) { setNameEdit(Object.assign({}, nameEdit, { error: `A private chat needs a name of ${HELLOO_PRIVATE_NAME_MIN} characters or more.` })); return; }
+    if (name && (chatRows || []).some((c) => c.id !== nameEdit.chatId && hellooNameKey(c.savedName) === hellooNameKey(name))) { setNameEdit(Object.assign({}, nameEdit, { error: "You already use that name for another chat." })); return; }
+    setNameEdit(Object.assign({}, nameEdit, { busy: true, error: "" }));
+    try {
+      await hellooApi.prefs(nameEdit.chatId, { savedName: name, private: nameEdit.isPrivate });
+      const patch = { savedName: name, private: nameEdit.isPrivate };
+      setChatRows((rowsNow) => (rowsNow || []).map((c) => (c.id === nameEdit.chatId ? Object.assign({}, c, patch) : c)));
+      setThreads((all) => (all[nameEdit.chatId] && all[nameEdit.chatId].chat ? Object.assign({}, all, { [nameEdit.chatId]: Object.assign({}, all[nameEdit.chatId], { chat: Object.assign({}, all[nameEdit.chatId].chat, patch) }) }) : all));
+      setSheet(null); setNameEdit(null); setQuery("");
+      setToast(nameEdit.isPrivate ? "Private · opens only when you type its whole name" : name ? "Name saved" : "Name removed");
+      refreshChats();
+    } catch (err) {
+      setNameEdit((now) => (now ? Object.assign({}, now, { busy: false, error: (err && err.message) || "Could not save that right now." }) : now));
+    }
+  };
+  const runRecover = async () => {
+    if (recover.busy || !recover.pin) return;
+    setRecover(Object.assign({}, recover, { busy: true, error: "" }));
+    try {
+      await GloobalApi.verifyPin(user.symbolId, recover.pin);
+      setRecover({ pin: "", busy: false, error: "", names: (chatRows || []).filter((c) => c.private).map((c) => ({ id: c.id, name: c.savedName })) });
+    } catch (err) {
+      setRecover({ pin: "", busy: false, error: (err && err.message) || "That PIN wasn't recognized.", names: null });
+    }
+  };
+  const nameSheet = nameEdit && <HellooSheet label="Name this chat" onClose={() => { setSheet(null); setNameEdit(null); }}><div style={{ fontSize: 16, fontWeight: 800, color: T.ink, fontFamily: T.fontDisplay }}>Name this chat</div><div style={{ fontSize: 12.5, color: T.inkSoft, marginTop: 4, lineHeight: 1.45 }}>Your own name for it. Only you see it — letters, numbers or symbols.</div><input data-testid="helloo-saved-name" value={nameEdit.name} maxLength={40} autoComplete="off" autoCorrect="off" autoCapitalize="off" spellCheck={false} placeholder="Papa, ()+, anything" onChange={(e) => setNameEdit(Object.assign({}, nameEdit, { name: e.target.value, error: "" }))} style={{ width: "100%", boxSizing: "border-box", marginTop: 12, height: 46, borderRadius: 14, border: `1px solid ${T.line}`, background: T.surface, color: T.ink, fontSize: 15, fontWeight: 700, fontFamily: T.fontBody, padding: "0 14px", outline: "none" }} /><button type="button" role="switch" aria-checked={nameEdit.isPrivate} data-testid="helloo-private-switch" onClick={() => setNameEdit(Object.assign({}, nameEdit, { isPrivate: !nameEdit.isPrivate, error: "" }))} style={{ width: "100%", display: "flex", alignItems: "center", gap: 12, marginTop: 14, padding: 0, border: "none", background: "none", cursor: "pointer", textAlign: "left", fontFamily: T.fontBody }}><span style={{ flex: 1, minWidth: 0 }}><span style={{ display: "block", fontSize: 14, fontWeight: 800, color: T.ink }}>Private chat</span><span style={{ display: "block", fontSize: 12, color: T.inkSoft, marginTop: 2, lineHeight: 1.45 }}>Appears only when you type its whole name. No notification, no count, no sound — you see new messages when you open it.</span></span><span aria-hidden="true" style={{ width: 44, height: 26, borderRadius: 999, background: nameEdit.isPrivate ? T.accent : T.line, position: "relative", flexShrink: 0 }}><span style={{ position: "absolute", top: 3, left: nameEdit.isPrivate ? 21 : 3, width: 20, height: 20, borderRadius: "50%", background: "#fff", transition: "left .18s" }} /></span></button>{nameEdit.error ? <div data-testid="helloo-name-error" style={{ marginTop: 10, fontSize: 12.5, fontWeight: 700, color: "#DC2626" }}>{nameEdit.error}</div> : null}<div style={{ marginTop: 16 }}><HellooPrimary onClick={saveNameEdit} disabled={nameEdit.busy}>{nameEdit.busy ? "Saving…" : "Save"}</HellooPrimary></div></HellooSheet>;
+  const recoverSheet = <HellooSheet label="Your private chats" onClose={() => { setSheet(null); setRecover({ pin: "", busy: false, error: "", names: null }); }}><div style={{ fontSize: 16, fontWeight: 800, color: T.ink, fontFamily: T.fontDisplay }}>Your private chats</div>{recover.names ? <><div style={{ fontSize: 12.5, color: T.inkSoft, marginTop: 4, lineHeight: 1.45 }}>Tap one to open it. This list closes when you leave.</div><div style={{ marginTop: 10 }}>{recover.names.map((n) => <button key={n.id} data-testid="helloo-recovered-name" onClick={() => { setSheet(null); setRecover({ pin: "", busy: false, error: "", names: null }); openChat(n.id); }} style={{ width: "100%", textAlign: "left", padding: "12px 2px", border: "none", borderTop: `1px solid ${T.line}`, background: "none", cursor: "pointer", fontSize: 15, fontWeight: 800, color: T.ink, fontFamily: T.fontBody }}>{n.name}</button>)}</div></> : <><div style={{ fontSize: 12.5, color: T.inkSoft, marginTop: 4, lineHeight: 1.45 }}>Enter your GLOOBAL PIN to see the names you saved them under.</div><input data-testid="helloo-recover-pin" type="password" inputMode="numeric" autoComplete="off" value={recover.pin} maxLength={12} onChange={(e) => setRecover(Object.assign({}, recover, { pin: e.target.value.replace(/[^0-9]/g, ""), error: "" }))} placeholder="PIN" style={{ width: "100%", boxSizing: "border-box", marginTop: 12, height: 46, borderRadius: 14, border: `1px solid ${T.line}`, background: T.surface, color: T.ink, fontSize: 18, fontWeight: 800, letterSpacing: 4, fontFamily: T.fontBody, padding: "0 14px", outline: "none" }} />{recover.error ? <div style={{ marginTop: 10, fontSize: 12.5, fontWeight: 700, color: "#DC2626" }}>{recover.error}</div> : null}<div style={{ marginTop: 16 }}><HellooPrimary onClick={runRecover} disabled={recover.busy || !recover.pin}>{recover.busy ? "Checking…" : "Show them"}</HellooPrimary></div></>}</HellooSheet>;
   const [call, setCall] = useStateH9(null); // { id, person, video, direction, state, seconds, muted, cameraOff, speaker, iceServers, chatId, note }
   const callRef = useRefH9(null);
   callRef.current = call;
@@ -78465,8 +79660,11 @@ function HellooRoot() {
   };
   const onIncomingCall = (c) => {
     if (callRef.current) return; // already on a call: the server marks it missed/busy
-    const person = hellooPersonFrom(c.person, photos);
-    askPhotos([c.person]);
+    // A call from someone whose chat you keep private rings without a
+    // name or a face: the ring is on the screen for anyone to see.
+    const hush = privatePeopleRef.current.has(c.person && c.person.accountId);
+    const person = hush ? Object.assign(hellooPersonFrom(c.person, null), { name: "Helloo call", photo: null, hasPhoto: false, gloobalId: "", handle: null }) : hellooPersonFrom(c.person, photos);
+    if (!hush) askPhotos([c.person]);
     setCall({ id: c.id, person, video: Boolean(c.video), direction: "in", state: "ringing", seconds: 0, muted: false, cameraOff: false, speaker: false, iceServers: null, chatId: c.chatId });
     toneRef.current = hellooTone("ring"); toneRef.current.start();
   };
@@ -78570,6 +79768,8 @@ function HellooRoot() {
     const rowNow = (chatRows || []).find((c) => c.id === openId);
     const muted = Boolean((rowNow && rowNow.muted) || (serverChat && serverChat.muted));
     const person = serverChat ? hellooPersonFrom(serverChat.person, photos) : { id: "", name: "…", country: "" };
+    // The name at the top is the one you saved this chat under.
+    if (rowNow && rowNow.savedName) { person.accountName = person.name; person.name = rowNow.savedName; }
     const pres = presence[person.accountId];
     const iBlocked = isBlocked(person.accountId);
     if (pres && !iBlocked) {
@@ -78609,6 +79809,7 @@ function HellooRoot() {
     ].filter(Boolean) : [];
     const menuItems = [
       [HlUser, "View profile", false, null, () => { setSheet(null); setScreen("contact"); }],
+      [HlPencil, rowNow && rowNow.private ? "Private chat · change name" : rowNow && rowNow.savedName ? "Change name · make private" : "Name this chat · make private", false, null, () => { if (rowNow) openNameEdit(rowNow); }],
       [HlBellOff, muted ? "Unmute notifications" : "Mute notifications", false, null, () => { setSheet(null); setPrefs(openId, { muted: !muted }); setToast(muted ? "Notifications on for this chat" : "Muted · no notifications from this chat"); }],
       [HlTrash, "Clear chat", false, null, () => { setSheet("confirm-clear"); }],
       [HlBan, iBlocked ? `Unblock ${firstName}` : `Block ${firstName}`, !iBlocked, null, () => { setSheet(null); setBlock(person, !iBlocked); }]
@@ -78630,6 +79831,7 @@ function HellooRoot() {
       <PayPinModal open={orderPinOpen} onClose={() => setOrderPinOpen(false)} amountLabel={hellooMoneyText(menuTotal, menuCurrency)} onVerified={(pinValue) => orderNow(person, openId, pinValue)} />
       {sheet === "attach" && <HellooAttachSheet onClose={() => setSheet(null)} items={[[HlImage, "Gallery", "#7C3AED", () => galleryRef.current && galleryRef.current.click()], [HlCamera, "Camera", "#DB2777", () => cameraRef.current && cameraRef.current.click()], [HlRupee, "Pay", "#0B7A57", () => { setPay({ amount: "", note: "", busy: false, error: "" }); setSheet("pay"); }]]} />}
       {sheet === "menu" && <HellooThreadMenu chat={{ person: Object.assign({}, person, { id: person.gloobalId }) }} items={menuItems} onClose={() => setSheet(null)} />}
+      {sheet === "savename" && nameSheet}
       {sheet === "confirm-clear" && <HellooSheet label="Clear chat" onClose={() => setSheet(null)}><div style={{ fontSize: 15, fontWeight: 800, color: T.ink }}>Clear this chat?</div><div style={{ fontSize: 13, color: T.inkSoft, marginTop: 6, lineHeight: 1.45 }}>Every message disappears for you. {firstName} still has them. Payments stay in your GLOOBAL history.</div><div style={{ display: "flex", gap: 10, marginTop: 16 }}><HellooSecondary onClick={() => setSheet(null)}>Cancel</HellooSecondary><HellooPrimary color={T.negative} onClick={() => { setSheet(null); clearChat(openId, false); }}>Clear chat</HellooPrimary></div></HellooSheet>}
       {held && <HellooMessageActions m={held} reactions={false} items={heldItems} onClose={() => setHeld(null)} />}
       {sheet === "ask" && <HellooAskSheet person={person} text={askText} onText={setAskText} priceText={rule && !rule.free && !rule.closed ? `${hellooMoneyText(rule.price, rule.currency)}/message` : ""} onClose={() => setSheet(null)} onSend={() => hellooApi.ask(person.accountId, askText.trim()).then(() => { setSheet(null); setToast(`Request sent to ${firstName}`); refreshCard(person.accountId); }).catch((err) => setToast(err.message))} />}
@@ -78671,9 +79873,14 @@ function HellooRoot() {
     return row;
   });
   const q = query.trim().toLowerCase();
-  const shownRows = q ? rows.filter((c) => (c.person.name || "").toLowerCase().includes(q) || (c.person.gloobalId || "").includes(query.trim())) : rows;
-  const unread = rows.reduce((n, c) => n + (c.unread || 0), 0);
-  const callsAll = (callLog || []).map((c) => hellooCallFrom(c, photos));
+  // No chats until a name is typed; a private one only for its whole saved
+  // name (hellooClient, hellooChatsFor).
+  const shownRows = hellooChatsFor(rows, query, privateLocked);
+  // What is new, as a NUMBER — and never counting a private chat, which
+  // makes no sign of any kind until it is opened.
+  const unread = rows.reduce((n, c) => n + (c.private ? 0 : (c.unread || 0)), 0);
+  const unreadChats = rows.filter((c) => !c.private && c.unread).length;
+  const callsAll = (callLog || []).filter((c) => !(c.person && privatePeople.has(c.person.accountId))).map((c) => hellooCallFrom(c, photos));
   const missedCount = callsAll.filter((c) => c.missed && c.at > new Date(Date.now() - 24 * 3600e3)).length;
   const banner = loadError
     ? <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 10, padding: "10px 14px", borderRadius: 16, background: T.surfaceSunk, color: T.inkSoft, fontSize: 12.5, fontWeight: 700 }}><HlRetry size={14} /><span style={{ flex: 1 }}>{loadError}</span><button onClick={refreshChats} style={{ border: "none", background: "none", color: T.accent, fontWeight: 800, cursor: "pointer", fontFamily: T.fontBody }}>Retry</button></div>
@@ -78681,7 +79888,10 @@ function HellooRoot() {
   const contactPick = (p) => openChatWith(p.accountId);
   const empty = chatRows === null
     ? <HellooCard style={{ padding: "22px 16px", textAlign: "center", fontSize: 13, color: T.inkFaint, fontWeight: 700 }}>Loading your chats…</HellooCard>
-    : q ? <HellooCard style={{ padding: "22px 16px", textAlign: "center", fontSize: 13, color: T.inkSoft }}>No chat matches “{query}”.</HellooCard>
+    // Typed, and nothing found: say nothing. "No chat matches" for a near
+    // miss and silence for the rest would tell a guesser which is which.
+    : q ? null
+    : rows.length ? <HellooCard style={{ padding: "20px 16px", textAlign: "center" }}><div data-testid="helloo-home-count" style={{ fontSize: 15, fontWeight: 800, color: T.ink, fontFamily: T.fontDisplay }}>{unread > 0 ? `${unread} new ${unread === 1 ? "message" : "messages"}${unreadChats > 1 ? ` in ${unreadChats} chats` : ""}` : "Nothing new"}</div><div style={{ fontSize: 12.5, color: T.inkSoft, marginTop: 5, lineHeight: 1.5 }}>Your chats stay off this screen. Type a name above to open one.</div>{rows.some((c) => c.private) ? <button data-testid="helloo-forgot-private" onClick={() => { setRecover({ pin: "", busy: false, error: "", names: null }); setSheet("recover"); }} style={{ marginTop: 12, border: "none", background: "none", padding: 0, cursor: "pointer", color: T.accent, fontSize: 12.5, fontWeight: 700, fontFamily: T.fontBody }}>Forgot a private name?</button> : null}</HellooCard>
     : <><HellooCard style={{ padding: "18px 16px" }}><div style={{ fontSize: 16, fontWeight: 800, color: T.ink, fontFamily: T.fontDisplay }}>No chats yet</div><div style={{ fontSize: 13, color: T.inkSoft, marginTop: 4, lineHeight: 1.45 }}>{contacts.length ? "Start with someone you have paid on GLOOBAL, or dial any GLOOBAL ID." : "Dial a GLOOBAL ID or scan someone's GLOOBAL QR to start."}</div><div style={{ display: "flex", gap: 8, marginTop: 12 }}><HellooSecondary Icon={HlHash} onClick={() => { setDial({ value: "", status: "", match: null }); setSheet("dial"); }}>Dial an ID</HellooSecondary><HellooSecondary Icon={HlScan} onClick={() => setScreen("scan")}>Scan</HellooSecondary></div></HellooCard>{contacts.length > 0 && <HellooSection title="People you've paid" hint="free to message"><HellooCard>{contacts.slice(0, 12).map((p, i) => <button key={p.id} onClick={() => contactPick(p)} className="v2-tap" style={{ width: "100%", display: "flex", alignItems: "center", gap: 12, padding: "10px 14px", border: "none", borderTop: i ? `1px solid ${T.line}` : "none", background: "none", cursor: "pointer", textAlign: "left", fontFamily: T.fontBody }}><HellooAvatar person={p} size={42} /><span style={{ flex: 1, minWidth: 0 }}><span style={{ display: "block", fontSize: 14.5, fontWeight: 800, color: T.ink }}>{p.name}</span><span style={{ display: "block", fontSize: 12, color: T.inkSoft, marginTop: 2, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{p.lastPaid}</span></span><HlChat size={18} color={T.accent} /></button>)}</HellooCard></HellooSection>}</>;
 
   const themeName = (HELLOO_THEMES.find((x) => x.key === themeKey) || HELLOO_THEMES[0]).name;
@@ -78768,6 +79978,7 @@ function HellooRoot() {
   return shell(<div style={{ position: "absolute", inset: 0, display: "flex", flexDirection: "column" }}><div style={{ flex: 1, minHeight: 0, position: "relative" }}>
     {tab === "chats" && <HellooChatsScreen me={me} chats={shownRows} query={query} onSearch={setQuery} filter={filter} onFilter={setFilter} onOpen={(c) => openChat(c.id)} onHold={(c) => setHeldChat(c)} onStart={() => setSheet("start")} onScan={() => setScreen("scan")} onMore={() => setSheet("more")} onMe={() => setScreen("me")} onContacts={() => { setContactQuery(""); refreshContacts(); setScreen("contacts"); }} onAdd={() => setSheet("add")} banner={banner} empty={empty} requests={asks.map((a) => ({ id: a.id, person: hellooPersonFrom(a.person, photos), text: a.text }))} onRequests={() => { refreshAsks(); setScreen("requests"); }} />}
     {heldChat && <HellooChatActions chat={heldChat} onClose={() => setHeldChat(null)} items={[
+      [HlPencil, heldChat.private ? "Private chat · change name" : "Name this chat · make private", false, () => { const c = heldChat; setHeldChat(null); openNameEdit(c); }],
       [HlPinIcon, heldChat.pinned ? "Unpin" : "Pin to top", false, () => { setPrefs(heldChat.id, { pinned: !heldChat.pinned }); setHeldChat(null); }],
       [HlBellOff, heldChat.muted ? "Unmute" : "Mute", false, () => { setPrefs(heldChat.id, { muted: !heldChat.muted }); setHeldChat(null); }],
       heldChat.unread > 0 && [HlCheckCheck, "Mark as read", false, () => { markRead(heldChat.id); setHeldChat(null); }],
@@ -78783,6 +79994,8 @@ function HellooRoot() {
     {tab === "calls" && <HellooCallsHome me={me} calls={callsAll} filter={callFilter} onFilter={setCallFilter} onCallBack={(c) => startCall(c.person, c.video)} onInfo={(c) => openChatWith(c.person.accountId, true)} onOpenDial={() => { setDial({ value: "", status: "", match: null }); setSheet("dial"); }} onAdd={() => setSheet("add")} onSearch={() => { setContactQuery(""); refreshContacts(); setScreen("contacts"); }} onMe={() => setScreen("me")} />}
     {sheet === "dial" && <HellooDialSheet dial={dial.value} onDial={(v) => setDial((d) => Object.assign({}, d, { value: v }))} match={dial.match} status={dial.status} onMessage={() => dial.match && openChatWith(dial.match.gloobalId)} onCall={() => { if (dial.match) { setSheet(null); startCall(dial.match, false); } }} onVideo={() => { if (dial.match) { setSheet(null); startCall(dial.match, true); } }} onClose={() => setSheet(null)} />}
     {sheet === "add" && addSheet}
+    {sheet === "savename" && nameSheet}
+    {sheet === "recover" && recoverSheet}
     {sheet === "start" && <HellooStartSheet suggested={contacts.slice(0, 8)} onPick={contactPick} onPad={() => { setDial({ value: "", status: "", match: null }); setSheet("dial"); }} onScan={() => { setSheet(null); setScreen("scan"); }} onContacts={() => { setSheet(null); setContactQuery(""); refreshContacts(); setScreen("contacts"); }} onClose={() => setSheet(null)} />}
   </div><HellooTabBar active={tab} onChange={(t) => { setTab(t); setSheet(null); }} badges={{ chats: unread, callsDot: missedCount > 0 }} /></div>);
 }

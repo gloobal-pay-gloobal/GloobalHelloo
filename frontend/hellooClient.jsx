@@ -283,7 +283,49 @@ function hellooChatRowFrom(chat, photos) {
       }
     : null;
   if (person) person.online = Boolean(chat.online);
-  return { id: chat.id, person, unread: chat.unread || 0, muted: Boolean(chat.muted), pinned: Boolean(chat.pinned), messages: last ? [last] : [], lastAt: chat.lastAt, theyReadAt: chat.theyReadAt };
+  // The name on a chat is the one YOU saved it under, when you saved one:
+  // "Papa", "()+". Their own account name is kept beside it for the places
+  // that must say who they really are (a payment, their profile).
+  const savedName = typeof chat.savedName === "string" ? chat.savedName : "";
+  if (person && savedName) { person.accountName = person.name; person.name = savedName; }
+  return { id: chat.id, person, unread: chat.unread || 0, muted: Boolean(chat.muted), pinned: Boolean(chat.pinned), savedName, private: Boolean(chat.private), messages: last ? [last] : [], lastAt: chat.lastAt, theyReadAt: chat.theyReadAt };
+}
+
+// ── FINDING A CHAT ──────────────────────────────────────────────────────
+//
+// Home shows no chats. A chat list is a history anyone can read at a
+// glance — who you talk to, and how lately — so Helloo keeps it off the
+// screen and a chat is CALLED UP by typing its name:
+//
+//   * an ordinary chat appears as soon as the first letters of its name
+//     are typed (the start of any word in it), or four or more symbols of
+//     its GLOOBAL ID;
+//   * a PRIVATE chat appears only when its whole saved name is typed,
+//     exactly. "()" does not find "()+", and a private chat is never found
+//     by the person's own name or ID. A near miss looks the same as a name
+//     that does not exist: an empty screen.
+//
+// `privateLocked` is the pause after too many wrong tries (HellooApp):
+// while it holds, private chats do not answer at all.
+var HELLOO_PRIVATE_NAME_MIN = 3;
+function hellooNameKey(value) {
+  return String(value == null ? "" : value).replace(/\s+/g, " ").trim().toLowerCase();
+}
+function hellooChatsFor(rows, query, privateLocked) {
+  const q = hellooNameKey(query);
+  if (!q) return [];
+  const raw = String(query || "").trim();
+  return (rows || []).filter((c) => {
+    if (c.private) return !privateLocked && hellooNameKey(c.savedName) === q;
+    const name = hellooNameKey(c.person && c.person.name);
+    if (name.indexOf(q) === 0 || name.split(" ").some((word) => word.indexOf(q) === 0)) return true;
+    return raw.length >= 4 && String((c.person && c.person.gloobalId) || "").indexOf(raw) >= 0;
+  });
+}
+// Whether typed text is exactly some private chat's saved name.
+function hellooIsPrivateName(rows, query) {
+  const q = hellooNameKey(query);
+  return Boolean(q) && (rows || []).some((c) => c.private && hellooNameKey(c.savedName) === q);
 }
 
 // ── Live socket ─────────────────────────────────────────────────────────
