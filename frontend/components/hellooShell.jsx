@@ -112,5 +112,5 @@ function HellooMeAvatar({ me, size = 38 }) {
 // A name with GLOOBAL's verified mark: the account exists, the name is the
 // one on it.
 function HellooVerifiedName({ person, size = 15 }) {
-  return <span style={{ display: "inline-flex", alignItems: "center", gap: 5, minWidth: 0 }}><span style={{ fontSize: size, fontWeight: 800, color: T.ink, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{person.handle ? <CreatorHandleText handle={person.handle} /> : person.name}</span><HlVerified size={size + 2} color={HT.free} style={{ flexShrink: 0 }} /></span>;
+  return <span style={{ display: "inline-flex", alignItems: "center", gap: 5, minWidth: 0 }}><span style={{ fontSize: size, fontWeight: 800, color: T.ink, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{person.handle ? <CreatorHandleText handle={person.handle} icon={false} /> : person.name}</span><HlVerified size={size + 2} color={HT.free} style={{ flexShrink: 0 }} /></span>;
 }
