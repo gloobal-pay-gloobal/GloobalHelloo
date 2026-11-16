@@ -54,8 +54,10 @@ function HellooPaidMessageStrip({ person, earnedText, isBusiness = false, onAllo
   return <div style={{ margin: "0 0 8px", padding: "11px 12px", borderRadius: 16, background: T.surface, boxShadow: T.shadowCard }}><div style={{ display: "flex", alignItems: "center", gap: 10 }}><span style={{ width: 36, height: 36, borderRadius: 12, background: HT.freeSoft, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}><HlRupee size={17} color={HT.free} /></span><span style={{ flex: 1, minWidth: 0 }}><span style={{ display: "block", fontSize: 12.5, fontWeight: 800, color: T.ink, lineHeight: 1.3 }}>{hellooName(person).split(" ")[0]}{isBusiness ? " (business)" : ""} is paying to reach you</span><span style={{ display: "block", fontSize: 11.5, color: HT.free, fontWeight: 700, marginTop: 2 }}>{earnedText} earned from them</span></span></div><div style={{ display: "flex", gap: 8, marginTop: 10, flexWrap: "wrap" }}><button onClick={onAllow} className="v2-tap" style={pill(T.accentSoft, T.accent)}>Allow free</button>{onGiveBack && <button onClick={onGiveBack} className="v2-tap" style={pill(HT.freeSoft, HT.free)}>Give back</button>}<span style={{ flex: 1 }} /><button onClick={onBlock} className="v2-tap" style={pill(T.negativeSoft, T.negative)}>Block</button></div></div>;
 }
 
-function HellooPaidBadge({ amountText, mine }) {
-  return <span style={{ display: "inline-flex", alignItems: "center", gap: 4, fontSize: 10, fontWeight: 800, color: mine ? "rgba(255,255,255,0.9)" : HT.free, background: mine ? "rgba(255,255,255,0.18)" : HT.freeSoft, borderRadius: 999, padding: "2px 7px", marginBottom: 4 }}><HlRupee size={10} />{mine ? `You paid ${amountText}` : `Paid you ${amountText}`}</span>;
+// On a message you were paid for: what it earned you, "+ 3 CEL". On one
+// you paid for: what you paid.
+function HellooPaidBadge({ amountText, earnedText, mine }) {
+  return <span style={{ display: "inline-flex", alignItems: "center", gap: 4, fontSize: 10, fontWeight: 800, color: mine ? "rgba(255,255,255,0.9)" : HT.free, background: mine ? "rgba(255,255,255,0.18)" : HT.freeSoft, borderRadius: 999, padding: "2px 7px", marginBottom: 4 }}>{mine ? <><HlRupee size={10} />{`You paid ${amountText}`}</> : <span data-testid="helloo-earned">{earnedText || `Paid you ${amountText}`}</span>}</span>;
 }
 
 // A paid call: the meter both sides see.

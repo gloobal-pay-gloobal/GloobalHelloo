@@ -117,6 +117,20 @@ function hellooMoneyText(amount, currency) {
   return typeof fmtMoney === "function" ? fmtMoney(Number(amount) || 0, currency) : `${amount} ${currency}`;
 }
 
+// What a paid message earned you, the way a chat says it: "+ 3 CEL". The
+// amount in GLOOBAL's own unit (the number is the same one the app shows
+// beside any currency's sign); whole amounts lose their ".00".
+function hellooEarnedText(amount) {
+  const n = Math.round((Number(amount) || 0) * 100) / 100;
+  const text = n.toLocaleString("en-IN", { minimumFractionDigits: 0, maximumFractionDigits: 2 });
+  return `+ ${text} ${typeof COIN_TICKER !== "undefined" ? COIN_TICKER : "CEL"}`;
+}
+// A business is a GLOOBAL shop: it comes under its own name, never one you
+// gave it, and its paid messages may be shown on Home.
+function hellooIsBusiness(person) {
+  return Boolean(person && (person.handle || person.business));
+}
+
 function hellooShortDate(at) {
   const d = new Date(at);
   return Number.isNaN(d.getTime()) ? "" : d.toLocaleDateString("en-GB", { day: "numeric", month: "short" });
@@ -194,7 +208,7 @@ function hellooBubbleFrom(m, meAccountId, theyReadAt, voiceState, names) {
   }
   base.preview = hellooPreviewOf(m);
   base.source = m;
-  if (m.paid && m.paid.amount) base.paidText = hellooMoneyText(m.paid.amount, m.paid.currency);
+  if (m.paid && m.paid.amount) { base.paidText = hellooMoneyText(m.paid.amount, m.paid.currency); base.earnedText = hellooEarnedText(m.paid.amount, m.paid.currency); }
   if (m.kind === "deleted") return Object.assign(base, { kind: "deleted" });
   if (m.kind === "call") {
     const c = m.call || {};
@@ -288,7 +302,7 @@ function hellooChatRowFrom(chat, photos) {
   // that must say who they really are (a payment, their profile).
   const savedName = typeof chat.savedName === "string" ? chat.savedName : "";
   if (person && savedName) { person.accountName = person.name; person.name = savedName; }
-  return { id: chat.id, person, unread: chat.unread || 0, muted: Boolean(chat.muted), pinned: Boolean(chat.pinned), savedName, private: Boolean(chat.private), messages: last ? [last] : [], lastAt: chat.lastAt, theyReadAt: chat.theyReadAt };
+  return { id: chat.id, person, unread: chat.unread || 0, muted: Boolean(chat.muted), pinned: Boolean(chat.pinned), savedName, private: Boolean(chat.private), offHome: Boolean(chat.offHome), messages: last ? [last] : [], lastAt: chat.lastAt, theyReadAt: chat.theyReadAt };
 }
 
 // ── FINDING A CHAT ──────────────────────────────────────────────────────
@@ -320,6 +334,23 @@ function hellooChatsFor(rows, query, privateLocked) {
     const name = hellooNameKey(c.person && c.person.name);
     if (name.indexOf(q) === 0 || name.split(" ").some((word) => word.indexOf(q) === 0)) return true;
     return raw.length >= 4 && String((c.person && c.person.gloobalId) || "").indexOf(raw) >= 0;
+  });
+}
+// ── WHAT HOME MAY SHOW ──────────────────────────────────────────────────
+//
+// One kind of message is not personal: a BUSINESS that paid to reach you.
+// Those are shown on Home as cards — who, and what they said — because
+// being seen is what the business paid for, and nothing about you is in
+// them. The amount is not on the card: what you earn appears inside the
+// chat, once you open it.
+//
+// A chat is a card only while it is all of: from a business, its latest
+// message paid and still unread, not private, and not one you chose to
+// keep off Home. Everything else stays a number.
+function hellooHomeCards(rows) {
+  return (rows || []).filter((c) => {
+    const last = c.messages && c.messages[c.messages.length - 1];
+    return hellooIsBusiness(c.person) && !c.private && !c.offHome && c.unread > 0 && last && last.from === "them" && Boolean(last.paidText);
   });
 }
 // Whether typed text is exactly some private chat's saved name.
