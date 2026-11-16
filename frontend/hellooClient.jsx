@@ -190,7 +190,11 @@ function hellooPersonFrom(card, photos) {
     flag: country.flag,
     country: country.name,
     hasPhoto: Boolean(card.hasPhoto),
-    photo: (photos && photos[card.accountId]) || null,
+    // A shop is pictured by its own logo (kept under "logo:<id>"); a
+    // person by their photo, or by the emoji they chose to show instead.
+    logo: Boolean(card.logo),
+    emoji: card.emoji || null,
+    photo: (photos && photos[(card.logo ? "logo:" : "") + card.accountId]) || null,
     lastPaid: paid
       ? `${paid.direction === "sent" ? "You paid" : "Paid you"} ${hellooMoneyText(paid.amount, paid.currency)} · ${hellooShortDate(paid.at)}`
       : card.chatted ? "Chatted on Helloo" : ""
