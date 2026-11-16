@@ -42,24 +42,23 @@ function HellooWordmark({ suffix = "", size }) {
   return <span aria-label={`Helloo${suffix}`} style={{ textTransform: "uppercase", fontWeight: 800, fontFamily: T.fontWordmark, whiteSpace: "nowrap", fontSize: size }}>Hell{dot(c1)}{dot(c2)}{suffix}</span>;
 }
 
-// The app mark, as the founder drew it: two speech bubbles with tails at
-// opposite corners, joined by a handset's curve. Four treatments:
-//   navy   — navy on white, white dots (as drawn)
-//   dots   — navy, the first two dots in GL●●BAL's colours
-//   purple — white mark on Gloobal's Royal Purple, purple dots
-//   ink    — purple mark on white, coloured dots
+// The app mark (16 Nov): a G that is also a speech bubble, with the two
+// dots of HELL●● inside it. One drawing, two treatments:
+//   app  — white mark on Helloo's purple, pale dots (the app icon)
+//   ink  — purple mark on white, the dots in colour
+// The older variant names still resolve, so callers need not change.
 var HELLOO_MARK_VARIANTS = {
-  navy: { bg: "#F7F6FB", ink: "#1B1838", dots: ["#fff", "#fff", "#fff"] },
-  dots: { bg: "#F7F6FB", ink: "#1B1838", dots: ["#2563EB", "#DC2626", "#fff"] },
-  purple: { bg: "url(#hlMarkGrad)", ink: "#fff", dots: ["#5B21B6", "#5B21B6", "#5B21B6"], grad: ["#3B0F63", "#7C3AED"] },
-  ink: { bg: "#F7F6FB", ink: "#3B0F63", dots: ["#DC2626", "#2563EB", "#3B0F63"] }
+  app: { tile: "url(#hlMarkGrad)", ink: "#fff", dots: ["#7CF5C4", "#FFB3CD"] },
+  ink: { tile: "#F7F6FB", ink: "#5B3DF5", dots: ["#10B981", "#F0447C"] }
 };
-var HELLOO_MARK_DEFAULT = "dots";
+HELLOO_MARK_VARIANTS.dots = HELLOO_MARK_VARIANTS.app;
+HELLOO_MARK_VARIANTS.purple = HELLOO_MARK_VARIANTS.app;
+HELLOO_MARK_VARIANTS.navy = HELLOO_MARK_VARIANTS.ink;
+var HELLOO_MARK_DEFAULT = "app";
 
 function HellooMark({ size = 64, variant = HELLOO_MARK_DEFAULT }) {
-  const v = HELLOO_MARK_VARIANTS[variant] || HELLOO_MARK_VARIANTS.navy;
-  const [d1, d2, d3] = v.dots;
-  return <svg width={size} height={size} viewBox="0 0 100 100" aria-label="Helloo" role="img" style={{ display: "block", flexShrink: 0, filter: "drop-shadow(0 10px 24px rgba(27,24,56,0.22))" }}>{v.grad && <defs><linearGradient id="hlMarkGrad" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stopColor={v.grad[0]} /><stop offset="1" stopColor={v.grad[1]} /></linearGradient></defs>}<rect width="100" height="100" rx="22" fill={v.bg} /><rect x="20" y="22" width="28" height="26" rx="7" fill={v.ink} /><path d="M11 13 L33 22 L20 35 Z" fill={v.ink} /><rect x="52" y="52" width="28" height="26" rx="7" fill={v.ink} /><path d="M89 87 L67 78 L80 65 Z" fill={v.ink} /><path d="M27 47 C27 64 36 72 52 72" fill="none" stroke={v.ink} strokeWidth="10.5" strokeLinecap="round" /><circle cx="28" cy="35" r="2.5" fill={d1} /><circle cx="34" cy="35" r="2.5" fill={d2} /><circle cx="40" cy="35" r="2.5" fill={d3} /><circle cx="60" cy="65" r="2.5" fill={d1} /><circle cx="66" cy="65" r="2.5" fill={d2} /><circle cx="72" cy="65" r="2.5" fill={d3} /></svg>;
+  const v = HELLOO_MARK_VARIANTS[variant] || HELLOO_MARK_VARIANTS.app;
+  return <svg width={size} height={size} viewBox="0 0 100 100" aria-label="Helloo" role="img" style={{ display: "block", flexShrink: 0, filter: "drop-shadow(0 10px 24px rgba(27,24,56,0.22))" }}><defs><linearGradient id="hlMarkGrad" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stopColor="#4F46E5" /><stop offset="0.6" stopColor="#7C3AED" /><stop offset="1" stopColor="#C026D3" /></linearGradient></defs><rect width="100" height="100" rx="22" fill={v.tile} /><g transform="translate(10 8) scale(0.4)"><path d="M143.8 56.2 A62 62 0 1 0 162 100 H150" fill="none" stroke={v.ink} strokeWidth="30" strokeLinecap="round" strokeLinejoin="round" /><path d="M47 132 L26 184 L84 160 Z" fill={v.ink} stroke={v.ink} strokeWidth="8" strokeLinejoin="round" /><circle cx="84" cy="100" r="13" fill={v.dots[0]} /><circle cx="116" cy="100" r="13" fill={v.dots[1]} /></g></svg>;
 }
 
 // A person on Helloo. The GLOOBAL ID is the identity; the name, flag and
