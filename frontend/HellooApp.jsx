@@ -125,6 +125,8 @@ function HellooRoot() {
     return () => clearTimeout(t);
   }, [stage]);
 
+  // Why this phone was last signed out, shown on the welcome screen.
+  const [outNote, setOutNote] = useStateH9("");
   const signOut = useCallbackH9((message) => {
     try { gloobalSessionClear(); } catch (e) { /* ignore */ }
     hellooFaceLoad("");
@@ -138,7 +140,14 @@ function HellooRoot() {
     if (message) setToast(message);
   }, []);
   useEffectH9(() => {
-    const expired = () => signOut("Signed out · sign in again");
+    // Say why, in words, and keep the server's own reason and the call that
+    // was refused on screen: a sign-out nobody can explain cannot be fixed.
+    const expired = (event) => {
+      const d = (event && event.detail) || {};
+      const words = d.reason === "revoked" ? "Your PIN was changed, so this phone was signed out." : d.reason === "expired" ? "It has been a while, so this phone was signed out." : d.reason === "no_account" ? "This account was not found on the server." : "The server did not accept this sign-in.";
+      setOutNote(`${words} Sign in again.${d.reason || d.path ? ` (${[d.reason, d.path].filter(Boolean).join(" · ")})` : ""}`);
+      signOut("Signed out · sign in again");
+    };
     window.addEventListener(GLOOBAL_SESSION_EXPIRED_EVENT, expired);
     return () => window.removeEventListener(GLOOBAL_SESSION_EXPIRED_EVENT, expired);
   }, [signOut]);
@@ -1217,7 +1226,7 @@ function HellooRoot() {
   }
 
   if (stage === "splash" || stage === "splash-in") return shell(<HellooSplash />);
-  if (stage === "welcome") return shell(<HellooWelcome hasGloobal={false} onEnterId={() => setStage("id")} />);
+  if (stage === "welcome") return shell(<HellooWelcome hasGloobal={false} note={outNote} onEnterId={() => { setOutNote(""); setStage("id"); }} />);
   if (stage === "id") return shell(<HellooIdScreen value={idValue} onChange={setIdValue} mode={idMode} onMode={setIdMode} mobile={idMobile} onMobile={setIdMobile} status={idValue.length === 12 ? "ready" : ""} onBack={() => setStage("welcome")} onNext={() => { setPin(""); setStage("pin"); }} />);
   if (stage === "pin") return shell(<><LoginAuthScreen value={pin} length={HELLOO_PIN_LENGTH} onChange={setPin} onSubmit={() => submitPin(pin)} onBack={() => setStage("id")} revealed={pinShown} onToggleReveal={() => setPinShown((v) => !v)} waking={pinWaking} busy={pinBusy} /><HellooPinNote who={idMode === "mobile" ? `+${idMobile}` : <ColoredGloobalId id={idValue} />} /></>);
   if (stage === "back" && me) return shell(<HellooWelcomeBack me={me} onDone={() => setStage("app")} />);

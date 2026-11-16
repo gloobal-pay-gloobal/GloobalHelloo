@@ -6129,7 +6129,12 @@ async function gloobalApiRequestNetwork(method, path, body, options) {
     // ever let happen.
     if (authToken && !opts.anonymous && typeof gloobalAuthTokenSave === "function") {
       const refreshed = res.headers.get(GLOOBAL_API_TOKEN_REFRESH_HEADER);
-      if (refreshed && refreshed !== authToken) gloobalAuthTokenSave(refreshed);
+      // Only while the token this request went out with is still the one in
+      // hand. An answer that comes back after somebody else has signed in on
+      // this phone would otherwise put the PREVIOUS account's fresh token
+      // over the new session's.
+      const stillMine = typeof gloobalAuthToken !== "function" || gloobalAuthToken() === authToken;
+      if (refreshed && refreshed !== authToken && stillMine) gloobalAuthTokenSave(refreshed);
     }
 
     if (!res.ok) {
@@ -6210,11 +6215,23 @@ async function gloobalApiRequestNetwork(method, path, body, options) {
       // removing it is a separate change from fixing the rule.
       const tokenRejected =
         res.status === 401 && Boolean(parsed) && parsed.code === "auth_token_invalid";
-      if (tokenRejected && authToken && typeof gloobalAuthTokenClear === "function") {
+      // ── A LATE "NO" TO AN OLD TOKEN IS NOT A "NO" TO THE NEW ONE ────────
+      //
+      // The refusal is about the token THIS request carried. Requests sent
+      // on an old session can still be in the air when the person signs in
+      // again (the free server takes up to a minute to wake, so they queue),
+      // and each of them comes back 401. This used to clear whatever token
+      // was in storage by then — the one the sign-in had just earned — and
+      // announce a sign-out: signed in, and thrown out the same moment.
+      // So the session ends only if the refused token is still the one held.
+      const refusedIsCurrent = typeof gloobalAuthToken !== "function" || gloobalAuthToken() === authToken;
+      if (tokenRejected && authToken && refusedIsCurrent && typeof gloobalAuthTokenClear === "function") {
         gloobalAuthTokenClear();
         if (typeof gloobalLocalCopyClear === "function") gloobalLocalCopyClear();
         if (typeof window !== "undefined") {
-          window.dispatchEvent(new CustomEvent(GLOOBAL_SESSION_EXPIRED_EVENT));
+          // `detail` says which call was refused and why the server says so
+          // (requireAuth's `reason`), so a sign-out can be explained.
+          window.dispatchEvent(new CustomEvent(GLOOBAL_SESSION_EXPIRED_EVENT, { detail: { path, reason: (parsed && parsed.reason) || "" } }));
         }
       }
       const message = (parsed && parsed.message) || `Request to ${path} failed with ${res.status}`;
@@ -77312,10 +77329,10 @@ function HellooGloobalOnColour() {
 //   "I have no GLOOBAL ID."   a full button for it, not a footnote
 // Then the way in, one button per kind of person: has an ID, or is new.
 var HELLOO_GLOOBAL_SIGNUP = "https://gloobalv3.netlify.app";
-function HellooWelcome({ onContinueWithGloobal, onEnterId, onCreateId, hasGloobal = true }) {
+function HellooWelcome({ onContinueWithGloobal, onEnterId, onCreateId, hasGloobal = true, note = "" }) {
   const row = (Icon, color, title, text) => <div style={{ display: "flex", alignItems: "flex-start", gap: 12 }}><span style={{ width: "clamp(36px, 5.8vh, 48px)", height: "clamp(36px, 5.8vh, 48px)", borderRadius: 14, background: color + "1A", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}><Icon size={18} color={color} /></span><span style={{ minWidth: 0 }}><span style={{ display: "block", fontSize: "clamp(14px, 2.25vh, 17px)", fontWeight: 800, color: T.ink, lineHeight: 1.25 }}>{title}</span><span style={{ display: "block", fontSize: "clamp(12.5px, 1.95vh, 14.5px)", color: T.inkSoft, lineHeight: 1.35, marginTop: 2 }}>{text}</span></span></div>;
   const createId = onCreateId || (() => window.open(HELLOO_GLOOBAL_SIGNUP, "_blank", "noopener"));
-  return <HellooScreen style={{ background: HT.wash }}><div style={{ flex: 1, minHeight: 0, overflowY: "auto", display: "flex", flexDirection: "column", padding: "calc(18px + env(safe-area-inset-top, 0px)) 22px 0" }}><div style={{ display: "flex", alignItems: "center", gap: 11 }}><span style={{ fontSize: 26, letterSpacing: -0.4, color: T.ink }}><HellooWordmark /></span><span style={{ marginLeft: "auto", display: "inline-flex", alignItems: "center", gap: 5, fontSize: 11.5, fontWeight: 800, color: HT.free, background: HT.freeSoft, borderRadius: 999, padding: "5px 10px" }}><HlGlobe size={13} />Every country</span></div><h1 data-testid="helloo-welcome-title" style={{ margin: "clamp(14px, 3vh, 30px) 0 0", fontSize: "clamp(26px, 4.5vh, 34px)", fontWeight: 800, fontFamily: T.fontDisplay, letterSpacing: -0.8, lineHeight: 1.13, color: T.ink, textWrap: "balance" }}>Free with people you know. <span style={{ color: T.accent }}>Strangers pay</span> to reach you.</h1><div style={{ marginTop: 8, fontSize: "clamp(13.5px, 2vh, 15.5px)", color: T.inkSoft, lineHeight: 1.4 }}>Calls and chats on your <GloobalWordmark suffix=" ID" />.</div><HellooCard data-testid="helloo-welcome-points" style={{ marginTop: "clamp(14px, 2.6vh, 24px)", marginBottom: 6, padding: "13px 16px", display: "flex", flexDirection: "column", gap: 11, flex: "1 1 auto", maxHeight: 520, justifyContent: "space-evenly" }}>{row(HlChat, HT.free, "Free calls and chats", "With people you know, in every country.")}{row(HlShield, T.accent, "Strangers pay or ask", "You set the price. Spam pays or stays out.")}{row(HlLock, "#2563EB", "Your number stays private", "People find you by GLOOBAL ID.")}{row(HlRupee, "#DB2777", "Pay in the chat", "Send money or order from a shop.")}</HellooCard><div style={{ flex: "0 1 0px", minHeight: 2 }} /></div><div style={{ padding: "10px 20px calc(14px + env(safe-area-inset-bottom, 0px))", display: "flex", flexDirection: "column", gap: 9 }}>{hasGloobal ? <><HellooPrimary onClick={onContinueWithGloobal}><span>Continue with <HellooGloobalOnColour /></span></HellooPrimary><HellooSecondary onClick={onEnterId} Icon={HlKeyboard}>Sign in with my ID</HellooSecondary></> : <><HellooPrimary onClick={onEnterId} Icon={HlKeyboard}><span>I have a <HellooGloobalOnColour /> ID</span></HellooPrimary><HellooSecondary onClick={createId} Icon={HlSpark}>I'm new · create my ID</HellooSecondary></>}<div style={{ textAlign: "center", fontSize: 12, color: T.inkSoft, marginTop: 2, lineHeight: 1.45 }}>{hasGloobal ? <>No ID yet? <a href={HELLOO_GLOOBAL_SIGNUP} target="_blank" rel="noopener" style={{ color: T.accent, fontWeight: 800, textDecoration: "none" }}>Create one on <GloobalWordmark /></a></> : <>One free <GloobalWordmark suffix=" ID" /> for calls, chats and money.</>}</div></div></HellooScreen>;
+  return <HellooScreen style={{ background: HT.wash }}><div style={{ flex: 1, minHeight: 0, overflowY: "auto", display: "flex", flexDirection: "column", padding: "calc(18px + env(safe-area-inset-top, 0px)) 22px 0" }}><div style={{ display: "flex", alignItems: "center", gap: 11 }}><span style={{ fontSize: 26, letterSpacing: -0.4, color: T.ink }}><HellooWordmark /></span><span style={{ marginLeft: "auto", display: "inline-flex", alignItems: "center", gap: 5, fontSize: 11.5, fontWeight: 800, color: HT.free, background: HT.freeSoft, borderRadius: 999, padding: "5px 10px" }}><HlGlobe size={13} />Every country</span></div><h1 data-testid="helloo-welcome-title" style={{ margin: "clamp(14px, 3vh, 30px) 0 0", fontSize: "clamp(26px, 4.5vh, 34px)", fontWeight: 800, fontFamily: T.fontDisplay, letterSpacing: -0.8, lineHeight: 1.13, color: T.ink, textWrap: "balance" }}>Free with people you know. <span style={{ color: T.accent }}>Strangers pay</span> to reach you.</h1><div style={{ marginTop: 8, fontSize: "clamp(13.5px, 2vh, 15.5px)", color: T.inkSoft, lineHeight: 1.4 }}>Calls and chats on your <GloobalWordmark suffix=" ID" />.</div><HellooCard data-testid="helloo-welcome-points" style={{ marginTop: "clamp(14px, 2.6vh, 24px)", marginBottom: 6, padding: "13px 16px", display: "flex", flexDirection: "column", gap: 11, flex: "1 1 auto", maxHeight: 520, justifyContent: "space-evenly" }}>{row(HlChat, HT.free, "Free calls and chats", "With people you know, in every country.")}{row(HlShield, T.accent, "Strangers pay or ask", "You set the price. Spam pays or stays out.")}{row(HlLock, "#2563EB", "Your number stays private", "People find you by GLOOBAL ID.")}{row(HlRupee, "#DB2777", "Pay in the chat", "Send money or order from a shop.")}</HellooCard><div style={{ flex: "0 1 0px", minHeight: 2 }} /></div><div style={{ padding: "10px 20px calc(14px + env(safe-area-inset-bottom, 0px))", display: "flex", flexDirection: "column", gap: 9 }}>{note ? <div role="status" data-testid="helloo-signed-out-note" style={{ fontSize: 12.5, lineHeight: 1.45, color: T.ink, background: "#FEF3C7", borderRadius: 14, padding: "10px 12px" }}>{note}</div> : null}{hasGloobal ? <><HellooPrimary onClick={onContinueWithGloobal}><span>Continue with <HellooGloobalOnColour /></span></HellooPrimary><HellooSecondary onClick={onEnterId} Icon={HlKeyboard}>Sign in with my ID</HellooSecondary></> : <><HellooPrimary onClick={onEnterId} Icon={HlKeyboard}><span>I have a <HellooGloobalOnColour /> ID</span></HellooPrimary><HellooSecondary onClick={createId} Icon={HlSpark}>I'm new · create my ID</HellooSecondary></>}<div style={{ textAlign: "center", fontSize: 12, color: T.inkSoft, marginTop: 2, lineHeight: 1.45 }}>{hasGloobal ? <>No ID yet? <a href={HELLOO_GLOOBAL_SIGNUP} target="_blank" rel="noopener" style={{ color: T.accent, fontWeight: 800, textDecoration: "none" }}>Create one on <GloobalWordmark /></a></> : <>One free <GloobalWordmark suffix=" ID" /> for calls, chats and money.</>}</div></div></HellooScreen>;
 }
 
 // What Gloobal shows when Helloo asks to come in. Lives in the Gloobal
@@ -78912,6 +78929,8 @@ function HellooRoot() {
     return () => clearTimeout(t);
   }, [stage]);
 
+  // Why this phone was last signed out, shown on the welcome screen.
+  const [outNote, setOutNote] = useStateH9("");
   const signOut = useCallbackH9((message) => {
     try { gloobalSessionClear(); } catch (e) { /* ignore */ }
     hellooFaceLoad("");
@@ -78925,7 +78944,14 @@ function HellooRoot() {
     if (message) setToast(message);
   }, []);
   useEffectH9(() => {
-    const expired = () => signOut("Signed out · sign in again");
+    // Say why, in words, and keep the server's own reason and the call that
+    // was refused on screen: a sign-out nobody can explain cannot be fixed.
+    const expired = (event) => {
+      const d = (event && event.detail) || {};
+      const words = d.reason === "revoked" ? "Your PIN was changed, so this phone was signed out." : d.reason === "expired" ? "It has been a while, so this phone was signed out." : d.reason === "no_account" ? "This account was not found on the server." : "The server did not accept this sign-in.";
+      setOutNote(`${words} Sign in again.${d.reason || d.path ? ` (${[d.reason, d.path].filter(Boolean).join(" · ")})` : ""}`);
+      signOut("Signed out · sign in again");
+    };
     window.addEventListener(GLOOBAL_SESSION_EXPIRED_EVENT, expired);
     return () => window.removeEventListener(GLOOBAL_SESSION_EXPIRED_EVENT, expired);
   }, [signOut]);
@@ -80004,7 +80030,7 @@ function HellooRoot() {
   }
 
   if (stage === "splash" || stage === "splash-in") return shell(<HellooSplash />);
-  if (stage === "welcome") return shell(<HellooWelcome hasGloobal={false} onEnterId={() => setStage("id")} />);
+  if (stage === "welcome") return shell(<HellooWelcome hasGloobal={false} note={outNote} onEnterId={() => { setOutNote(""); setStage("id"); }} />);
   if (stage === "id") return shell(<HellooIdScreen value={idValue} onChange={setIdValue} mode={idMode} onMode={setIdMode} mobile={idMobile} onMobile={setIdMobile} status={idValue.length === 12 ? "ready" : ""} onBack={() => setStage("welcome")} onNext={() => { setPin(""); setStage("pin"); }} />);
   if (stage === "pin") return shell(<><LoginAuthScreen value={pin} length={HELLOO_PIN_LENGTH} onChange={setPin} onSubmit={() => submitPin(pin)} onBack={() => setStage("id")} revealed={pinShown} onToggleReveal={() => setPinShown((v) => !v)} waking={pinWaking} busy={pinBusy} /><HellooPinNote who={idMode === "mobile" ? `+${idMobile}` : <ColoredGloobalId id={idValue} />} /></>);
   if (stage === "back" && me) return shell(<HellooWelcomeBack me={me} onDone={() => setStage("app")} />);
