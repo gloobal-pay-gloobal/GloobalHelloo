@@ -77398,7 +77398,8 @@ function hellooPrefersDark() {
 // front, "Strangers · They pay · +3 CEL" — the price of reaching you, read
 // at a glance. The HELLOO name stands above the mark; a globe sits in the
 // top-right corner; "by GLOOBAL" is centred at the foot under a line that
-// fills while the server wakes. A tap goes on at once. Someone already
+// fills while the server wakes. The globe sits at the left of the name's
+// line (17 Nov). A tap goes on at once. Someone already
 // signed in sees only the name and mark on the way to their chats.
 var HELLOO_SPLASH_MS = 2600;
 var HELLOO_SPLASH_LINE = "Number private · Pay in the chat · Every country";
@@ -77412,8 +77413,8 @@ function HellooSplash({ dark = hellooPrefersDark(), intro = false, onSkip }) {
   const brand = (markSize, nameSize) => <div style={{ display: "flex", flexDirection: "column", alignItems: "center" }}><div style={{ fontSize: nameSize, letterSpacing: -0.5, color: ink }}><HellooWordmark /></div><div style={{ marginTop: 14 }}><HellooMark size={markSize} /></div></div>;
   if (!intro) return <HellooScreen style={{ alignItems: "center", justifyContent: "center", background: page, color: ink }}>{brand(104, 34)}<div style={{ marginTop: 14, fontSize: 12, color: soft, display: "flex", alignItems: "center", gap: 6 }}>by <GloobalWordmark /></div></HellooScreen>;
   return <HellooScreen onClick={onSkip} style={{ alignItems: "center", background: page, color: ink, padding: "calc(7vh + env(safe-area-inset-top, 0px)) 22px calc(18px + env(safe-area-inset-bottom, 0px))", cursor: "pointer" }}>
-    <span aria-label="Every country" style={{ position: "absolute", top: "calc(16px + env(safe-area-inset-top, 0px))", right: 16, width: 40, height: 40, borderRadius: "50%", background: dark ? "rgba(255,255,255,0.08)" : "#fff", display: "flex", alignItems: "center", justifyContent: "center", boxShadow: "0 4px 14px rgba(23,19,43,0.08)" }}><HlGlobe size={20} color={T.accent} /></span>
-    {brand(64, 28)}
+    <div style={{ position: "relative", width: "100%", display: "flex", alignItems: "center", justifyContent: "center" }}><span aria-label="Every country" style={{ position: "absolute", left: 0, display: "flex" }}><HlGlobe size={26} color={T.accent} /></span><span style={{ fontSize: 28, letterSpacing: -0.4, color: ink }}><HellooWordmark /></span></div>
+    <div style={{ marginTop: 14 }}><HellooMark size={64} /></div>
     <div data-testid="helloo-splash-tickets" style={{ flex: 1, width: "100%", display: "flex", alignItems: "center", justifyContent: "center" }}><div style={{ position: "relative", width: "100%", height: 270 }}><HellooSplashTicket bg="#10B981" page={page} label="People you know" big="Free" sub="calls and chats, every country" stub="0" stubSub="CEL" rot={-5} delay={0.1} z={1} style={{ left: 0, right: 16, top: 0 }} /><HellooSplashTicket bg="#F0447C" page={page} label="Strangers" big="They pay" sub="your price to reach you, or they ask" stub="+3" stubSub="CEL" rot={3} delay={0.55} z={2} style={{ left: 16, right: 0, top: 128 }} /></div></div>
     <div data-testid="helloo-splash-points" style={{ fontSize: 12.5, fontWeight: 700, color: soft, textAlign: "center" }}>{HELLOO_SPLASH_LINE}</div>
     <div aria-hidden="true" style={{ width: "100%", marginTop: 16, height: 3, borderRadius: 3, background: dark ? "rgba(255,255,255,0.12)" : "rgba(23,19,43,0.08)", overflow: "hidden" }}><span style={{ display: "block", height: "100%", width: "100%", background: T.accent, transformOrigin: "left", animation: `hlSplashFill ${HELLOO_SPLASH_MS}ms linear forwards` }} /></div>
