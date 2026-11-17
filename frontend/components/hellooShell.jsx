@@ -62,8 +62,8 @@ function HellooRoundButton({ Icon, label, onClick, solid = false, size = 40, col
 }
 
 // The screen frame: a fixed, full-height column with Gloobal's wash.
-function HellooScreen({ children, style, dark = false }) {
-  return <div style={{ position: "absolute", inset: 0, display: "flex", flexDirection: "column", background: dark ? HT.callBg : (HT.screenBg || T.bg), color: dark ? HT.callInk : T.ink, fontFamily: T.fontBody, overflow: "hidden", ...style }}>{children}</div>;
+function HellooScreen({ children, style, dark = false, onClick }) {
+  return <div onClick={onClick} style={{ position: "absolute", inset: 0, display: "flex", flexDirection: "column", background: dark ? HT.callBg : (HT.screenBg || T.bg), color: dark ? HT.callInk : T.ink, fontFamily: T.fontBody, overflow: "hidden", ...style }}>{children}</div>;
 }
 
 function HellooTop({ left, title, subtitle, right, big = false }) {

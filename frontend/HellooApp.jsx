@@ -106,7 +106,10 @@ function HellooRoot() {
   const [stage, setStage] = useStateH9(() => (hellooSignedInUser() ? "splash-in" : "splash"));
   const [idValue, setIdValue] = useStateH9("");
   // Sign in by GLOOBAL ID or by mobile number (country code first).
-  const [idMode, setIdMode] = useStateH9("id");
+  // How this phone last signed in (GLOOBAL ID or mobile number) is how the
+  // sign-in screen opens next time.
+  const [idMode, setIdModeRaw] = useStateH9(() => { try { return localStorage.getItem("helloo.signin.mode") === "id" ? "id" : "mobile"; } catch (e) { return "mobile"; } });
+  const setIdMode = useCallbackH9((m) => { setIdModeRaw(m); try { localStorage.setItem("helloo.signin.mode", m); } catch (e) { /* ignore */ } }, []);
   const [idMobile, setIdMobile] = useStateH9("");
   const signInAs = idMode === "mobile" ? `+${idMobile}` : idValue;
   const [pin, setPin] = useStateH9("");
@@ -121,7 +124,8 @@ function HellooRoot() {
   useEffectH9(() => {
     if (stage !== "splash" && stage !== "splash-in") return undefined;
     if (stage === "splash" && typeof GloobalApi === "object") GloobalApi.warmUp();
-    const t = setTimeout(() => setStage(stage === "splash" ? "welcome" : "app"), 1200);
+    // A first-time splash carries words to read, so it stays longer.
+    const t = setTimeout(() => setStage(stage === "splash" ? "id" : "app"), stage === "splash" ? 2600 : 1200);
     return () => clearTimeout(t);
   }, [stage]);
 
@@ -135,8 +139,7 @@ function HellooRoot() {
     setPin("");
     setIdValue("");
     setIdMobile("");
-    setIdMode("id");
-    setStage("welcome");
+    setStage("id");
     if (message) setToast(message);
   }, []);
   useEffectH9(() => {
@@ -1213,7 +1216,6 @@ function HellooRoot() {
     if (screen) return setScreen(null);
     if (signedIn && tab !== "chats") return setTab("chats");
     if (stage === "pin") return setStage("id");
-    if (stage === "id") return setStage("welcome");
     return undefined;
   });
 
@@ -1225,9 +1227,9 @@ function HellooRoot() {
     return shell(<HellooCallScreen person={call.person} video={call.video} state={call.state} seconds={call.seconds} muted={call.muted} cameraOff={call.cameraOff} speaker={call.speaker} incoming={call.direction === "in"} onAccept={answerCall} onEnd={hangUp} onMute={toggleMute} onCamera={toggleCamera} onSpeaker={toggleSpeaker} onFlip={flipCamera} onMinimise={call.state === "live" ? () => setToast("Keep the call open to stay connected") : hangUp} onChat={() => { if (call.chatId) { hangUp(); openChat(call.chatId); } }} localVideoRef={localVideoRef} remoteVideoRef={remoteVideoRef} remoteAudioRef={remoteAudioRef} />);
   }
 
-  if (stage === "splash" || stage === "splash-in") return shell(<HellooSplash />);
+  if (stage === "splash" || stage === "splash-in") return shell(<HellooSplash intro={stage === "splash"} onSkip={stage === "splash" ? () => setStage("id") : undefined} />);
   if (stage === "welcome") return shell(<HellooWelcome hasGloobal={false} note={outNote} onEnterId={() => { setOutNote(""); setStage("id"); }} />);
-  if (stage === "id") return shell(<HellooIdScreen value={idValue} onChange={setIdValue} mode={idMode} onMode={setIdMode} mobile={idMobile} onMobile={setIdMobile} status={idValue.length === 12 ? "ready" : ""} onBack={() => setStage("welcome")} onNext={() => { setPin(""); setStage("pin"); }} />);
+  if (stage === "id") return shell(<HellooIdScreen value={idValue} onChange={setIdValue} mode={idMode} onMode={setIdMode} mobile={idMobile} onMobile={setIdMobile} status={idValue.length === 12 ? "ready" : ""} note={outNote} onNext={() => { setOutNote(""); setPin(""); setStage("pin"); }} />);
   if (stage === "pin") return shell(<><LoginAuthScreen value={pin} length={HELLOO_PIN_LENGTH} onChange={setPin} onSubmit={() => submitPin(pin)} onBack={() => setStage("id")} revealed={pinShown} onToggleReveal={() => setPinShown((v) => !v)} waking={pinWaking} busy={pinBusy} /><HellooPinNote who={idMode === "mobile" ? `+${idMobile}` : <ColoredGloobalId id={idValue} />} /></>);
   if (stage === "back" && me) return shell(<HellooWelcomeBack me={me} onDone={() => setStage("app")} />);
   if (!me) return shell(<HellooSplash />);

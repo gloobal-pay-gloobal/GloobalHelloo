@@ -77319,8 +77319,8 @@ function HellooRoundButton({ Icon, label, onClick, solid = false, size = 40, col
 }
 
 // The screen frame: a fixed, full-height column with Gloobal's wash.
-function HellooScreen({ children, style, dark = false }) {
-  return <div style={{ position: "absolute", inset: 0, display: "flex", flexDirection: "column", background: dark ? HT.callBg : (HT.screenBg || T.bg), color: dark ? HT.callInk : T.ink, fontFamily: T.fontBody, overflow: "hidden", ...style }}>{children}</div>;
+function HellooScreen({ children, style, dark = false, onClick }) {
+  return <div onClick={onClick} style={{ position: "absolute", inset: 0, display: "flex", flexDirection: "column", background: dark ? HT.callBg : (HT.screenBg || T.bg), color: dark ? HT.callInk : T.ink, fontFamily: T.fontBody, overflow: "hidden", ...style }}>{children}</div>;
 }
 
 function HellooTop({ left, title, subtitle, right, big = false }) {
@@ -77393,8 +77393,24 @@ function HellooVerifiedName({ person, size = 15 }) {
 function hellooPrefersDark() {
   try { return typeof window !== "undefined" && window.matchMedia && window.matchMedia("(prefers-color-scheme: dark)").matches; } catch (e) { return false; }
 }
-function HellooSplash({ dark = hellooPrefersDark() }) {
-  return <HellooScreen style={{ alignItems: "center", justifyContent: "center", background: dark ? "#0F0D1F" : HT.wash, color: dark ? "#F1EEFF" : T.ink }}><HellooMark size={104} /><div style={{ marginTop: 22, fontSize: 34, letterSpacing: -0.5 }}><HellooWordmark /></div><div style={{ marginTop: 6, fontSize: 12, color: dark ? "#B3ADCC" : T.inkSoft, display: "flex", alignItems: "center", gap: 6 }}>by <GloobalWordmark /></div><div style={{ position: "absolute", bottom: "calc(40px + env(safe-area-inset-bottom, 0px))", display: "flex", alignItems: "center", gap: 7, fontSize: 12.5, fontWeight: 700, color: HT.free }}><HlLock size={14} />Free calls and messages, every country</div></HellooScreen>;
+// The splash (17 Nov): the welcome screen's story, told while the server
+// wakes, so nobody has to read a page before signing in. For someone not
+// yet signed in it carries the one line that says what Helloo is and the
+// four promises, then goes straight on to sign in (a tap skips the wait).
+// Someone already signed in sees only the mark on the way to their chats.
+var HELLOO_SPLASH_POINTS = [
+  ["chat", "Free calls and chats", "with people you know"],
+  ["shield", "Strangers pay or ask", "you set the price"],
+  ["lock", "Your number stays private", "found by GLOOBAL ID"],
+  ["rupee", "Pay in the chat", "money and shop orders"]
+];
+function HellooSplash({ dark = hellooPrefersDark(), intro = false, onSkip }) {
+  const ink = dark ? "#F1EEFF" : T.ink; const soft = dark ? "#B3ADCC" : T.inkSoft;
+  const icons = { chat: [HlChat, HT.free], shield: [HlShield, T.accent], lock: [HlLock, "#2563EB"], rupee: [HlRupee, "#DB2777"] };
+  return <HellooScreen onClick={onSkip} style={{ alignItems: "center", justifyContent: intro ? "space-between" : "center", background: dark ? "#0F0D1F" : HT.wash, color: ink, padding: intro ? "calc(10vh + env(safe-area-inset-top, 0px)) 26px calc(26px + env(safe-area-inset-bottom, 0px))" : 0, cursor: onSkip ? "pointer" : "default" }}>
+    <div style={{ display: "flex", flexDirection: "column", alignItems: "center", textAlign: "center" }}><HellooMark size={intro ? 92 : 104} /><div style={{ marginTop: 20, fontSize: 34, letterSpacing: -0.5 }}><HellooWordmark /></div><div style={{ marginTop: 6, fontSize: 12, color: soft, display: "flex", alignItems: "center", gap: 6 }}>by <GloobalWordmark /></div>{intro && <div data-testid="helloo-splash-line" style={{ marginTop: "clamp(18px, 4vh, 34px)", fontSize: "clamp(22px, 3.6vh, 28px)", fontWeight: 800, fontFamily: T.fontDisplay, letterSpacing: -0.6, lineHeight: 1.18, textWrap: "balance" }}>Free with people you know. <span style={{ color: T.accent }}>Strangers pay</span> to reach you.</div>}</div>
+    {intro ? <div data-testid="helloo-splash-points" style={{ width: "100%", display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>{HELLOO_SPLASH_POINTS.map(([k, title, sub]) => { const [Icon, c] = icons[k]; return <div key={k} style={{ borderRadius: 18, background: dark ? "rgba(255,255,255,0.06)" : "#fff", padding: "12px 12px 11px", textAlign: "left" }}><span style={{ width: 30, height: 30, borderRadius: 10, background: c + "1A", display: "flex", alignItems: "center", justifyContent: "center" }}><Icon size={16} color={c} /></span><div style={{ marginTop: 8, fontSize: 13, fontWeight: 800, lineHeight: 1.25 }}>{title}</div><div style={{ marginTop: 2, fontSize: 11.5, color: soft, lineHeight: 1.3 }}>{sub}</div></div>; })}</div> : <div style={{ position: "absolute", bottom: "calc(40px + env(safe-area-inset-bottom, 0px))", display: "flex", alignItems: "center", gap: 7, fontSize: 12.5, fontWeight: 700, color: HT.free }}><HlLock size={14} />Free calls and messages, every country</div>}
+  </HellooScreen>;
 }
 
 // GLOOBAL's name on a coloured button: the two Os as white discs, so the
@@ -77432,11 +77448,11 @@ function GloobalLetHellooIn({ me, onAllow, onDeny }) {
 // either), so nothing here claims to have found it.
 var HELLOO_MOBILE_MIN = 8;
 var HELLOO_MOBILE_MAX = 15;
-function HellooIdScreen({ value, onChange, status, onBack, onNext, mode = "id", onMode, mobile = "", onMobile }) {
+function HellooIdScreen({ value, onChange, status, onBack, onNext, mode = "id", onMode, mobile = "", onMobile, note = "" }) {
   const byMobile = mode === "mobile";
   const found = byMobile ? mobile.length >= HELLOO_MOBILE_MIN : (status === "found" || status === "ready");
   const grouped = mobile.replace(/(\d{2})(\d{0,5})(\d{0,8})/, (m, a, b, c) => [a, b, c].filter(Boolean).join(" "));
-  return <HellooScreen><HellooTop left={<NavBackButton onClick={onBack} />} title="Sign in" subtitle={<>with your <GloobalWordmark suffix=" ID" /> or mobile number</>} /><div style={{ flex: 1, minHeight: 0, display: "flex", flexDirection: "column", alignItems: "center", padding: "4px 18px 0", overflow: "hidden" }}><div style={{ width: "100%" }}><HellooSegment value={mode} onChange={onMode} options={[["id", "GLOOBAL ID"], ["mobile", "Mobile number"]]} /></div><HellooCard style={{ width: "100%", padding: "14px 14px 12px", marginTop: 12 }}><div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}><span style={{ fontSize: 12.5, fontWeight: 800, color: T.ink }}>{byMobile ? "Your mobile number, country code first" : "The 12 symbols you pay with"}</span><span style={{ fontSize: 11.5, fontWeight: 700, color: T.inkFaint }}>{byMobile ? "" : `${value.length}/12`}</span></div><div style={{ marginTop: 10 }}>{byMobile ? <div data-testid="helloo-signin-mobile" style={{ minHeight: 34, display: "flex", alignItems: "center", gap: 6, fontSize: 24, fontWeight: 800, fontFamily: T.fontDisplay, letterSpacing: 0.5, color: mobile ? T.ink : T.inkFaint }}><span style={{ color: T.inkFaint }}>+</span>{mobile ? grouped : "91 98765 43210"}</div> : <SymbolChipRow length={12} value={value} masked={false} boxSize={22} fitWidth />}</div></HellooCard><div style={{ height: 28, marginTop: 8, fontSize: 12.5, fontWeight: 800, color: found ? HT.free : status === "none" ? T.negative : T.inkFaint, display: "flex", alignItems: "center", gap: 6 }}>{byMobile ? (found ? <><HlCheck size={15} />Next, your GLOOBAL PIN</> : "For India, start with 91") : <>{status === "looking" && "Checking…"}{status === "found" && <><HlCheck size={15} />Account found · next, your PIN</>}{status === "ready" && <><HlCheck size={15} />12 symbols · next, your GLOOBAL PIN</>}{status === "none" && "No account with this ID yet"}{!status && "Tap the symbols of your ID on the dial"}</>}</div><div style={{ flex: 1, minHeight: 0, display: "flex", alignItems: "center", justifyContent: "center", width: "100%" }}>{byMobile ? <PhoneDialPad value={mobile} onChange={onMobile || (() => {})} minLength={HELLOO_MOBILE_MIN} maxLength={HELLOO_MOBILE_MAX} onSubmit={found ? onNext : undefined} showValue={false} /> : <SymbolDialPad value={value} onChange={onChange} length={12} soundWhileTyping />}</div></div><div style={{ padding: "6px 20px calc(18px + env(safe-area-inset-bottom, 0px))" }}>{!byMobile && status === "none" ? <HellooSecondary Icon={HlSpark} onClick={() => window.open(HELLOO_GLOOBAL_SIGNUP, "_blank", "noopener")}>Create this ID on GLOOBAL</HellooSecondary> : <HellooPrimary disabled={!found} onClick={onNext}>Continue</HellooPrimary>}</div></HellooScreen>;
+  return <HellooScreen><HellooTop left={onBack ? <NavBackButton onClick={onBack} /> : <span style={{ display: "inline-flex", paddingLeft: 4 }}><HellooMark size={36} /></span>} title="Sign in" subtitle={<>with your <GloobalWordmark suffix=" ID" /> or mobile number</>} /><div style={{ flex: 1, minHeight: 0, display: "flex", flexDirection: "column", alignItems: "center", padding: "4px 18px 0", overflow: "hidden" }}><div style={{ width: "100%" }}><HellooSegment value={mode} onChange={onMode} options={[["id", "GLOOBAL ID"], ["mobile", "Mobile number"]]} /></div><HellooCard style={{ width: "100%", padding: "14px 14px 12px", marginTop: 12 }}><div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}><span style={{ fontSize: 12.5, fontWeight: 800, color: T.ink }}>{byMobile ? "Your mobile number, country code first" : "The 12 symbols you pay with"}</span><span style={{ fontSize: 11.5, fontWeight: 700, color: T.inkFaint }}>{byMobile ? "" : `${value.length}/12`}</span></div><div style={{ marginTop: 10 }}>{byMobile ? <div data-testid="helloo-signin-mobile" style={{ minHeight: 34, display: "flex", alignItems: "center", gap: 6, fontSize: 24, fontWeight: 800, fontFamily: T.fontDisplay, letterSpacing: 0.5, color: mobile ? T.ink : T.inkFaint }}><span style={{ color: T.inkFaint }}>+</span>{mobile ? grouped : "91 98765 43210"}</div> : <SymbolChipRow length={12} value={value} masked={false} boxSize={22} fitWidth />}</div></HellooCard>{note ? <div role="status" data-testid="helloo-signed-out-note" style={{ width: "100%", marginTop: 8, fontSize: 12, lineHeight: 1.4, color: T.ink, background: "#FEF3C7", borderRadius: 12, padding: "8px 11px" }}>{note}</div> : null}<div style={{ height: 28, marginTop: 8, fontSize: 12.5, fontWeight: 800, color: found ? HT.free : status === "none" ? T.negative : T.inkFaint, display: "flex", alignItems: "center", gap: 6 }}>{byMobile ? (found ? <><HlCheck size={15} />Next, your GLOOBAL PIN</> : "For India, start with 91") : <>{status === "looking" && "Checking…"}{status === "found" && <><HlCheck size={15} />Account found · next, your PIN</>}{status === "ready" && <><HlCheck size={15} />12 symbols · next, your GLOOBAL PIN</>}{status === "none" && "No account with this ID yet"}{!status && "Tap the symbols of your ID on the dial"}</>}</div><div style={{ flex: 1, minHeight: 0, display: "flex", alignItems: "center", justifyContent: "center", width: "100%" }}>{byMobile ? <PhoneDialPad value={mobile} onChange={onMobile || (() => {})} minLength={HELLOO_MOBILE_MIN} maxLength={HELLOO_MOBILE_MAX} onSubmit={found ? onNext : undefined} showValue={false} /> : <SymbolDialPad value={value} onChange={onChange} length={12} soundWhileTyping />}</div></div><div style={{ padding: "6px 20px calc(18px + env(safe-area-inset-bottom, 0px))" }}>{!byMobile && status === "none" ? <HellooSecondary Icon={HlSpark} onClick={() => window.open(HELLOO_GLOOBAL_SIGNUP, "_blank", "noopener")}>Create this ID on GLOOBAL</HellooSecondary> : <HellooPrimary disabled={!found} onClick={onNext}>Continue</HellooPrimary>}<div style={{ textAlign: "center", fontSize: 12.5, color: T.inkSoft, marginTop: 10 }}>New here? <a data-testid="helloo-create-id" href={HELLOO_GLOOBAL_SIGNUP} target="_blank" rel="noopener" style={{ color: T.accent, fontWeight: 800, textDecoration: "none" }}>Create your free <GloobalWordmark suffix=" ID" /></a></div></div></HellooScreen>;
 }
 
 // Under Gloobal's PIN pad, which carries no words of its own: whose PIN
@@ -78993,7 +79009,10 @@ function HellooRoot() {
   const [stage, setStage] = useStateH9(() => (hellooSignedInUser() ? "splash-in" : "splash"));
   const [idValue, setIdValue] = useStateH9("");
   // Sign in by GLOOBAL ID or by mobile number (country code first).
-  const [idMode, setIdMode] = useStateH9("id");
+  // How this phone last signed in (GLOOBAL ID or mobile number) is how the
+  // sign-in screen opens next time.
+  const [idMode, setIdModeRaw] = useStateH9(() => { try { return localStorage.getItem("helloo.signin.mode") === "id" ? "id" : "mobile"; } catch (e) { return "mobile"; } });
+  const setIdMode = useCallbackH9((m) => { setIdModeRaw(m); try { localStorage.setItem("helloo.signin.mode", m); } catch (e) { /* ignore */ } }, []);
   const [idMobile, setIdMobile] = useStateH9("");
   const signInAs = idMode === "mobile" ? `+${idMobile}` : idValue;
   const [pin, setPin] = useStateH9("");
@@ -79008,7 +79027,8 @@ function HellooRoot() {
   useEffectH9(() => {
     if (stage !== "splash" && stage !== "splash-in") return undefined;
     if (stage === "splash" && typeof GloobalApi === "object") GloobalApi.warmUp();
-    const t = setTimeout(() => setStage(stage === "splash" ? "welcome" : "app"), 1200);
+    // A first-time splash carries words to read, so it stays longer.
+    const t = setTimeout(() => setStage(stage === "splash" ? "id" : "app"), stage === "splash" ? 2600 : 1200);
     return () => clearTimeout(t);
   }, [stage]);
 
@@ -79022,8 +79042,7 @@ function HellooRoot() {
     setPin("");
     setIdValue("");
     setIdMobile("");
-    setIdMode("id");
-    setStage("welcome");
+    setStage("id");
     if (message) setToast(message);
   }, []);
   useEffectH9(() => {
@@ -80100,7 +80119,6 @@ function HellooRoot() {
     if (screen) return setScreen(null);
     if (signedIn && tab !== "chats") return setTab("chats");
     if (stage === "pin") return setStage("id");
-    if (stage === "id") return setStage("welcome");
     return undefined;
   });
 
@@ -80112,9 +80130,9 @@ function HellooRoot() {
     return shell(<HellooCallScreen person={call.person} video={call.video} state={call.state} seconds={call.seconds} muted={call.muted} cameraOff={call.cameraOff} speaker={call.speaker} incoming={call.direction === "in"} onAccept={answerCall} onEnd={hangUp} onMute={toggleMute} onCamera={toggleCamera} onSpeaker={toggleSpeaker} onFlip={flipCamera} onMinimise={call.state === "live" ? () => setToast("Keep the call open to stay connected") : hangUp} onChat={() => { if (call.chatId) { hangUp(); openChat(call.chatId); } }} localVideoRef={localVideoRef} remoteVideoRef={remoteVideoRef} remoteAudioRef={remoteAudioRef} />);
   }
 
-  if (stage === "splash" || stage === "splash-in") return shell(<HellooSplash />);
+  if (stage === "splash" || stage === "splash-in") return shell(<HellooSplash intro={stage === "splash"} onSkip={stage === "splash" ? () => setStage("id") : undefined} />);
   if (stage === "welcome") return shell(<HellooWelcome hasGloobal={false} note={outNote} onEnterId={() => { setOutNote(""); setStage("id"); }} />);
-  if (stage === "id") return shell(<HellooIdScreen value={idValue} onChange={setIdValue} mode={idMode} onMode={setIdMode} mobile={idMobile} onMobile={setIdMobile} status={idValue.length === 12 ? "ready" : ""} onBack={() => setStage("welcome")} onNext={() => { setPin(""); setStage("pin"); }} />);
+  if (stage === "id") return shell(<HellooIdScreen value={idValue} onChange={setIdValue} mode={idMode} onMode={setIdMode} mobile={idMobile} onMobile={setIdMobile} status={idValue.length === 12 ? "ready" : ""} note={outNote} onNext={() => { setOutNote(""); setPin(""); setStage("pin"); }} />);
   if (stage === "pin") return shell(<><LoginAuthScreen value={pin} length={HELLOO_PIN_LENGTH} onChange={setPin} onSubmit={() => submitPin(pin)} onBack={() => setStage("id")} revealed={pinShown} onToggleReveal={() => setPinShown((v) => !v)} waking={pinWaking} busy={pinBusy} /><HellooPinNote who={idMode === "mobile" ? `+${idMobile}` : <ColoredGloobalId id={idValue} />} /></>);
   if (stage === "back" && me) return shell(<HellooWelcomeBack me={me} onDone={() => setStage("app")} />);
   if (!me) return shell(<HellooSplash />);
