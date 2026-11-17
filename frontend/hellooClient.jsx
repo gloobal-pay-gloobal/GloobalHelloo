@@ -72,6 +72,13 @@ var hellooApi = {
   reach: () => hellooHttp.get("/api/helloo/reach"),
   saveReach: (prices) => hellooHttp.put("/api/helloo/reach", prices),
   allow: (accountId, allowed) => hellooHttp.post("/api/helloo/reach/allow", { accountId, allowed }),
+  // Who can reach me, just for one person: "free" | "pay" (price 1–7, or
+  // none for the usual one) | "never".
+  reachPerson: (accountId, mode, price) => hellooHttp.put(`/api/helloo/reach/people/${encodeURIComponent(accountId)}`, price ? { mode, price } : { mode }),
+  // The shops a person chose to show on their personal profile.
+  personShops: (accountId) => hellooHttp.get(`/api/helloo/people/${encodeURIComponent(accountId)}/shops`),
+  // Show the shop you are acting as on your personal profile, or not.
+  saveShow: (show) => hellooHttp.put("/api/helloo/faces/show", { show }),
   reachCard: (accountId) => hellooHttp.get(`/api/helloo/people/${encodeURIComponent(accountId)}/reach`),
   ask: (to, text, kind) => hellooHttp.post("/api/helloo/asks", { to, text, kind: kind || "message" }),
   asks: () => hellooHttp.get("/api/helloo/asks"),
