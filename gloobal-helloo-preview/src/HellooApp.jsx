@@ -484,7 +484,7 @@ import {
   MessageCircle as HlChat, Phone as HlPhone, Video as HlVideo, User as HlUser, Users as HlUsers,
   Search as HlSearch, ScanLine as HlScan, Plus as HlPlus, MoreVertical as HlMore, Mic as HlMic,
   Paperclip as HlClip, Image as HlImage, Camera as HlCamera, FileText as HlDoc, MapPin as HlPin,
-  Contact as HlContact, Check as HlCheck, CheckCheck as HlCheckCheck, Play as HlPlay, Store as HlStore,
+  Contact as HlContact, Eye as HlEye, EyeOff as HlEyeOff, Check as HlCheck, CheckCheck as HlCheckCheck, Play as HlPlay, Store as HlStore,
   Copy as HlCopy, QrCode as HlQr, Bell as HlBell, Shield as HlShield, Palette as HlPalette, Ban as HlBan,
   HardDrive as HlDrive, LogOut as HlLogOut, ChevronRight as HlChevron, X as HlX, ArrowLeft as HlBack,
   PhoneIncoming as HlIn, PhoneOutgoing as HlOut, PhoneMissed as HlMissed, MicOff as HlMicOff,
@@ -77162,6 +77162,17 @@ function hellooWhen(at, now = Date.now()) {
   if (diff < 48 * 3600e3) return "Yesterday";
   return d.toLocaleDateString("en-GB", { day: "numeric", month: "short" });
 }
+// How long a call lasted, as written in a chat or the calls list:
+// "20s", "4m 05s", "1h 05m 20s".
+function hellooDurationHms(s) {
+  const t = Math.max(0, Math.round(Number(s) || 0));
+  const h = Math.floor(t / 3600), m = Math.floor((t % 3600) / 60), sec = t % 60;
+  const two = (n) => String(n).padStart(2, "0");
+  if (h) return `${h}h ${two(m)}m ${two(sec)}s`;
+  if (m) return `${m}m ${two(sec)}s`;
+  return `${sec}s`;
+}
+
 function hellooDuration(s) {
   const m = Math.floor(s / 60), r = s % 60;
   return `${m}:${String(r).padStart(2, "0")}`;
@@ -77525,7 +77536,7 @@ function hellooLastLine(m) {
 function HellooChatRow({ chat, onOpen, first, onHold }) {
   const last = chat.messages[chat.messages.length - 1];
   const unread = chat.unread || 0;
-  const row = <button onClick={() => onOpen && onOpen(chat)} className="v2-tap" style={{ width: "100%", display: "flex", alignItems: "center", gap: 12, padding: "11px 14px", border: "none", borderTop: first ? "none" : `1px solid ${T.line}`, background: "none", cursor: "pointer", textAlign: "left", fontFamily: T.fontBody }}><HellooAvatar person={chat.person} size={50} online={chat.person.online} /><span style={{ flex: 1, minWidth: 0 }}><span style={{ display: "flex", alignItems: "baseline", gap: 8 }}><span style={{ flex: 1, minWidth: 0, fontSize: 15, fontWeight: 800, color: T.ink, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{chat.person.handle ? <CreatorHandleText handle={chat.person.handle} icon={false} /> : chat.person.name}</span><span style={{ fontSize: 11, fontWeight: 700, color: unread ? T.accent : T.inkFaint, flexShrink: 0 }}>{last ? hellooWhen(last.at) : ""}</span></span><span style={{ display: "flex", alignItems: "center", gap: 8, marginTop: 3 }}><span style={{ flex: 1, minWidth: 0, fontSize: 13, color: unread ? T.ink : T.inkSoft, fontWeight: unread ? 700 : 500, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{chat.typing ? <span style={{ color: HT.free, fontWeight: 700 }}>typing…</span> : <>{last && last.from === "me" && last.kind === "text" && <span style={{ color: last.read ? T.accent2 : T.inkFaint, marginRight: 4 }}>{last.read ? "✓✓" : "✓"}</span>}{last && last.paidText && last.from === "them" && <span data-testid="helloo-row-paid" style={{ display: "inline-flex", alignItems: "center", gap: 3, marginRight: 6, padding: "1px 7px", borderRadius: 999, background: HT.freeSoft, color: HT.free, fontSize: 11, fontWeight: 800, verticalAlign: "1px" }}><HlRupee size={10} />Paid message</span>}{hellooLastLine(last)}</>}</span>{chat.muted && <HlBellOff size={13} color={T.inkFaint} />}{chat.pinned && <HlPinIcon size={13} color={T.inkFaint} />}{unread > 0 && <span style={{ minWidth: 20, height: 20, borderRadius: 10, background: T.accent, color: "#fff", fontSize: 11, fontWeight: 800, display: "inline-flex", alignItems: "center", justifyContent: "center", padding: "0 6px" }}>{unread}</span>}</span></span></button>;
+  const row = <button onClick={() => onOpen && onOpen(chat)} className="v2-tap" style={{ width: "100%", display: "flex", alignItems: "center", gap: 12, padding: "11px 14px", border: "none", borderTop: first ? "none" : `1px solid ${T.line}`, background: "none", cursor: "pointer", textAlign: "left", fontFamily: T.fontBody }}><HellooAvatar person={chat.person} size={50} online={chat.person.online} /><span style={{ flex: 1, minWidth: 0 }}><span style={{ display: "flex", alignItems: "baseline", gap: 8 }}><span style={{ flex: 1, minWidth: 0, fontSize: 15, fontWeight: 800, color: T.ink, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{chat.person.handle ? <CreatorHandleText handle={chat.person.handle} icon={false} /> : chat.person.name}</span><span style={{ fontSize: 11, fontWeight: 700, color: unread ? T.accent : T.inkFaint, flexShrink: 0 }}>{last ? hellooWhen(last.at) : ""}</span></span><span style={{ display: "flex", alignItems: "center", gap: 8, marginTop: 3 }}><span style={{ flex: 1, minWidth: 0, fontSize: 13, color: unread ? T.ink : T.inkSoft, fontWeight: unread ? 700 : 500, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{chat.typing ? <span style={{ color: HT.free, fontWeight: 700 }}>typing…</span> : <>{last && last.from === "me" && last.kind === "text" && <span aria-label={last.read ? "Seen" : "Not seen yet"} style={{ display: "inline-flex", verticalAlign: "-2px", color: last.read ? T.accent : T.inkFaint, marginRight: 4 }}>{last.read ? <HlEye size={14} strokeWidth={2.4} /> : <HlEyeOff size={14} />}</span>}{last && last.paidText && last.from === "them" && <span data-testid="helloo-row-paid" style={{ display: "inline-flex", alignItems: "center", gap: 3, marginRight: 6, padding: "1px 7px", borderRadius: 999, background: HT.freeSoft, color: HT.free, fontSize: 11, fontWeight: 800, verticalAlign: "1px" }}><HlRupee size={10} />Paid message</span>}{hellooLastLine(last)}</>}</span>{chat.muted && <HlBellOff size={13} color={T.inkFaint} />}{chat.pinned && <HlPinIcon size={13} color={T.inkFaint} />}{unread > 0 && <span style={{ minWidth: 20, height: 20, borderRadius: 10, background: T.accent, color: "#fff", fontSize: 11, fontWeight: 800, display: "inline-flex", alignItems: "center", justifyContent: "center", padding: "0 6px" }}>{unread}</span>}</span></span></button>;
   return onHold ? <HellooHold onHold={() => onHold(chat)} align="stretch">{row}</HellooHold> : row;
 }
 
@@ -77568,8 +77579,11 @@ function HellooChatActions({ chat, onClose, items: given }) {
 // request for one. Helloo draws them; the money moved, or will move, on
 // Gloobal.
 
-function HellooTick({ read, delivered }) {
-  return <span style={{ display: "inline-flex", marginLeft: 4, color: read ? "#BFDBFE" : "rgba(255,255,255,0.7)" }}>{delivered || read ? <HlCheckCheck size={13} /> : <HlCheck size={13} />}</span>;
+// Has it been seen? A closed eye once it is sent, an open eye once they
+// have seen it (with when, on a long look). Nothing while it is sending.
+function HellooTick({ read, delivered, seenAt }) {
+  if (!read && !delivered) return <span aria-label="Sending" style={{ display: "inline-flex", marginLeft: 4, width: 13, justifyContent: "center", color: "rgba(255,255,255,0.6)" }}>·</span>;
+  return <span data-helloo-seen={read ? "seen" : "sent"} aria-label={read ? (seenAt ? `Seen ${hellooClock(seenAt)}` : "Seen") : "Sent, not seen yet"} title={read ? (seenAt ? `Seen ${hellooClock(seenAt)}` : "Seen") : "Not seen yet"} style={{ display: "inline-flex", marginLeft: 4, color: read ? "#fff" : "rgba(255,255,255,0.62)" }}>{read ? <HlEye size={14} strokeWidth={2.4} /> : <HlEyeOff size={14} />}</span>;
 }
 
 function HellooVoiceNote({ m, mine }) {
@@ -77610,20 +77624,22 @@ function HellooBubble({ m, person, prevSame }) {
   if (m.kind === "day") return <div style={{ alignSelf: "center", fontSize: 10.5, fontWeight: 800, letterSpacing: 0.6, textTransform: "uppercase", color: T.inkFaint, background: T.surfaceSunk, borderRadius: 999, padding: "4px 11px", margin: "6px 0" }}>{m.text}</div>;
   if (m.kind === "system") return <div style={{ alignSelf: "center", display: "inline-flex", alignItems: "center", gap: 6, fontSize: 11, fontWeight: 700, color: HT.free, background: HT.freeSoft, borderRadius: 999, padding: "5px 11px", margin: "4px 0 6px" }}><HlShield size={12} />{m.text}</div>;
   // A call is one quiet line in the middle of the chat, not a card: what
-  // it was, how it went, when. A missed one is red and has a call-back
-  // button (the header has the call buttons for everything else);
-  // repeated tries in a row are one line ("×3").
+  // it was, how it went, when, and one button that calls. A missed one is
+  // red; repeated tries in a row are one line ("×3").
   if (m.kind === "call") {
     const red = m.missed;
     const tone = red ? T.negative : T.inkSoft;
-    const Icon = red ? HlMissed : m.video ? HlVideo : HlPhone;
     const what = `${red ? "Missed " : ""}${m.video ? (red ? "video" : "Video") : (red ? "voice" : "Voice")} call`;
-    const how = m.seconds && !red ? hellooDuration(m.seconds) : (m.statusText || "").toLowerCase();
+    const how = m.seconds && !red ? hellooDurationHms(m.seconds) : (m.statusText || "").toLowerCase();
     const when = m.count > 1 && m.firstAt ? `${hellooClock(m.firstAt)}–${hellooClock(m.at)}` : hellooClock(m.at);
-    return <div data-helloo-call={red ? "missed" : "call"} style={{ alignSelf: "center", display: "inline-flex", alignItems: "center", gap: 7, maxWidth: "92%", margin: "3px 0", padding: "5px 6px 5px 11px", borderRadius: 999, background: red ? T.negative + "12" : T.surfaceSunk, fontSize: 12, fontWeight: 700, color: tone, whiteSpace: "nowrap" }}><Icon size={14} color={tone} /><span style={{ fontWeight: 800, color: red ? T.negative : T.ink }}>{what}</span>{m.count > 1 ? <span>×{m.count}</span> : null}{how ? <span>· {how}</span> : null}<span>· {when}</span>{m.onCallBack && red ? <button onClick={m.onCallBack} aria-label={red ? "Call back" : "Call again"} className="v2-tap" style={{ marginLeft: 2, width: 26, height: 26, borderRadius: "50%", border: "none", background: red ? T.negative : HT.free, display: "inline-flex", alignItems: "center", justifyContent: "center", cursor: "pointer", flexShrink: 0 }}>{m.video ? <HlVideo size={13} color="#fff" /> : <HlPhone size={13} color="#fff" />}</button> : <span style={{ width: 5 }} />}</div>;
+    // One icon, on the right, and it calls: back if it was missed, again
+    // otherwise, the same kind of call it was.
+    const Icon = m.video ? HlVideo : HlPhone;
+    return <div data-helloo-call={red ? "missed" : "call"} style={{ alignSelf: "center", display: "inline-flex", alignItems: "center", gap: 7, maxWidth: "92%", margin: "3px 0", padding: "5px 5px 5px 13px", borderRadius: 999, background: red ? T.negative + "12" : T.surfaceSunk, fontSize: 12, fontWeight: 700, color: tone, whiteSpace: "nowrap" }}><span style={{ fontWeight: 800, color: red ? T.negative : T.ink }}>{what}</span>{m.count > 1 ? <span>×{m.count}</span> : null}{how ? <span>· {how}</span> : null}<span>· {when}</span><button onClick={m.onCallBack} disabled={!m.onCallBack} aria-label={red ? (m.video ? "Video call back" : "Call back") : (m.video ? "Video call again" : "Call again")} className="v2-tap" style={{ marginLeft: 3, width: 28, height: 28, borderRadius: "50%", border: "none", background: red ? T.negative : HT.free, display: "inline-flex", alignItems: "center", justifyContent: "center", cursor: m.onCallBack ? "pointer" : "default", flexShrink: 0, opacity: m.onCallBack ? 1 : 0.5 }}><Icon size={14} color="#fff" /></button></div>;
   }
+
   const card = m.kind === "receipt" ? <HellooReceiptCard m={m} person={person} /> : m.kind === "request" ? <HellooRequestCard m={m} person={person} /> : m.kind === "order" ? <HellooOrderCard m={m} person={person} /> : m.kind === "split" ? <HellooSplitCard m={m} /> : m.kind === "refund" ? <HellooRefundCard m={m} person={person} /> : m.kind === "offer" ? <HellooOfferCard m={m} person={person} /> : m.kind === "letter" ? <HellooLetterCard m={m} person={person} /> : null;
-  return <div data-helloo-msg={m.from} style={{ alignSelf: mine ? "flex-end" : "flex-start", maxWidth: "82%", display: "flex", flexDirection: "column", alignItems: mine ? "flex-end" : "flex-start", marginTop: prevSame ? 2 : 8 }}>{card ? <>{card}<span style={{ fontSize: 10, color: T.inkFaint, marginTop: 3 }}>{hellooClock(m.at)}</span></> : <span style={{ padding: m.kind === "photo" ? 4 : "9px 12px", borderRadius: mine ? `${HT.bubbleRadius ?? 18}px ${HT.bubbleRadius ?? 18}px ${HT.bubbleTail ?? 5}px ${HT.bubbleRadius ?? 18}px` : `${HT.bubbleRadius ?? 18}px ${HT.bubbleRadius ?? 18}px ${HT.bubbleRadius ?? 18}px ${HT.bubbleTail ?? 5}px`, border: mine ? "none" : (HT.bubbleBorder || "none"), background: mine ? HT.bubbleMe : HT.bubbleThem, color: mine ? (HT.bubbleMeInk || "#fff") : T.ink, boxShadow: mine ? (HT.bubbleMeShadow || "none") : (HT.cardShadow ?? T.shadowCard), fontSize: 14.5, lineHeight: 1.4, overflowWrap: "anywhere", position: "relative" }}>{m.paidText && <span style={{ display: "block" }}><HellooPaidBadge amountText={m.paidText} earnedText={m.earnedText} mine={mine} /></span>}{quote}{m.kind === "voice" ? <HellooVoiceNote m={m} mine={mine} /> : m.kind === "photo" ? <span style={{ display: "block" }}><button onClick={m.onOpen} aria-label="Open photo" style={{ display: "block", padding: 0, border: "none", background: "none", cursor: m.onOpen ? "zoom-in" : "default" }}>{m.src ? <img src={m.src} alt={m.text || "Photo"} style={{ display: "block", width: 230, height: m.width && m.height ? Math.round(230 * Math.min(1.4, Math.max(0.6, m.height / m.width))) : 172, objectFit: "cover", borderRadius: 15 }} /> : <span style={{ display: "block", width: 230, height: m.width && m.height ? Math.round(230 * Math.min(1.4, Math.max(0.6, m.height / m.width))) : 172, borderRadius: 15, background: `linear-gradient(135deg, ${hellooHue(String(m.id))}33, ${hellooHue(String(m.id) + "x")}66)` }} />}</button>{m.text ? <span style={{ display: "block", padding: "6px 8px 14px" }}>{m.text}</span> : null}</span> : m.text}<span style={{ display: "inline-flex", alignItems: "center", fontSize: 10, color: mine ? "rgba(255,255,255,0.75)" : T.inkFaint, marginLeft: 8, verticalAlign: "bottom", position: m.kind === "photo" ? "absolute" : "static", right: 10, bottom: 8 }}>{hellooClock(m.at)}{mine && <HellooTick read={m.read} delivered={m.delivered} />}</span></span>}</div>;
+  return <div data-helloo-msg={m.from} style={{ alignSelf: mine ? "flex-end" : "flex-start", maxWidth: "82%", display: "flex", flexDirection: "column", alignItems: mine ? "flex-end" : "flex-start", marginTop: prevSame ? 2 : 8 }}>{card ? <>{card}<span style={{ fontSize: 10, color: T.inkFaint, marginTop: 3 }}>{hellooClock(m.at)}</span></> : <span style={{ padding: m.kind === "photo" ? 4 : "9px 12px", borderRadius: mine ? `${HT.bubbleRadius ?? 18}px ${HT.bubbleRadius ?? 18}px ${HT.bubbleTail ?? 5}px ${HT.bubbleRadius ?? 18}px` : `${HT.bubbleRadius ?? 18}px ${HT.bubbleRadius ?? 18}px ${HT.bubbleRadius ?? 18}px ${HT.bubbleTail ?? 5}px`, border: mine ? "none" : (HT.bubbleBorder || "none"), background: mine ? HT.bubbleMe : HT.bubbleThem, color: mine ? (HT.bubbleMeInk || "#fff") : T.ink, boxShadow: mine ? (HT.bubbleMeShadow || "none") : (HT.cardShadow ?? T.shadowCard), fontSize: 14.5, lineHeight: 1.4, overflowWrap: "anywhere", position: "relative" }}>{m.paidText && <span style={{ display: "block" }}><HellooPaidBadge amountText={m.paidText} earnedText={m.earnedText} mine={mine} /></span>}{quote}{m.kind === "voice" ? <HellooVoiceNote m={m} mine={mine} /> : m.kind === "photo" ? <span style={{ display: "block" }}><button onClick={m.onOpen} aria-label="Open photo" style={{ display: "block", padding: 0, border: "none", background: "none", cursor: m.onOpen ? "zoom-in" : "default" }}>{m.src ? <img src={m.src} alt={m.text || "Photo"} style={{ display: "block", width: 230, height: m.width && m.height ? Math.round(230 * Math.min(1.4, Math.max(0.6, m.height / m.width))) : 172, objectFit: "cover", borderRadius: 15 }} /> : <span style={{ display: "block", width: 230, height: m.width && m.height ? Math.round(230 * Math.min(1.4, Math.max(0.6, m.height / m.width))) : 172, borderRadius: 15, background: `linear-gradient(135deg, ${hellooHue(String(m.id))}33, ${hellooHue(String(m.id) + "x")}66)` }} />}</button>{m.text ? <span style={{ display: "block", padding: "6px 8px 14px" }}>{m.text}</span> : null}</span> : m.text}<span style={{ display: "inline-flex", alignItems: "center", fontSize: 10, color: mine ? "rgba(255,255,255,0.75)" : T.inkFaint, marginLeft: 8, verticalAlign: "bottom", position: m.kind === "photo" ? "absolute" : "static", right: 10, bottom: 8 }}>{hellooClock(m.at)}{mine && <HellooTick read={m.read} delivered={m.delivered} seenAt={m.seenAt} />}</span></span>}</div>;
 }
 
 function HellooThreadScreen({ me, chat, onBack, onCall, onVideo, onMore, onPay, onAttach, onMenu, draft = "", onDraft, onSend, typing = false, ownerView = false, quickReplies = [], strip = null, paidPrice = 0, mode = "personal", onMode, onWriteLetter, recording = null, onMic, onCancelRecording, hasOlder = false, onLoadOlder, onMessageHold, replyTo = null, onCancelReply, composerNote = null, onOpenPerson, paidCurrency, shopOpenLine = "", children }) {
@@ -77793,7 +77809,7 @@ function HellooCallsHome({ me, calls = [], onCallBack, onInfo, onOpenDial, onAdd
   const scrollTimer = useRefH12(null);
   const onScroll = () => { setScrolling(true); clearTimeout(scrollTimer.current); scrollTimer.current = setTimeout(() => setScrolling(false), 650); };
   const shown = filter === "missed" ? calls.filter((c) => c.missed) : calls;
-  const line = (c) => `${c.video ? "Video" : "Voice"}${c.status === "ended" && c.seconds ? ` · ${hellooDuration(c.seconds)}` : c.missed ? " · Missed" : c.status === "declined" ? " · Declined" : c.status === "cancelled" ? " · Cancelled" : ""}`;
+  const line = (c) => `${c.video ? "Video" : "Voice"}${c.status === "ended" && c.seconds ? ` · ${hellooDurationHms(c.seconds)}` : c.missed ? " · Missed" : c.status === "declined" ? " · Declined" : c.status === "cancelled" ? " · Cancelled" : ""}`;
   const dayOf = (d) => { const x = new Date(d); return `${x.getFullYear()}-${x.getMonth()}-${x.getDate()}`; };
   const rows = [];
   let lastDay = null;
@@ -78694,6 +78710,7 @@ function hellooBubbleFrom(m, meAccountId, theyReadAt, voiceState, names) {
     at,
     delivered: Boolean(m.id),
     read: Boolean(mine && m.id && theyReadAt && new Date(theyReadAt) >= at),
+    seenAt: mine && m.id && theyReadAt && new Date(theyReadAt) >= at ? theyReadAt : null,
     pending: !m.id
   };
   if (m.replyTo) {

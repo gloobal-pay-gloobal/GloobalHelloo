@@ -61,7 +61,7 @@ function HellooCallsHome({ me, calls = [], onCallBack, onInfo, onOpenDial, onAdd
   const scrollTimer = useRefH12(null);
   const onScroll = () => { setScrolling(true); clearTimeout(scrollTimer.current); scrollTimer.current = setTimeout(() => setScrolling(false), 650); };
   const shown = filter === "missed" ? calls.filter((c) => c.missed) : calls;
-  const line = (c) => `${c.video ? "Video" : "Voice"}${c.status === "ended" && c.seconds ? ` · ${hellooDuration(c.seconds)}` : c.missed ? " · Missed" : c.status === "declined" ? " · Declined" : c.status === "cancelled" ? " · Cancelled" : ""}`;
+  const line = (c) => `${c.video ? "Video" : "Voice"}${c.status === "ended" && c.seconds ? ` · ${hellooDurationHms(c.seconds)}` : c.missed ? " · Missed" : c.status === "declined" ? " · Declined" : c.status === "cancelled" ? " · Cancelled" : ""}`;
   const dayOf = (d) => { const x = new Date(d); return `${x.getFullYear()}-${x.getMonth()}-${x.getDate()}`; };
   const rows = [];
   let lastDay = null;

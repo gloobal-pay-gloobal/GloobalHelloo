@@ -250,6 +250,7 @@ function hellooBubbleFrom(m, meAccountId, theyReadAt, voiceState, names) {
     at,
     delivered: Boolean(m.id),
     read: Boolean(mine && m.id && theyReadAt && new Date(theyReadAt) >= at),
+    seenAt: mine && m.id && theyReadAt && new Date(theyReadAt) >= at ? theyReadAt : null,
     pending: !m.id
   };
   if (m.replyTo) {

@@ -125,6 +125,17 @@ function hellooWhen(at, now = Date.now()) {
   if (diff < 48 * 3600e3) return "Yesterday";
   return d.toLocaleDateString("en-GB", { day: "numeric", month: "short" });
 }
+// How long a call lasted, as written in a chat or the calls list:
+// "20s", "4m 05s", "1h 05m 20s".
+function hellooDurationHms(s) {
+  const t = Math.max(0, Math.round(Number(s) || 0));
+  const h = Math.floor(t / 3600), m = Math.floor((t % 3600) / 60), sec = t % 60;
+  const two = (n) => String(n).padStart(2, "0");
+  if (h) return `${h}h ${two(m)}m ${two(sec)}s`;
+  if (m) return `${m}m ${two(sec)}s`;
+  return `${sec}s`;
+}
+
 function hellooDuration(s) {
   const m = Math.floor(s / 60), r = s % 60;
   return `${m}:${String(r).padStart(2, "0")}`;
