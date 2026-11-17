@@ -22,11 +22,25 @@ function hellooPrefersDark() {
 // held together. Green behind, "People you know · Free · 0 CEL"; pink in
 // front, "Strangers · They pay · +3 CEL" — the price of reaching you, read
 // at a glance. The HELLOO name stands above the mark; a globe sits in the
-// top-right corner; "by GLOOBAL" is centred at the foot under a line that
-// fills while the server wakes. The globe sits at the left of the name's
+// top-right corner; "by GLOOBAL" is centred at the foot. The globe sits at the left of the name's
 // line (17 Nov). A tap goes on at once. Someone already
 // signed in sees only the name and mark on the way to their chats.
 var HELLOO_SPLASH_MS = 2600;
+// The money sign beside CEL on the tickets: 1 CEL is 1 unit of your own
+// money, so the stub reads "CEL | ₹" the way GLOOBAL's home card does.
+// Whose money: the account on this phone if there is one, else the region
+// the phone's own language setting names ("en-IN" → India). With neither,
+// CEL stands alone rather than naming somebody else's money.
+function hellooSplashMoneySign() {
+  try {
+    let code = typeof geuLensOwnCurrency === "function" ? geuLensOwnCurrency() : null;
+    if (!code && typeof navigator === "object") {
+      const langs = (navigator.languages && navigator.languages.length ? navigator.languages : [navigator.language]).filter(Boolean);
+      for (const l of langs) { const m = /-([A-Z]{2})\b/.exec(String(l)); if (m && COUNTRY_CURRENCY[m[1]]) { code = COUNTRY_CURRENCY[m[1]]; break; } }
+    }
+    return code && typeof CURRENCY_SYMBOL === "object" ? CURRENCY_SYMBOL[code] || code : "";
+  } catch (e) { return ""; }
+}
 var HELLOO_SPLASH_LINE = "Number private · Pay in the chat · Every country";
 function HellooSplashTicket({ bg, page, label, big, sub, stub, stubSub, rot = 0, style, delay = 0, z = 1 }) {
   const notch = (pos) => <span style={{ position: "absolute", right: 82, [pos]: -10, width: 20, height: 20, borderRadius: "50%", background: page }} />;
@@ -35,16 +49,16 @@ function HellooSplashTicket({ bg, page, label, big, sub, stub, stubSub, rot = 0,
 function HellooSplash({ dark = hellooPrefersDark(), intro = false, onSkip }) {
   const ink = dark ? "#F1EEFF" : T.ink; const soft = dark ? "#B3ADCC" : T.inkSoft;
   const page = dark ? "#0F0D1F" : HT.wash;
+  const money = intro ? hellooSplashMoneySign() : "";
   const brand = (markSize, nameSize) => <div style={{ display: "flex", flexDirection: "column", alignItems: "center" }}><div style={{ fontSize: nameSize, letterSpacing: -0.5, color: ink }}><HellooWordmark /></div><div style={{ marginTop: 14 }}><HellooMark size={markSize} /></div></div>;
   if (!intro) return <HellooScreen style={{ alignItems: "center", justifyContent: "center", background: page, color: ink }}>{brand(104, 34)}<div style={{ marginTop: 14, fontSize: 12, color: soft, display: "flex", alignItems: "center", gap: 6 }}>by <GloobalWordmark /></div></HellooScreen>;
   return <HellooScreen onClick={onSkip} style={{ alignItems: "center", background: page, color: ink, padding: "calc(18px + env(safe-area-inset-top, 0px)) 22px calc(18px + env(safe-area-inset-bottom, 0px))", cursor: "pointer" }}>
     <div style={{ position: "relative", width: "100%", display: "flex", alignItems: "center", justifyContent: "center" }}><span aria-label="Every country" style={{ position: "absolute", left: 0, display: "flex" }}><HlGlobe size={26} color={T.accent} /></span><span style={{ fontSize: 28, letterSpacing: -0.4, color: ink }}><HellooWordmark /></span></div>
     <div style={{ marginTop: 14 }}><HellooMark size={64} /></div>
-    <div data-testid="helloo-splash-tickets" style={{ flex: 1, width: "100%", display: "flex", alignItems: "center", justifyContent: "center" }}><div style={{ position: "relative", width: "100%", height: 270 }}><HellooSplashTicket bg="#10B981" page={page} label="People you know" big="Free" sub="calls and chats, every country" stub="0" stubSub="CEL" rot={-5} delay={0.1} z={1} style={{ left: 0, right: 16, top: 0 }} /><HellooSplashTicket bg="#F0447C" page={page} label="Strangers" big="They pay" sub="your price to reach you, or they ask" stub="+3" stubSub="CEL" rot={3} delay={0.55} z={2} style={{ left: 16, right: 0, top: 128 }} /></div></div>
+    <div data-testid="helloo-splash-tickets" style={{ flex: 1, width: "100%", display: "flex", alignItems: "center", justifyContent: "center" }}><div style={{ position: "relative", width: "100%", height: 270 }}><HellooSplashTicket bg="#10B981" page={page} label="People you know" big="Free" sub="calls and chats, every country" stub="0" stubSub={money ? `CEL | ${money}` : "CEL"} rot={-5} delay={0.1} z={1} style={{ left: 0, right: 16, top: 0 }} /><HellooSplashTicket bg="#F0447C" page={page} label="Strangers" big="They pay" sub="your price to reach you, or they ask" stub="+3" stubSub={money ? `CEL | ${money}` : "CEL"} rot={3} delay={0.55} z={2} style={{ left: 16, right: 0, top: 128 }} /></div></div>
     <div data-testid="helloo-splash-points" style={{ fontSize: 12.5, fontWeight: 700, color: soft, textAlign: "center" }}>{HELLOO_SPLASH_LINE}</div>
-    <div aria-hidden="true" style={{ width: "100%", marginTop: 16, height: 3, borderRadius: 3, background: dark ? "rgba(255,255,255,0.12)" : "rgba(23,19,43,0.08)", overflow: "hidden" }}><span style={{ display: "block", height: "100%", width: "100%", background: T.accent, transformOrigin: "left", animation: `hlSplashFill ${HELLOO_SPLASH_MS}ms linear forwards` }} /></div>
-    <div data-testid="helloo-splash-foot" style={{ marginTop: 12, fontSize: 12, color: soft, display: "flex", alignItems: "center", gap: 6 }}>by <GloobalWordmark /></div>
-    <style>{"@keyframes hlSplashFill{from{transform:scaleX(0)}to{transform:scaleX(1)}}@keyframes hlTicketIn{from{transform:translateY(24px) rotate(0deg);opacity:0}to{transform:rotate(var(--r));opacity:1}}@media (prefers-reduced-motion: reduce){[data-testid=helloo-splash-tickets] *{animation:none!important}}"}</style>
+    <div data-testid="helloo-splash-foot" style={{ marginTop: 14, fontSize: 12, color: soft, display: "flex", alignItems: "center", gap: 6 }}>by <GloobalWordmark /></div>
+    <style>{"@keyframes hlTicketIn{from{transform:translateY(24px) rotate(0deg);opacity:0}to{transform:rotate(var(--r));opacity:1}}@media (prefers-reduced-motion: reduce){[data-testid=helloo-splash-tickets] *{animation:none!important}}"}</style>
   </HellooScreen>;
 }
 
