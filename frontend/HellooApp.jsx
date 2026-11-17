@@ -431,6 +431,7 @@ function HellooRoot() {
   const backToContactsRef = useRefH9(false);
   const openChat = useCallbackH9((chatId) => {
     backToContactsRef.current = false;
+    setFreshFrom((f) => (f[chatId] ? Object.assign({}, f, { [chatId]: 0 }) : f));
     setOpenId(chatId);
     setSheet(null);
     setReplyTo(null);
@@ -440,15 +441,43 @@ function HellooRoot() {
 
   // `face` is "self" when it was the person who was found (by their mobile
   // number), not the shop the same account runs.
+  // A chat you keep private, reached by their GLOOBAL ID (not its name),
+  // opens as a fresh chat: nothing before now, their own name at the top.
+  // Only typing its whole name shows the private chat itself.
+  const [freshFrom, setFreshFrom] = useStateH9({});
+  // Releasing a private chat once: { chatId, pin, busy, error, mode: "give" | "take" }.
+  const [release, setRelease] = useStateH9(null);
+  const runRelease = async () => {
+    if (!release || release.busy || !release.pin) return;
+    setRelease(Object.assign({}, release, { busy: true, error: "" }));
+    try {
+      if (release.mode === "give") {
+        await hellooApi.releaseChat(release.chatId, release.pin);
+        setSheet(null); setRelease(null); refreshChats();
+        setToast("Released · they have 10 minutes to open it");
+      } else {
+        await hellooApi.openReleased(release.chatId, release.pin);
+        const row = (chatRows || []).find((c) => c.id === release.chatId);
+        setSheet(null); setRelease(null);
+        openChat(release.chatId);
+        // They must give it a name again before reading it: private again.
+        if (row) setTimeout(() => openNameEdit(row, true), 50);
+      }
+    } catch (err) {
+      setRelease((now) => (now ? Object.assign({}, now, { busy: false, pin: "", error: (err && err.message) || "That didn't work. Try again." }) : now));
+    }
+  };
   const openChatWith = useCallbackH9(async (who, profile, fromContacts, face) => {
     try {
       const r = await hellooApi.open(who, face);
       const chat = r && r.chat;
       if (!chat || !chat.id) throw new Error("Could not open that chat.");
+      const keptPrivate = Boolean(chat.private || (chatRows || []).some((c) => c.id === chat.id && c.private));
       setThreads((all) => (all[chat.id] ? all : Object.assign({}, all, { [chat.id]: { chat, messages: [], more: false, loaded: false } })));
       setScreen(profile ? "contact" : null);
       setSheet(null);
       openChat(chat.id);
+      if (keptPrivate) setFreshFrom((f) => Object.assign({}, f, { [chat.id]: Date.now() }));
       backToContactsRef.current = Boolean(fromContacts);
       refreshContacts();
     } catch (err) {
@@ -516,6 +545,7 @@ function HellooRoot() {
       refreshChats();
       return;
     }
+    if (frame.type === "release") { refreshChats(); return; }
     if (frame.type === "ask") {
       refreshAsks();
       return;
@@ -1035,14 +1065,16 @@ function HellooRoot() {
   const [contactQuery, setContactQuery] = useStateH9("");
   // Naming a chat and making it private: { chatId, name, isPrivate, busy, error }.
   const [nameEdit, setNameEdit] = useStateH9(null);
-  // "Forgot a private name?": the GLOOBAL PIN shows your private chats' names.
-  const [recover, setRecover] = useStateH9({ pin: "", busy: false, error: "", names: null });
-  const openNameEdit = (chat) => { setNameEdit({ chatId: chat.id, name: chat.savedName || "", isPrivate: Boolean(chat.private), busy: false, error: "" }); setSheet("savename"); };
+  const openNameEdit = (chat, forced = false) => { setNameEdit({ chatId: chat.id, name: forced ? "" : chat.savedName || "", again: "", wasPrivate: forced ? false : Boolean(chat.private), oldName: forced ? "" : chat.savedName || "", isPrivate: forced ? true : Boolean(chat.private), forced, busy: false, error: "" }); setSheet("savename"); };
   const saveNameEdit = async () => {
     if (!nameEdit || nameEdit.busy) return;
     const name = String(nameEdit.name || "").replace(/\s+/g, " ").trim();
     if (nameEdit.isPrivate && name.length < HELLOO_PRIVATE_NAME_MIN) { setNameEdit(Object.assign({}, nameEdit, { error: `A private chat needs a name of ${HELLOO_PRIVATE_NAME_MIN} characters or more.` })); return; }
     if (name && (chatRows || []).some((c) => c.id !== nameEdit.chatId && hellooNameKey(c.savedName) === hellooNameKey(name))) { setNameEdit(Object.assign({}, nameEdit, { error: "You already use that name for another chat." })); return; }
+    // Private has no way back, so its name is typed twice — whenever the
+    // chat becomes private or its private name changes.
+    const needsAgain = nameEdit.isPrivate && (!nameEdit.wasPrivate || hellooNameKey(name) !== hellooNameKey(nameEdit.oldName));
+    if (needsAgain && hellooNameKey(nameEdit.again || "") !== hellooNameKey(name)) { setNameEdit(Object.assign({}, nameEdit, { error: "The two names are not the same. Type it again, exactly." })); return; }
     setNameEdit(Object.assign({}, nameEdit, { busy: true, error: "" }));
     try {
       await hellooApi.prefs(nameEdit.chatId, { savedName: name, private: nameEdit.isPrivate });
@@ -1056,18 +1088,9 @@ function HellooRoot() {
       setNameEdit((now) => (now ? Object.assign({}, now, { busy: false, error: (err && err.message) || "Could not save that right now." }) : now));
     }
   };
-  const runRecover = async () => {
-    if (recover.busy || !recover.pin) return;
-    setRecover(Object.assign({}, recover, { busy: true, error: "" }));
-    try {
-      await GloobalApi.verifyPin(user.symbolId, recover.pin);
-      setRecover({ pin: "", busy: false, error: "", names: (chatRows || []).filter((c) => c.private).map((c) => ({ id: c.id, name: c.savedName })) });
-    } catch (err) {
-      setRecover({ pin: "", busy: false, error: (err && err.message) || "That PIN wasn't recognized.", names: null });
-    }
-  };
-  const nameSheet = nameEdit && <HellooSheet label="Name this chat" onClose={() => { setSheet(null); setNameEdit(null); }}><div style={{ fontSize: 16, fontWeight: 800, color: T.ink, fontFamily: T.fontDisplay }}>Name this chat</div><div style={{ fontSize: 12.5, color: T.inkSoft, marginTop: 4, lineHeight: 1.45 }}>Your own name for it. Only you see it — letters, numbers or symbols.</div><input data-testid="helloo-saved-name" value={nameEdit.name} maxLength={40} autoComplete="off" autoCorrect="off" autoCapitalize="off" spellCheck={false} placeholder="Papa, ()+, anything" onChange={(e) => setNameEdit(Object.assign({}, nameEdit, { name: e.target.value, error: "" }))} style={{ width: "100%", boxSizing: "border-box", marginTop: 12, height: 46, borderRadius: 14, border: `1px solid ${T.line}`, background: T.surface, color: T.ink, fontSize: 15, fontWeight: 700, fontFamily: T.fontBody, padding: "0 14px", outline: "none" }} /><button type="button" role="switch" aria-checked={nameEdit.isPrivate} data-testid="helloo-private-switch" onClick={() => setNameEdit(Object.assign({}, nameEdit, { isPrivate: !nameEdit.isPrivate, error: "" }))} style={{ width: "100%", display: "flex", alignItems: "center", gap: 12, marginTop: 14, padding: 0, border: "none", background: "none", cursor: "pointer", textAlign: "left", fontFamily: T.fontBody }}><span style={{ flex: 1, minWidth: 0 }}><span style={{ display: "block", fontSize: 14, fontWeight: 800, color: T.ink }}>Private chat</span><span style={{ display: "block", fontSize: 12, color: T.inkSoft, marginTop: 2, lineHeight: 1.45 }}>Appears only when you type its whole name. No notification, no count, no sound — you see new messages when you open it.</span></span><span aria-hidden="true" style={{ width: 44, height: 26, borderRadius: 999, background: nameEdit.isPrivate ? T.accent : T.line, position: "relative", flexShrink: 0 }}><span style={{ position: "absolute", top: 3, left: nameEdit.isPrivate ? 21 : 3, width: 20, height: 20, borderRadius: "50%", background: "#fff", transition: "left .18s" }} /></span></button>{nameEdit.error ? <div data-testid="helloo-name-error" style={{ marginTop: 10, fontSize: 12.5, fontWeight: 700, color: "#DC2626" }}>{nameEdit.error}</div> : null}<div style={{ marginTop: 16 }}><HellooPrimary onClick={saveNameEdit} disabled={nameEdit.busy}>{nameEdit.busy ? "Saving…" : "Save"}</HellooPrimary></div></HellooSheet>;
-  const recoverSheet = <HellooSheet label="Your private chats" onClose={() => { setSheet(null); setRecover({ pin: "", busy: false, error: "", names: null }); }}><div style={{ fontSize: 16, fontWeight: 800, color: T.ink, fontFamily: T.fontDisplay }}>Your private chats</div>{recover.names ? <><div style={{ fontSize: 12.5, color: T.inkSoft, marginTop: 4, lineHeight: 1.45 }}>Tap one to open it. This list closes when you leave.</div><div style={{ marginTop: 10 }}>{recover.names.map((n) => <button key={n.id} data-testid="helloo-recovered-name" onClick={() => { setSheet(null); setRecover({ pin: "", busy: false, error: "", names: null }); openChat(n.id); }} style={{ width: "100%", textAlign: "left", padding: "12px 2px", border: "none", borderTop: `1px solid ${T.line}`, background: "none", cursor: "pointer", fontSize: 15, fontWeight: 800, color: T.ink, fontFamily: T.fontBody }}>{n.name}</button>)}</div></> : <><div style={{ fontSize: 12.5, color: T.inkSoft, marginTop: 4, lineHeight: 1.45 }}>Enter your GLOOBAL PIN to see the names you saved them under.</div><input data-testid="helloo-recover-pin" type="password" inputMode="numeric" autoComplete="off" value={recover.pin} maxLength={12} onChange={(e) => setRecover(Object.assign({}, recover, { pin: e.target.value.replace(/[^0-9]/g, ""), error: "" }))} placeholder="PIN" style={{ width: "100%", boxSizing: "border-box", marginTop: 12, height: 46, borderRadius: 14, border: `1px solid ${T.line}`, background: T.surface, color: T.ink, fontSize: 18, fontWeight: 800, letterSpacing: 4, fontFamily: T.fontBody, padding: "0 14px", outline: "none" }} />{recover.error ? <div style={{ marginTop: 10, fontSize: 12.5, fontWeight: 700, color: "#DC2626" }}>{recover.error}</div> : null}<div style={{ marginTop: 16 }}><HellooPrimary onClick={runRecover} disabled={recover.busy || !recover.pin}>{recover.busy ? "Checking…" : "Show them"}</HellooPrimary></div></>}</HellooSheet>;
+  const releaseSheet = release && <HellooSheet label={release.mode === "give" ? "Release once for them" : "Open the released chat"} onClose={() => { setSheet(null); setRelease(null); }}><div data-testid="helloo-release-sheet"><div style={{ fontSize: 16, fontWeight: 800, color: T.ink, fontFamily: T.fontDisplay }}>{release.mode === "give" ? "Release once for them" : "A private chat, released for you"}</div><div style={{ fontSize: 12.5, color: T.inkSoft, marginTop: 6, lineHeight: 1.5 }}>{release.mode === "give" ? "For when they forgot what they saved this chat as. They see it once, within 10 minutes, after their own PIN — then they name it again and it is private again. Your name for it stays yours. Once a day at most." : "Enter your GLOOBAL PIN to open it, then give it a name. It becomes private again the moment you save."}</div><input data-testid="helloo-release-pin" type="password" inputMode="numeric" autoComplete="off" maxLength={8} value={release.pin} onChange={(e) => setRelease(Object.assign({}, release, { pin: e.target.value.replace(/\D/g, ""), error: "" }))} placeholder="Your GLOOBAL PIN" style={{ width: "100%", boxSizing: "border-box", marginTop: 14, height: 48, borderRadius: 14, border: `1px solid ${T.line}`, background: T.surface, color: T.ink, fontSize: 18, letterSpacing: 6, fontWeight: 800, fontFamily: T.fontBody, padding: "0 14px", outline: "none", textAlign: "center" }} />{release.error ? <div data-testid="helloo-release-error" style={{ marginTop: 10, fontSize: 12.5, fontWeight: 700, color: "#DC2626" }}>{release.error}</div> : null}<div style={{ marginTop: 14 }}><HellooPrimary onClick={runRelease} disabled={release.busy || release.pin.length < 4}>{release.busy ? "Checking…" : release.mode === "give" ? "Release once" : "Open"}</HellooPrimary></div></div></HellooSheet>;
+  const nameNeedsAgain = Boolean(nameEdit && nameEdit.isPrivate && (!nameEdit.wasPrivate || hellooNameKey(String(nameEdit.name || "").trim()) !== hellooNameKey(nameEdit.oldName)));
+  const nameSheet = nameEdit && <HellooSheet label="Name this chat" onClose={() => { const forced = nameEdit && nameEdit.forced; setSheet(null); setNameEdit(null); if (forced) { setOpenId(null); setToast("Not saved · the chat is hidden again"); } }}><div style={{ fontSize: 16, fontWeight: 800, color: T.ink, fontFamily: T.fontDisplay }}>Name this chat</div><div style={{ fontSize: 12.5, color: T.inkSoft, marginTop: 4, lineHeight: 1.45 }}>Your own name for it. Only you see it — letters, numbers or symbols.</div><input data-testid="helloo-saved-name" value={nameEdit.name} maxLength={40} autoComplete="off" autoCorrect="off" autoCapitalize="off" spellCheck={false} placeholder="Papa, ()+, anything" onChange={(e) => setNameEdit(Object.assign({}, nameEdit, { name: e.target.value, error: "" }))} style={{ width: "100%", boxSizing: "border-box", marginTop: 12, height: 46, borderRadius: 14, border: `1px solid ${T.line}`, background: T.surface, color: T.ink, fontSize: 15, fontWeight: 700, fontFamily: T.fontBody, padding: "0 14px", outline: "none" }} /><button type="button" role="switch" aria-checked={nameEdit.isPrivate} data-testid="helloo-private-switch" onClick={() => setNameEdit(Object.assign({}, nameEdit, { isPrivate: !nameEdit.isPrivate, error: "" }))} style={{ width: "100%", display: "flex", alignItems: "center", gap: 12, marginTop: 14, padding: 0, border: "none", background: "none", cursor: "pointer", textAlign: "left", fontFamily: T.fontBody }}><span style={{ flex: 1, minWidth: 0 }}><span style={{ display: "block", fontSize: 14, fontWeight: 800, color: T.ink }}>Private chat</span><span style={{ display: "block", fontSize: 12, color: T.inkSoft, marginTop: 2, lineHeight: 1.45 }}>Appears only when you type its whole name. No notification, no count, no sound — you see new messages when you open it.</span></span><span aria-hidden="true" style={{ width: 44, height: 26, borderRadius: 999, background: nameEdit.isPrivate ? T.accent : T.line, position: "relative", flexShrink: 0 }}><span style={{ position: "absolute", top: 3, left: nameEdit.isPrivate ? 21 : 3, width: 20, height: 20, borderRadius: "50%", background: "#fff", transition: "left .18s" }} /></span></button>{nameNeedsAgain ? <><input data-testid="helloo-saved-name-again" value={nameEdit.again || ""} maxLength={40} autoComplete="off" autoCorrect="off" autoCapitalize="off" spellCheck={false} placeholder="Type the name again" onChange={(e) => setNameEdit(Object.assign({}, nameEdit, { again: e.target.value, error: "" }))} style={{ width: "100%", boxSizing: "border-box", marginTop: 12, height: 46, borderRadius: 14, border: `1px solid ${T.line}`, background: T.surface, color: T.ink, fontSize: 15, fontWeight: 700, fontFamily: T.fontBody, padding: "0 14px", outline: "none" }} /><div data-testid="helloo-private-warning" style={{ display: "flex", gap: 10, marginTop: 12, padding: "11px 12px", borderRadius: 14, background: "#FEF3C7", color: "#7C4A03", fontSize: 12.5, lineHeight: 1.45, fontWeight: 600 }}><HlLock size={16} color="#B45309" style={{ flexShrink: 0, marginTop: 1 }} /><span><b>There is no recovery.</b> If you forget this name, nobody can find this chat — not even you. If you both keep it private, they can release it once for you.</span></div></> : null}{nameEdit.error ? <div data-testid="helloo-name-error" style={{ marginTop: 10, fontSize: 12.5, fontWeight: 700, color: "#DC2626" }}>{nameEdit.error}</div> : null}<div style={{ marginTop: 16 }}><HellooPrimary onClick={saveNameEdit} disabled={nameEdit.busy}>{nameEdit.busy ? "Saving…" : "Save"}</HellooPrimary></div></HellooSheet>;
   const [call, setCall] = useStateH9(null); // { id, person, video, direction, state, seconds, muted, cameraOff, speaker, iceServers, chatId, note }
   // A call made small: it carries on (its screen stays mounted, hidden, so
   // the sound and video keep flowing) while a bar at the top leads back.
@@ -1305,8 +1328,10 @@ function HellooRoot() {
     const rowNow = (chatRows || []).find((c) => c.id === openId);
     const muted = Boolean((rowNow && rowNow.muted) || (serverChat && serverChat.muted));
     const person = serverChat ? hellooPersonFrom(serverChat.person, photos) : { id: "", name: "…", country: "" };
-    // The name at the top is the one you saved this chat under.
-    if (rowNow && rowNow.savedName) { person.accountName = person.name; person.name = rowNow.savedName; }
+    // The name at the top is the one you saved this chat under — except a
+    // private chat reached by their ID, which shows only from now.
+    const fresh = freshFrom[openId] || 0;
+    if (rowNow && rowNow.savedName && !fresh) { person.accountName = person.name; person.name = rowNow.savedName; }
     const pres = presence[person.accountId];
     const iBlocked = isBlocked(person.accountId);
     if (pres && !iBlocked) {
@@ -1314,7 +1339,7 @@ function HellooRoot() {
       const seen = hellooLastSeenText(pres.lastSeenAt);
       if (!pres.online && seen) person.lastSeen = seen.replace(/^last seen /, "");
     }
-    const allMsgs = thread ? thread.messages : [];
+    const allMsgs = thread ? (fresh ? thread.messages.filter((m) => !m.at || new Date(m.at).getTime() >= fresh - 2000) : thread.messages) : [];
     const msgs = chatPeriod && chatPeriod !== "all" ? allMsgs.filter((m) => !m.at || hellooInPeriod(m.at, chatPeriod)) : allMsgs;
     msgs.forEach((m) => { if (m.kind === "photo" && m.id && !m.localSrc && !mediaUrls[m.id]) loadMedia(m.id); });
     const firstName = (person.name || "").split(" ")[0];
@@ -1352,7 +1377,9 @@ function HellooRoot() {
       // messages may show on Home.
       hellooIsBusiness(person)
         ? [HlBellOff, rowNow && rowNow.offHome ? "Show on home" : "Hide from home", false, null, () => { setSheet(null); if (rowNow) { setPrefs(openId, { offHome: !rowNow.offHome }); setToast(rowNow.offHome ? "Its paid messages show on home again" : "Kept off home · find it by typing its name"); } }]
-        : [HlPencil, rowNow && rowNow.private ? "Private chat · change name" : rowNow && rowNow.savedName ? "Change name · make private" : "Name this chat · make private", false, null, () => { if (rowNow) openNameEdit(rowNow); }],
+        : fresh ? null : [HlPencil, rowNow && rowNow.private ? "Private chat · change name" : rowNow && rowNow.savedName ? "Change name · make private" : "Name this chat · make private", false, null, () => { if (rowNow) openNameEdit(rowNow); }],
+      // Both keep it private and they forgot their name: let them see it once.
+      ...(!fresh && rowNow && rowNow.private && !hellooIsBusiness(person) ? [[HlLock, rowNow.releaseState ? `Release once for them · ${rowNow.releaseState.state === "opened" ? "opened" : rowNow.releaseState.state === "waiting" ? "waiting" : "ended"}` : "Release once for them", false, null, () => { setRelease({ chatId: openId, pin: "", busy: false, error: "", mode: "give" }); setSheet("release"); }]] : []),
       [HlBellOff, muted ? "Unmute notifications" : "Mute notifications", false, null, () => { setSheet(null); setPrefs(openId, { muted: !muted }); setToast(muted ? "Notifications on for this chat" : "Muted · no notifications from this chat"); }],
       // Who can reach me, just for this person: Free, Pays per message, Never.
       ...(!hellooIsBusiness(person) && !iBlocked ? [[HlRupee, "Who can reach me", false, null, () => { loadPersonReach(person.accountId); setSheet("reach-person"); }]] : []),
@@ -1378,8 +1405,9 @@ function HellooRoot() {
       {sheet === "shopmenu" && <HellooShopMenuSheet shop={person} items={menu.items} basket={menu.basket} onAdd={(it) => menuBump(it, 1)} onRemove={(it) => menuBump(it, -1)} totalText={hellooMoneyText(menuTotal, menuCurrency)} note={menu.note} onNote={(v) => setMenu((m) => Object.assign({}, m, { note: v }))} busy={menu.busy} error={menu.error} loadError={menu.loadError} paidAlready={Boolean(menu.paidRef)} onPay={() => (menu.paidRef ? orderNow(person, openId, "") : setOrderPinOpen(true))} onClose={() => { if (!menu.busy) setSheet(null); }} />}
       <PayPinModal open={orderPinOpen} onClose={() => setOrderPinOpen(false)} amountLabel={hellooMoneyText(menuTotal, menuCurrency)} onVerified={(pinValue) => orderNow(person, openId, pinValue)} />
       {sheet === "attach" && <HellooAttachSheet onClose={() => setSheet(null)} items={[[HlImage, "Gallery", "#7C3AED", () => galleryRef.current && galleryRef.current.click()], [HlCamera, "Camera", "#DB2777", () => cameraRef.current && cameraRef.current.click()], [HlRupee, "Pay", "#0B7A57", () => { setPay({ amount: "", note: "", busy: false, error: "" }); setSheet("pay"); }]]} />}
-      {sheet === "menu" && <HellooThreadMenu chat={{ person: Object.assign({}, person, { id: person.gloobalId }) }} items={menuItems} onClose={() => setSheet(null)} />}
+      {sheet === "menu" && <HellooThreadMenu chat={{ person: Object.assign({}, person, { id: person.gloobalId }) }} items={menuItems.filter(Boolean)} onClose={() => setSheet(null)} />}
       {sheet === "savename" && nameSheet}
+      {sheet === "release" && release && releaseSheet}
       {sheet === "find-date" && <HellooDateSheet title="Find messages by date" value={chatPeriod || "all"} marks={new Set(allMsgs.filter((m) => m.at).map((m) => hellooDayKey(new Date(m.at))))} onClose={() => setSheet(null)} onPick={(k) => { setSheet(null); setChatPeriod(k === "all" ? null : k); }} />}
       {sheet === "reach-person" && <HellooSheet label="Who can reach me" onClose={() => setSheet(null)}><div style={{ fontSize: 16, fontWeight: 800, fontFamily: T.fontDisplay, color: T.ink }}>Who can reach me</div><div style={{ fontSize: 12.5, color: T.inkSoft, margin: "3px 0 12px" }}>Just for {firstName}. Everyone else follows your usual settings.</div><HellooReachChoice who={firstName} reach={together[person.accountId] && together[person.accountId].reachMode ? together[person.accountId] : null} busy={reachBusy} onChange={(mode, price) => setPersonReach(person.accountId, mode, price)} /></HellooSheet>}
       {sheet === "confirm-clear" && <HellooSheet label="Clear chat" onClose={() => setSheet(null)}><div style={{ fontSize: 15, fontWeight: 800, color: T.ink }}>Clear this chat?</div><div style={{ fontSize: 13, color: T.inkSoft, marginTop: 6, lineHeight: 1.45 }}>Every message disappears for you. {firstName} still has them. Payments stay in your GLOOBAL history.</div><div style={{ display: "flex", gap: 10, marginTop: 16 }}><HellooSecondary onClick={() => setSheet(null)}>Cancel</HellooSecondary><HellooPrimary color={T.negative} onClick={() => { setSheet(null); clearChat(openId, false); }}>Clear chat</HellooPrimary></div></HellooSheet>}
@@ -1450,7 +1478,7 @@ function HellooRoot() {
     // Typed, and nothing found: say nothing. "No chat matches" for a near
     // miss and silence for the rest would tell a guesser which is which.
     : q ? null
-    : rows.length ? <HellooCard style={{ padding: "20px 16px", textAlign: "center" }}><div data-testid="helloo-home-count" style={{ fontSize: 15, fontWeight: 800, color: T.ink, fontFamily: T.fontDisplay }}>{unreadOwn > 0 ? `${unreadOwn} new ${unreadOwn === 1 ? "message" : "messages"}${unreadChats > 1 ? ` in ${unreadChats} chats` : ""}` : paidCards.length ? "Nothing else new" : "Nothing new"}</div><div style={{ fontSize: 12.5, color: T.inkSoft, marginTop: 5, lineHeight: 1.5 }}>Your chats stay off this screen. Type a name above to open one.</div>{rows.some((c) => c.private) ? <button data-testid="helloo-forgot-private" onClick={() => { setRecover({ pin: "", busy: false, error: "", names: null }); setSheet("recover"); }} style={{ marginTop: 12, border: "none", background: "none", padding: 0, cursor: "pointer", color: T.accent, fontSize: 12.5, fontWeight: 700, fontFamily: T.fontBody }}>Forgot a private name?</button> : null}</HellooCard>
+    : rows.length ? <>{rows.filter((c) => c.released && new Date(c.released.expiresAt).getTime() > Date.now()).map((c) => <button key={"rel" + c.id} data-testid="helloo-released-card" onClick={() => { setRelease({ chatId: c.id, pin: "", busy: false, error: "", mode: "take" }); setSheet("release"); }} className="v2-tap" style={{ width: "100%", display: "flex", alignItems: "center", gap: 12, marginBottom: 10, padding: "14px 16px", borderRadius: 18, border: `1px dashed ${T.accent}`, background: T.accentSoft, cursor: "pointer", textAlign: "left", fontFamily: T.fontBody }}><span style={{ width: 40, height: 40, borderRadius: "50%", background: T.accent, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}><HlLock size={18} color="#fff" /></span><span style={{ flex: 1, minWidth: 0 }}><span style={{ display: "block", fontSize: 14.5, fontWeight: 800, color: T.ink }}>A private chat was released for you</span><span style={{ display: "block", fontSize: 12, color: T.inkSoft, marginTop: 2 }}>Open it with your PIN within {Math.max(1, Math.ceil((new Date(c.released.expiresAt).getTime() - Date.now()) / 60000))} min</span></span><HlChevron size={18} color={T.accent} /></button>)}<HellooCard style={{ padding: "20px 16px", textAlign: "center" }}><div data-testid="helloo-home-count" style={{ fontSize: 15, fontWeight: 800, color: T.ink, fontFamily: T.fontDisplay }}>{unreadOwn > 0 ? `${unreadOwn} new ${unreadOwn === 1 ? "message" : "messages"}${unreadChats > 1 ? ` in ${unreadChats} chats` : ""}` : paidCards.length ? "Nothing else new" : "Nothing new"}</div><div style={{ fontSize: 12.5, color: T.inkSoft, marginTop: 5, lineHeight: 1.5 }}>Your chats stay off this screen. Type a name above to open one.</div></HellooCard></>
     : <><HellooCard style={{ padding: "18px 16px" }}><div style={{ fontSize: 16, fontWeight: 800, color: T.ink, fontFamily: T.fontDisplay }}>No chats yet</div><div style={{ fontSize: 13, color: T.inkSoft, marginTop: 4, lineHeight: 1.45 }}>{contacts.length ? "Start with someone you have paid on GLOOBAL, or dial any GLOOBAL ID." : "Dial a GLOOBAL ID or scan someone's GLOOBAL QR to start."}</div><div style={{ display: "flex", gap: 8, marginTop: 12 }}><HellooSecondary Icon={HlHash} onClick={() => { setDial({ value: "", status: "", match: null }); setSheet("dial"); }}>Dial an ID</HellooSecondary><HellooSecondary Icon={HlScan} onClick={() => setScreen("scan")}>Scan</HellooSecondary></div></HellooCard>{contacts.length > 0 && <HellooSection title="People you've paid" hint="free to message"><HellooCard>{contacts.slice(0, 12).map((p, i) => <button key={p.id} onClick={() => contactPick(p)} className="v2-tap" style={{ width: "100%", display: "flex", alignItems: "center", gap: 12, padding: "10px 14px", border: "none", borderTop: i ? `1px solid ${T.line}` : "none", background: "none", cursor: "pointer", textAlign: "left", fontFamily: T.fontBody }}><HellooAvatar person={p} size={42} /><span style={{ flex: 1, minWidth: 0 }}><span style={{ display: "block", fontSize: 14.5, fontWeight: 800, color: T.ink }}>{p.name}</span><span style={{ display: "block", fontSize: 12, color: T.inkSoft, marginTop: 2, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{p.lastPaid}</span></span><HlChat size={18} color={T.accent} /></button>)}</HellooCard></HellooSection>}</>;
 
   const themeName = (HELLOO_THEMES.find((x) => x.key === themeKey) || HELLOO_THEMES[0]).name;
@@ -1566,8 +1594,8 @@ function HellooRoot() {
     {tab === "calls" && <HellooCallsHome me={me} calls={callsAll} filter={callFilter} onFilter={setCallFilter} when={callWhen} onWhen={setCallWhen} onCallBack={(c) => startCall(c.person, c.video)} onInfo={(c) => openChatWith(c.person.accountId, true)} onOpenDial={() => { setDial({ value: "", status: "", match: null }); setSheet("dial"); }} onAdd={() => setSheet("add")} onSearch={() => { setContactQuery(""); refreshContacts(); setScreen("contacts"); }} onMe={() => setScreen("me")} />}
     {sheet === "dial" && <HellooDialSheet dial={dial.value} onDial={(v) => setDial((d) => Object.assign({}, d, { value: v }))} match={dial.match} status={dial.status} onMessage={() => dial.match && openChatWith(dial.match.gloobalId, false, false, dial.match.handle ? "" : "self")} onCall={() => { if (dial.match) { setSheet(null); startCall(dial.match, false); } }} onVideo={() => { if (dial.match) { setSheet(null); startCall(dial.match, true); } }} onClose={() => setSheet(null)} />}
     {sheet === "add" && addSheet}
+    {sheet === "release" && release && releaseSheet}
     {sheet === "savename" && nameSheet}
-    {sheet === "recover" && recoverSheet}
     {sheet === "start" && <HellooStartSheet suggested={contacts.slice(0, 8)} onPick={contactPick} onPad={() => { setDial({ value: "", status: "", match: null }); setSheet("dial"); }} onScan={() => { setSheet(null); setScreen("scan"); }} onContacts={() => { setSheet(null); setContactQuery(""); refreshContacts(); setScreen("contacts"); }} onClose={() => setSheet(null)} />}
   <HellooSideRail active={tab} onChange={(t) => { setTab(t); setSheet(null); }} badges={{ chats: unread, callsDot: missedCount > 0 }} onBazaar={() => setScreen("bazaar")} plusLabel={tab === "calls" ? "Dial a GLOOBAL ID" : "New chat or call"} onPlus={tab === "calls" ? () => { setDial({ value: "", status: "", match: null }); setSheet("dial"); } : () => setSheet("start")} /></div></div>);
 }

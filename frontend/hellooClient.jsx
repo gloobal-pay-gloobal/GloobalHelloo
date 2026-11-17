@@ -81,6 +81,10 @@ var hellooApi = {
   saveShow: (show) => hellooHttp.put("/api/helloo/faces/show", { show }),
   // Take somebody out of your contacts until you pay or chat again.
   hideContact: (accountId, hidden) => hellooHttp.post("/api/helloo/contacts/hide", { accountId, hidden }),
+  // A private chat both keep: release it once for them (your PIN), and
+  // open one released for you (your PIN, within ten minutes).
+  releaseChat: (chatId, pin) => hellooHttp.post(`/api/helloo/chats/${encodeURIComponent(chatId)}/release`, { pin }),
+  openReleased: (chatId, pin) => hellooHttp.post(`/api/helloo/chats/${encodeURIComponent(chatId)}/release/open`, { pin }),
   reachCard: (accountId) => hellooHttp.get(`/api/helloo/people/${encodeURIComponent(accountId)}/reach`),
   ask: (to, text, kind) => hellooHttp.post("/api/helloo/asks", { to, text, kind: kind || "message" }),
   asks: () => hellooHttp.get("/api/helloo/asks"),
@@ -355,7 +359,7 @@ function hellooChatRowFrom(chat, photos) {
   // that must say who they really are (a payment, their profile).
   const savedName = typeof chat.savedName === "string" ? chat.savedName : "";
   if (person && savedName) { person.accountName = person.name; person.name = savedName; }
-  return { id: chat.id, person, unread: chat.unread || 0, muted: Boolean(chat.muted), pinned: Boolean(chat.pinned), savedName, private: Boolean(chat.private), offHome: Boolean(chat.offHome), messages: last ? [last] : [], lastAt: chat.lastAt, theyReadAt: chat.theyReadAt };
+  return { id: chat.id, person, unread: chat.unread || 0, muted: Boolean(chat.muted), pinned: Boolean(chat.pinned), savedName, private: Boolean(chat.private), offHome: Boolean(chat.offHome), released: chat.released || null, releaseState: chat.releaseState || null, messages: last ? [last] : [], lastAt: chat.lastAt, theyReadAt: chat.theyReadAt };
 }
 
 // ── FINDING A CHAT ──────────────────────────────────────────────────────
