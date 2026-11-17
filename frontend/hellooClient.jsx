@@ -79,6 +79,8 @@ var hellooApi = {
   personShops: (accountId) => hellooHttp.get(`/api/helloo/people/${encodeURIComponent(accountId)}/shops`),
   // Show the shop you are acting as on your personal profile, or not.
   saveShow: (show) => hellooHttp.put("/api/helloo/faces/show", { show }),
+  // Take somebody out of your contacts until you pay or chat again.
+  hideContact: (accountId, hidden) => hellooHttp.post("/api/helloo/contacts/hide", { accountId, hidden }),
   reachCard: (accountId) => hellooHttp.get(`/api/helloo/people/${encodeURIComponent(accountId)}/reach`),
   ask: (to, text, kind) => hellooHttp.post("/api/helloo/asks", { to, text, kind: kind || "message" }),
   asks: () => hellooHttp.get("/api/helloo/asks"),
