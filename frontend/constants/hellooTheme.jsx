@@ -118,6 +118,11 @@ function hellooClock(at) {
   const d = at instanceof Date ? at : new Date(at);
   return `${String(d.getHours()).padStart(2, "0")}:${String(d.getMinutes()).padStart(2, "0")}`;
 }
+// The time on a message, to the second: "15:11:42".
+function hellooClockSec(at) {
+  const d = at instanceof Date ? at : new Date(at);
+  return `${hellooClock(d)}:${String(d.getSeconds()).padStart(2, "0")}`;
+}
 function hellooWhen(at, now = Date.now()) {
   const d = at instanceof Date ? at : new Date(at);
   const diff = now - d.getTime();
