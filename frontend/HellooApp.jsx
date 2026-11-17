@@ -125,7 +125,7 @@ function HellooRoot() {
     if (stage !== "splash" && stage !== "splash-in") return undefined;
     if (stage === "splash" && typeof GloobalApi === "object") GloobalApi.warmUp();
     // A first-time splash carries words to read, so it stays longer.
-    const t = setTimeout(() => setStage(stage === "splash" ? "id" : "app"), stage === "splash" ? 2600 : 1200);
+    const t = setTimeout(() => setStage(stage === "splash" ? "id" : "app"), stage === "splash" ? HELLOO_SPLASH_MS : 1200);
     return () => clearTimeout(t);
   }, [stage]);
 
