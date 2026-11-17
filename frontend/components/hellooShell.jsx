@@ -10,7 +10,7 @@ import {
   Paperclip as HlClip, Image as HlImage, Camera as HlCamera, FileText as HlDoc, MapPin as HlPin,
   Contact as HlContact, Eye as HlEye, EyeOff as HlEyeOff, Check as HlCheck, CheckCheck as HlCheckCheck, Play as HlPlay, Store as HlStore,
   Copy as HlCopy, QrCode as HlQr, Bell as HlBell, Shield as HlShield, Palette as HlPalette, Ban as HlBan,
-  HardDrive as HlDrive, LogOut as HlLogOut, ChevronRight as HlChevron, X as HlX, ArrowLeft as HlBack,
+  HardDrive as HlDrive, LogOut as HlLogOut, ChevronRight as HlChevron, ChevronLeft as HlChevronLeft, CalendarSearch as HlCalendar, X as HlX, ArrowLeft as HlBack,
   PhoneIncoming as HlIn, PhoneOutgoing as HlOut, PhoneMissed as HlMissed, MicOff as HlMicOff,
   Volume2 as HlSpeaker, VideoOff as HlVideoOff, Minimize2 as HlMin, PhoneOff as HlEnd, Reply as HlReply,
   Forward as HlForward, ArrowRight as HlArrowRight, Star as HlStar, Trash2 as HlTrash, Pin as HlPinIcon, BellOff as HlBellOff,
@@ -76,6 +76,67 @@ function HellooSheet({ title, onClose, children, label, zIndex = 60 }) {
 
 function HellooChip({ on, children, onClick, count }) {
   return <button onClick={onClick} className="v2-tap" style={{ display: "inline-flex", alignItems: "center", gap: 5, border: on ? (HT.chipOnBorder || "none") : (HT.cardBorder || `1px solid ${T.line}`), background: on ? T.accentSoft : (HT.cardBg || T.surface), backdropFilter: HT.blur, color: on ? T.accent : T.inkSoft, borderRadius: HT.chipRadius ?? 999, padding: "7px 13px", fontSize: 12.5, fontWeight: 800, cursor: "pointer", whiteSpace: "nowrap", fontFamily: T.fontBody }}>{children}{count > 0 && <span style={{ fontSize: 11, color: on ? T.accent : T.inkFaint }}>{count}</span>}</button>;
+}
+
+// When something happened, to look at calls or messages by: a quick span
+// (today, yesterday, this week from Monday, this month) or one day picked
+// on the calendar ("d:2026-11-15"). "all" is everything.
+var HELLOO_PERIODS = [["today", "Today"], ["yesterday", "Yesterday"], ["week", "Week"], ["month", "Month"]];
+var HELLOO_PERIOD_WORDS = { all: "", today: "today", yesterday: "yesterday", week: "this week", month: "this month" };
+function hellooDayKey(d) { return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`; }
+function hellooPeriodRange(key, now = new Date()) {
+  const day = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+  if (key === "today") return [day.getTime(), Infinity];
+  if (key === "yesterday") return [day.getTime() - 86400e3, day.getTime()];
+  if (key === "week") return [day.getTime() - ((day.getDay() + 6) % 7) * 86400e3, Infinity];
+  if (key === "month") return [new Date(now.getFullYear(), now.getMonth(), 1).getTime(), Infinity];
+  const m = /^d:(\d{4})-(\d{2})-(\d{2})$/.exec(key || "");
+  if (m) { const from = new Date(Number(m[1]), Number(m[2]) - 1, Number(m[3])); const to = new Date(from); to.setDate(to.getDate() + 1); return [from.getTime(), to.getTime()]; }
+  return [-Infinity, Infinity];
+}
+function hellooInPeriod(at, key) {
+  if (!key || key === "all") return true;
+  const t = new Date(at).getTime();
+  const [from, to] = hellooPeriodRange(key);
+  return t >= from && t < to;
+}
+// How a choice reads: "Today", "This week", "Sun, 15 Nov".
+function hellooPeriodLabel(key) {
+  const quick = { today: "Today", yesterday: "Yesterday", week: "This week", month: "This month" }[key];
+  if (quick) return quick;
+  const m = /^d:(\d{4})-(\d{2})-(\d{2})$/.exec(key || "");
+  if (!m) return "Everything";
+  const d = new Date(Number(m[1]), Number(m[2]) - 1, Number(m[3]));
+  return d.toLocaleDateString("en-GB", { weekday: "short", day: "numeric", month: "short", year: d.getFullYear() === new Date().getFullYear() ? undefined : "numeric" });
+}
+function hellooPeriodWords(key) {
+  if (HELLOO_PERIOD_WORDS[key] !== undefined) return HELLOO_PERIOD_WORDS[key];
+  return `on ${hellooPeriodLabel(key)}`;
+}
+
+// The calendar in the top-right corner: the quick spans along the top, a
+// month to page through, and a dot on each day that had something. Days
+// still to come cannot be picked.
+function HellooDateSheet({ value = "all", marks, onPick, onClose, title = "Find by date", aboveNav = false }) {
+  const today = new Date();
+  const picked = /^d:/.test(value || "") ? new Date(hellooPeriodRange(value)[0]) : null;
+  const [month, setMonth] = useStateH1(() => { const d = picked || today; return new Date(d.getFullYear(), d.getMonth(), 1); });
+  const first = (month.getDay() + 6) % 7; // Monday first
+  const days = new Date(month.getFullYear(), month.getMonth() + 1, 0).getDate();
+  const cells = Array.from({ length: first }, () => null).concat(Array.from({ length: days }, (_, i) => new Date(month.getFullYear(), month.getMonth(), i + 1)));
+  const atThisMonth = month.getFullYear() === today.getFullYear() && month.getMonth() === today.getMonth();
+  const nav = (n) => setMonth(new Date(month.getFullYear(), month.getMonth() + n, 1));
+  return <HellooSheet label={title} onClose={onClose} zIndex={260}><div data-testid="helloo-date-sheet" style={{ paddingBottom: aboveNav ? 84 : 0 }}>
+    <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}><span style={{ fontSize: 16, fontWeight: 800, fontFamily: T.fontDisplay, color: T.ink }}>{title}</span>{value && value !== "all" ? <button onClick={() => onPick("all")} className="v2-tap" style={{ border: "none", background: "none", color: T.accent, fontWeight: 800, fontSize: 13, fontFamily: T.fontBody, cursor: "pointer" }}>Show everything</button> : null}</div>
+    <div style={{ display: "flex", gap: 6, margin: "12px 0 14px", flexWrap: "wrap" }}>{HELLOO_PERIODS.map(([k, l]) => <HellooChip key={k} on={value === k} onClick={() => onPick(k)}>{l}</HellooChip>)}</div>
+    <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 6 }}><button onClick={() => nav(-1)} aria-label="Earlier month" className="v2-tap" style={{ width: 36, height: 36, borderRadius: "50%", border: "none", background: T.surfaceSunk, display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer" }}><HlChevronLeft size={18} color={T.ink} /></button><span style={{ fontSize: 14.5, fontWeight: 800, color: T.ink }}>{month.toLocaleDateString("en-GB", { month: "long", year: "numeric" })}</span><button onClick={() => nav(1)} disabled={atThisMonth} aria-label="Later month" className="v2-tap" style={{ width: 36, height: 36, borderRadius: "50%", border: "none", background: T.surfaceSunk, display: "flex", alignItems: "center", justifyContent: "center", cursor: atThisMonth ? "default" : "pointer", opacity: atThisMonth ? 0.35 : 1 }}><HlChevron size={18} color={T.ink} /></button></div>
+    <div style={{ display: "grid", gridTemplateColumns: "repeat(7, 1fr)", gap: 2, textAlign: "center" }}>{["M", "T", "W", "T", "F", "S", "S"].map((w, i) => <span key={"w" + i} style={{ fontSize: 11, fontWeight: 800, color: T.inkFaint, padding: "4px 0" }}>{w}</span>)}{cells.map((d, i) => { if (!d) return <span key={"e" + i} />; const key = hellooDayKey(d); const future = d > today; const on = picked && hellooDayKey(picked) === key; const isToday = hellooDayKey(today) === key; const has = marks && marks.has(key); return <button key={key} disabled={future} aria-label={d.toLocaleDateString("en-GB", { day: "numeric", month: "long" })} aria-pressed={Boolean(on)} onClick={() => onPick("d:" + key)} className="v2-tap" style={{ position: "relative", height: 40, borderRadius: "50%", border: isToday && !on ? `1.5px solid ${T.accent}` : "none", background: on ? T.accent : "transparent", color: on ? "#fff" : future ? T.inkFaint : T.ink, opacity: future ? 0.4 : 1, fontFamily: T.fontBody, fontSize: 14, fontWeight: on || isToday ? 800 : 600, cursor: future ? "default" : "pointer" }}>{d.getDate()}{has && !on ? <span aria-hidden="true" style={{ position: "absolute", left: "50%", bottom: 5, width: 4, height: 4, marginLeft: -2, borderRadius: "50%", background: T.accent }} /> : null}</button>; })}</div>
+  </div></HellooSheet>;
+}
+// What is being shown, with a way back to everything.
+function HellooPeriodPill({ value, onClear, onOpen }) {
+  if (!value || value === "all") return null;
+  return <span data-testid="helloo-period-pill" style={{ display: "inline-flex", alignItems: "center", gap: 6, padding: "4px 4px 4px 11px", borderRadius: 999, background: T.accentSoft, color: T.accent, fontSize: 12.5, fontWeight: 800, whiteSpace: "nowrap" }}><button onClick={onOpen} style={{ border: "none", background: "none", padding: 0, color: T.accent, fontWeight: 800, fontSize: 12.5, fontFamily: T.fontBody, cursor: "pointer", display: "inline-flex", alignItems: "center", gap: 5 }}><HlCalendar size={14} color={T.accent} />{hellooPeriodLabel(value)}</button><button onClick={onClear} aria-label="Show everything" className="v2-tap" style={{ width: 22, height: 22, borderRadius: "50%", border: "none", background: T.accent, color: "#fff", display: "inline-flex", alignItems: "center", justifyContent: "center", cursor: "pointer", padding: 0 }}><HlX size={12} color="#fff" /></button></span>;
 }
 
 function HellooRow({ Icon, color = T.accent, title, value, onPress, danger = false, first = false }) {

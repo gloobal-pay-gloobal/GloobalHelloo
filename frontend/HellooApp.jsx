@@ -1006,6 +1006,22 @@ function HellooRoot() {
   };
   const loadPersonReach = (who) => { if (who && !together[who]) hellooApi.together(who).then((r) => setTogether((all) => Object.assign({}, all, { [who]: r }))).catch(() => {}); };
   const [callFilter, setCallFilter] = useStateH9("all");
+  const [callWhen, setCallWhen] = useStateH9("all");
+  // Inside a chat: show only messages from a time (null: no filter bar).
+  const [chatPeriod, setChatPeriod] = useStateH9(null);
+  useEffectH9(() => { setChatPeriod(null); }, [openId]);
+  // A period older than what is loaded loads older messages (a few pages).
+  const periodPages = useRefH9(0);
+  useEffectH9(() => {
+    periodPages.current = 0;
+  }, [chatPeriod, openId]);
+  useEffectH9(() => {
+    if (!openId || !chatPeriod || chatPeriod === "all") return;
+    const t = threads[openId];
+    if (!t || !t.more || !t.messages.length || periodPages.current >= 8) return;
+    const oldest = t.messages.find((m) => m.id);
+    if (oldest && new Date(oldest.at).getTime() > hellooPeriodRange(chatPeriod)[0]) { periodPages.current += 1; loadThread(openId, true); }
+  }, [chatPeriod, openId, threads]);
   const [contactQuery, setContactQuery] = useStateH9("");
   // Naming a chat and making it private: { chatId, name, isPrivate, busy, error }.
   const [nameEdit, setNameEdit] = useStateH9(null);
@@ -1288,7 +1304,8 @@ function HellooRoot() {
       const seen = hellooLastSeenText(pres.lastSeenAt);
       if (!pres.online && seen) person.lastSeen = seen.replace(/^last seen /, "");
     }
-    const msgs = thread ? thread.messages : [];
+    const allMsgs = thread ? thread.messages : [];
+    const msgs = chatPeriod && chatPeriod !== "all" ? allMsgs.filter((m) => !m.at || hellooInPeriod(m.at, chatPeriod)) : allMsgs;
     msgs.forEach((m) => { if (m.kind === "photo" && m.id && !m.localSrc && !mediaUrls[m.id]) loadMedia(m.id); });
     const firstName = (person.name || "").split(" ")[0];
     const bubbles = hellooThreadBubbles(msgs, meId, serverChat && serverChat.theyReadAt, (m) => {
@@ -1298,7 +1315,7 @@ function HellooRoot() {
       if (m.kind === "photo") { const src = (m.id && mediaUrls[m.id]) || m.localSrc || null; return { src, onOpen: src ? () => setPhotoView(src) : undefined }; }
       return null;
     }, { them: firstName });
-    const failed = msgs.filter((m) => m.failed).length;
+    const failed = allMsgs.filter((m) => m.failed).length;
     const strip = failed ? <button onClick={() => retryFailed(openId)} className="v2-tap" style={{ alignSelf: "center", display: "inline-flex", alignItems: "center", gap: 6, border: "none", borderRadius: 999, background: T.negative, color: "#fff", fontSize: 12, fontWeight: 800, padding: "6px 13px", margin: "4px 0 8px", cursor: "pointer", fontFamily: T.fontBody }}><HlRetry size={13} />{failed} not sent · Retry</button> : (thread && !thread.loaded ? <div style={{ alignSelf: "center", fontSize: 12, fontWeight: 700, color: T.inkFaint, margin: "10px 0" }}>Loading…</div> : null);
     const draft = drafts[openId] || "";
     const reply = replyTo && replyTo.chatId === openId ? replyTo : null;
@@ -1337,7 +1354,7 @@ function HellooRoot() {
     ];
     const card = reachCards[person.accountId];
     const rule = card && card.rule;
-    const theyPaid = msgs.filter((m) => m.from === person.accountId && m.paid && m.paid.amount);
+    const theyPaid = allMsgs.filter((m) => m.from === person.accountId && m.paid && m.paid.amount);
     const earnedHere = theyPaid.reduce((n, m) => n + Number(m.paid.amount || 0), 0);
     const showPaidStrip = !iBlocked && theyPaid.length > 0 && !allowedIds.has(person.accountId);
     const closedNote = rule && !rule.free && rule.closed ? <div style={{ display: "flex", alignItems: "center", gap: 10 }}><HlLock size={18} color={T.inkSoft} /><span style={{ flex: 1, fontSize: 13, color: T.inkSoft, lineHeight: 1.4 }}>{card.askPending ? `Your request is waiting for ${firstName}.` : (rule.kind === "business" ? `${firstName} doesn't take messages from businesses. Ask first, free.` : `${firstName} only takes requests from people they haven't allowed. Ask first, free.`)}</span>{!card.askPending && <button onClick={() => { setAskText(""); setSheet("ask"); }} className="v2-tap" style={{ flexShrink: 0, whiteSpace: "nowrap", border: "none", borderRadius: 999, background: T.accentSoft, color: T.accent, fontWeight: 800, fontSize: 13, padding: "8px 14px", cursor: "pointer", fontFamily: T.fontBody }}>Ask · free</button>}</div> : null;
@@ -1346,13 +1363,14 @@ function HellooRoot() {
     if (priceGate && priceGate.chatId === openId) {
       return shell(<><HellooPriceCard person={priceGate.person} price={priceGate.rule.price} currency={priceGate.rule.currency} viewerIsBusiness={priceGate.rule.kind === "business"} balance={priceGate.balance != null && !Number.isNaN(priceGate.balance) ? priceGate.balance : null} balanceCurrency={me.currency} busy={Boolean(priceGate.busy)} onAgree={() => payAndSend(priceGate)} onAsk={card && card.askPending ? undefined : () => { setPriceGate(null); setAskText(""); setSheet("ask"); }} onBack={() => setPriceGate(null)} /><PayPinModal open={Boolean(reachPin)} onClose={() => setReachPin(null)} amountLabel={hellooMoneyText(priceGate.rule.price, priceGate.rule.currency)} onVerified={(pinValue) => payAndSend(priceGate, pinValue)} /></>);
     }
-    return shell(<HellooThreadScreen me={me} chat={{ id: openId, person, messages: bubbles }} strip={<>{paidStrip}{strip}</>} paidPrice={rule && !rule.free && !rule.closed ? rule.price : 0} paidCurrency={rule && rule.currency} typing={Boolean(typing[openId]) && !iBlocked} draft={draft} onDraft={(v) => onDraftChange(openId, v)} onSend={sendText} recording={recording} onMic={recording ? stopAndSend : startRecording} onCancelRecording={cancelRecording} hasOlder={Boolean(thread && thread.more)} onLoadOlder={() => loadThread(openId, true)} onPay={person.gloobalId ? () => { setPay({ amount: "", note: "", busy: false, error: "" }); setSheet("pay"); } : undefined} onAttach={() => setSheet("attach")} onMenu={person.handle && person.gloobalId && !iBlocked ? () => openMenu(person) : undefined} onMore={() => setSheet("menu")} onOpenPerson={() => setScreen("contact")} onCall={!iBlocked && person.gloobalId ? () => startCall(person, false) : undefined} onVideo={!iBlocked && person.gloobalId ? () => startCall(person, true) : undefined} onMessageHold={(m) => setHeld(m)} replyTo={reply} onCancelReply={() => setReplyTo(null)} composerNote={note} onBack={closeThread}>
+    return shell(<HellooThreadScreen me={me} chat={{ id: openId, person, messages: bubbles }} onFindDate={() => setSheet("find-date")} dateOn={Boolean(chatPeriod && chatPeriod !== "all")} strip={<>{chatPeriod && chatPeriod !== "all" ? <div style={{ display: "flex", alignItems: "center", gap: 10, padding: "8px 12px", background: HT.barBg || T.surface, borderBottom: `1px solid ${T.line}` }}><HellooPeriodPill value={chatPeriod} onOpen={() => setSheet("find-date")} onClear={() => setChatPeriod(null)} />{msgs.length === 0 ? <span data-testid="helloo-period-empty" style={{ fontSize: 12.5, color: T.inkSoft }}>Nothing {hellooPeriodWords(chatPeriod)} in this chat.</span> : <span style={{ fontSize: 12, color: T.inkFaint, fontWeight: 700 }}>{msgs.length} {msgs.length === 1 ? "message" : "messages"}</span>}</div> : null}{paidStrip}{strip}</>} paidPrice={rule && !rule.free && !rule.closed ? rule.price : 0} paidCurrency={rule && rule.currency} typing={Boolean(typing[openId]) && !iBlocked} draft={draft} onDraft={(v) => onDraftChange(openId, v)} onSend={sendText} recording={recording} onMic={recording ? stopAndSend : startRecording} onCancelRecording={cancelRecording} hasOlder={Boolean(thread && thread.more)} onLoadOlder={() => loadThread(openId, true)} onPay={person.gloobalId ? () => { setPay({ amount: "", note: "", busy: false, error: "" }); setSheet("pay"); } : undefined} onAttach={() => setSheet("attach")} onMenu={person.handle && person.gloobalId && !iBlocked ? () => openMenu(person) : undefined} onMore={() => setSheet("menu")} onOpenPerson={() => setScreen("contact")} onCall={!iBlocked && person.gloobalId ? () => startCall(person, false) : undefined} onVideo={!iBlocked && person.gloobalId ? () => startCall(person, true) : undefined} onMessageHold={(m) => setHeld(m)} replyTo={reply} onCancelReply={() => setReplyTo(null)} composerNote={note} onBack={closeThread}>
       {sheet === "pay" && <HellooPaySheet person={person} me={me} amount={pay.amount} onAmount={(a) => setPay((p) => Object.assign({}, p, { amount: a.replace(/^0+/, ""), error: "" }))} note={pay.note} onNote={(n) => setPay((p) => Object.assign({}, p, { note: n }))} busy={pay.busy} error={pay.error} onClose={() => { if (!pay.busy) setSheet(null); }} onSend={() => setPayPinOpen(true)} />}
       {sheet === "shopmenu" && <HellooShopMenuSheet shop={person} items={menu.items} basket={menu.basket} onAdd={(it) => menuBump(it, 1)} onRemove={(it) => menuBump(it, -1)} totalText={hellooMoneyText(menuTotal, menuCurrency)} note={menu.note} onNote={(v) => setMenu((m) => Object.assign({}, m, { note: v }))} busy={menu.busy} error={menu.error} loadError={menu.loadError} paidAlready={Boolean(menu.paidRef)} onPay={() => (menu.paidRef ? orderNow(person, openId, "") : setOrderPinOpen(true))} onClose={() => { if (!menu.busy) setSheet(null); }} />}
       <PayPinModal open={orderPinOpen} onClose={() => setOrderPinOpen(false)} amountLabel={hellooMoneyText(menuTotal, menuCurrency)} onVerified={(pinValue) => orderNow(person, openId, pinValue)} />
       {sheet === "attach" && <HellooAttachSheet onClose={() => setSheet(null)} items={[[HlImage, "Gallery", "#7C3AED", () => galleryRef.current && galleryRef.current.click()], [HlCamera, "Camera", "#DB2777", () => cameraRef.current && cameraRef.current.click()], [HlRupee, "Pay", "#0B7A57", () => { setPay({ amount: "", note: "", busy: false, error: "" }); setSheet("pay"); }]]} />}
       {sheet === "menu" && <HellooThreadMenu chat={{ person: Object.assign({}, person, { id: person.gloobalId }) }} items={menuItems} onClose={() => setSheet(null)} />}
       {sheet === "savename" && nameSheet}
+      {sheet === "find-date" && <HellooDateSheet title="Find messages by date" value={chatPeriod || "all"} marks={new Set(allMsgs.filter((m) => m.at).map((m) => hellooDayKey(new Date(m.at))))} onClose={() => setSheet(null)} onPick={(k) => { setSheet(null); setChatPeriod(k === "all" ? null : k); }} />}
       {sheet === "reach-person" && <HellooSheet label="Who can reach me" onClose={() => setSheet(null)}><div style={{ fontSize: 16, fontWeight: 800, fontFamily: T.fontDisplay, color: T.ink }}>Who can reach me</div><div style={{ fontSize: 12.5, color: T.inkSoft, margin: "3px 0 12px" }}>Just for {firstName}. Everyone else follows your usual settings.</div><HellooReachChoice who={firstName} reach={together[person.accountId] && together[person.accountId].reachMode ? together[person.accountId] : null} busy={reachBusy} onChange={(mode, price) => setPersonReach(person.accountId, mode, price)} /></HellooSheet>}
       {sheet === "confirm-clear" && <HellooSheet label="Clear chat" onClose={() => setSheet(null)}><div style={{ fontSize: 15, fontWeight: 800, color: T.ink }}>Clear this chat?</div><div style={{ fontSize: 13, color: T.inkSoft, marginTop: 6, lineHeight: 1.45 }}>Every message disappears for you. {firstName} still has them. Payments stay in your GLOOBAL history.</div><div style={{ display: "flex", gap: 10, marginTop: 16 }}><HellooSecondary onClick={() => setSheet(null)}>Cancel</HellooSecondary><HellooPrimary color={T.negative} onClick={() => { setSheet(null); clearChat(openId, false); }}>Clear chat</HellooPrimary></div></HellooSheet>}
       {held && <HellooMessageActions m={held} reactions={false} items={heldItems} onClose={() => setHeld(null)} />}
@@ -1532,7 +1550,7 @@ function HellooRoot() {
       [HlBan, "Blocked people", () => { setSheet(null); refreshBlocked(); setScreen("blocked"); }],
       [HlPalette, "App theme", () => { setSheet(null); setScreen("theme"); }]
     ].filter(Boolean).map(([Icon, title, onPress], i) => <HellooRow key={title} Icon={Icon} title={title} first={i === 0} onPress={onPress} />)}</HellooCard></HellooSheet>}
-    {tab === "calls" && <HellooCallsHome me={me} calls={callsAll} filter={callFilter} onFilter={setCallFilter} onCallBack={(c) => startCall(c.person, c.video)} onInfo={(c) => openChatWith(c.person.accountId, true)} onOpenDial={() => { setDial({ value: "", status: "", match: null }); setSheet("dial"); }} onAdd={() => setSheet("add")} onSearch={() => { setContactQuery(""); refreshContacts(); setScreen("contacts"); }} onMe={() => setScreen("me")} />}
+    {tab === "calls" && <HellooCallsHome me={me} calls={callsAll} filter={callFilter} onFilter={setCallFilter} when={callWhen} onWhen={setCallWhen} onCallBack={(c) => startCall(c.person, c.video)} onInfo={(c) => openChatWith(c.person.accountId, true)} onOpenDial={() => { setDial({ value: "", status: "", match: null }); setSheet("dial"); }} onAdd={() => setSheet("add")} onSearch={() => { setContactQuery(""); refreshContacts(); setScreen("contacts"); }} onMe={() => setScreen("me")} />}
     {sheet === "dial" && <HellooDialSheet dial={dial.value} onDial={(v) => setDial((d) => Object.assign({}, d, { value: v }))} match={dial.match} status={dial.status} onMessage={() => dial.match && openChatWith(dial.match.gloobalId, false, false, dial.match.handle ? "" : "self")} onCall={() => { if (dial.match) { setSheet(null); startCall(dial.match, false); } }} onVideo={() => { if (dial.match) { setSheet(null); startCall(dial.match, true); } }} onClose={() => setSheet(null)} />}
     {sheet === "add" && addSheet}
     {sheet === "savename" && nameSheet}
