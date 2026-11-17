@@ -838,8 +838,9 @@ function HellooRoot() {
     if (!person || !person.handle || !person.gloobalId) return;
     Promise.all([
       GloobalApi.getCreatorProfile(person.gloobalId).catch(() => null),
-      GloobalApi.getCreatorItems(person.gloobalId).catch(() => null)
-    ]).then(([c, items]) => {
+      GloobalApi.getCreatorItems(person.gloobalId).catch(() => null),
+      GloobalApi.getCreatorReviews(person.gloobalId).catch(() => null)
+    ]).then(([c, items, rv]) => {
       const creator = c || {};
       const cat = typeof bazaarCategoryInfo === "function" && creator.category ? ((bazaarCategoryInfo(creator.category) || {}).label || "") : "";
       const sub = typeof bazaarSubcategoryLabel === "function" && creator.subcategory ? bazaarSubcategoryLabel(creator.category, creator.subcategory) : "";
@@ -852,7 +853,10 @@ function HellooRoot() {
         where: parts ? [parts.area, parts.city].filter(Boolean).join(", ") : "",
         open: hours && hours.text ? hours.text : "",
         count: n ? `${n} ${n === 1 ? "thing" : "things"}` : "",
-        rating: reviews && reviews.count ? `${Number(reviews.average).toFixed(1)} · ${reviews.count} ${reviews.count === 1 ? "review" : "reviews"}` : ""
+        rating: reviews && reviews.count ? `${Number(reviews.average).toFixed(1)} · ${reviews.count} ${reviews.count === 1 ? "review" : "reviews"}` : "",
+        // Its feedback: the summary with the star split, the newest ones
+        // (never with a name), your own, and whether you may write one.
+        reviews: rv && rv.summary ? { summary: rv.summary, reviews: Array.isArray(rv.reviews) ? rv.reviews : [], mine: rv.mine || null, canReview: Boolean(rv.canReview), isOwner: Boolean(rv.isOwner), reason: rv.reason || "" } : { summary: { count: 0, average: 0, byStars: {} }, reviews: [], mine: null, canReview: false, isOwner: false, reason: "" }
       } }));
     });
   };
@@ -1342,7 +1346,7 @@ function HellooRoot() {
     const status = !iBlocked && pres ? (pres.online ? "" : hellooLastSeenText(pres.lastSeenAt)) : "";
     const tog = together[person.accountId] || null;
     const allowed = allowedIds.has(person.accountId);
-    return shell(<HellooContactScreen shop={person.handle ? (shopCards[person.gloobalId] || null) : null} onMenu={person.handle && !iBlocked ? () => { setScreen(null); openMenu(person); } : undefined} person={Object.assign({}, person, { id: person.gloobalId, online: Boolean(!iBlocked && pres && pres.online) })} status={status} together={tog} currency={me.currency} onBack={closeProfile} onMessage={() => setScreen(null)} onCall={!iBlocked ? () => startCall(person, false) : undefined} onVideo={!iBlocked ? () => startCall(person, true) : undefined} onPay={person.gloobalId ? () => { setScreen(null); setPay({ amount: "", note: "", busy: false, error: "" }); setSheet("pay"); } : undefined} groups={[
+    return shell(<HellooContactScreen shop={person.handle ? (shopCards[person.gloobalId] || null) : null} onMenu={person.handle && !iBlocked ? () => { setScreen(null); openMenu(person); } : undefined} person={Object.assign({}, person, { id: person.gloobalId, online: Boolean(!iBlocked && pres && pres.online) })} status={status} together={tog} currency={me.currency} onSaveReview={person.handle ? (stars, text) => GloobalApi.saveCreatorReview(person.gloobalId, { stars, text }).then(() => { loadShopCard(person); setToast("Thanks — your feedback is in"); }) : undefined} onBack={closeProfile} onMessage={() => setScreen(null)} onCall={!iBlocked ? () => startCall(person, false) : undefined} onVideo={!iBlocked ? () => startCall(person, true) : undefined} onPay={person.gloobalId ? () => { setScreen(null); setPay({ amount: "", note: "", busy: false, error: "" }); setSheet("pay"); } : undefined} groups={[
       [[HlRupee, allowed ? "Reaches you free" : "Pays your price to reach you", allowed ? "Allowed" : (myReach && myReach.people.price ? hellooMoneyText(myReach.people.price, myReach.currency) : "Free"), () => hellooApi.allow(person.accountId, !allowed).then(() => { refreshMyReach(); setToast(allowed ? `${firstName} pays your price again` : `${firstName} reaches you free`); }).catch((err) => setToast(err.message)), false, HT.free], [HlBellOff, muted ? "Unmute notifications" : "Mute notifications", muted ? "Muted" : "Off", () => setPrefs(openId, { muted: !muted }), false, T.inkSoft], [HlWallet, "Payments between you", tog ? String(tog.money.toThem.n + tog.money.toMe.n) : "", () => window.open(HELLOO_GLOOBAL_SITE, "_blank", "noopener"), false, "#0B7A57"]],
       [[HlTrash, "Clear chat", "", () => { setScreen(null); setSheet("confirm-clear"); }, false, T.inkSoft], [HlBan, iBlocked ? `Unblock ${firstName}` : `Block ${firstName}`, "", () => setBlock(person, !iBlocked), !iBlocked]]
     ]} />);
