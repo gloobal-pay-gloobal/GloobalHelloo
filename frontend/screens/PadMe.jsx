@@ -7,7 +7,7 @@
 // Me: the same ID card as Gloobal's profile, so both apps read as one
 // account; then the few settings a messenger needs.
 
-import { useState as useStateH13, useEffect as useEffectH13 } from "react";
+import { useState as useStateH13, useEffect as useEffectH13, useRef as useRefH13 } from "react";
 
 function HellooDialScreen({ value, onChange, match, status, onMessage, onCall, onVideo, onScan, mobileMode = false, onToggleMode }) {
   const found = status === "found" && match;
@@ -143,19 +143,31 @@ function HellooShopProfile({ shop, person, onBack, onCall, onPay, onMenu, togeth
 // them. `reach` is { reachMode, reachPrice, reachCurrency } or null while
 // it loads.
 function HellooReachChoice({ who, reach, busy = false, onChange }) {
-  const [picking, setPicking] = useStateH13(false);
   const mode = reach ? reach.reachMode : "";
-  const price = reach ? Number(reach.reachPrice) || 0 : 0;
+  const saved = reach ? Number(reach.reachPrice) || 0 : 0;
+  const [open, setOpen] = useStateH13(false);
+  const [draft, setDraft] = useStateH13(null);
+  const timer = useRefH13(null);
   const sign = hellooCelSign(reach && reach.reachCurrency);
-  const tag = (n) => <span style={{ display: "inline-flex", alignItems: "baseline", gap: 4, padding: "3px 8px", borderRadius: 8, background: "#0B7A571A", color: "#0B7A57", fontWeight: 800 }}><span style={{ fontSize: 13 }}>{n}</span><span style={{ fontSize: 10 }}>CEL | {sign}</span></span>;
+  const price = draft !== null ? draft : saved;
+  const fmt = (n) => (Number(n) || 0).toFixed(2);
+  const tag = (n) => <span style={{ display: "inline-flex", alignItems: "baseline", gap: 4, padding: "3px 8px", borderRadius: 8, background: "#0B7A571A", color: "#0B7A57", fontWeight: 800 }}><span style={{ fontSize: 13 }}>{fmt(n)}</span><span style={{ fontSize: 10 }}>CEL | {sign}</span></span>;
+  // Sliding saves once the thumb rests for a moment, not on every tenth.
+  const slide = (v) => {
+    const n = Math.max(0.1, hellooReachTenths(v));
+    setDraft(n);
+    clearTimeout(timer.current);
+    timer.current = setTimeout(() => { onChange && onChange("pay", n); setDraft(null); }, 600);
+  };
   const rows = [
     ["free", HlChat, "Free", `${who} messages you free`, HT.free],
-    ["pay", HlWallet, "Pays per message", price ? `${who} pays each message · tap the price to change it` : `${who} pays your price · tap to set one`, "#0B7A57"],
+    ["pay", HlWallet, "Pays per message", price ? `${who} pays each message · tap to change the price` : `${who} pays your price · tap to set one`, "#0B7A57"],
     ["never", HlBan, "Never", `${who} can't message you`, "#DC2626"]
   ];
   const radio = (on) => <span aria-hidden="true" style={{ width: 22, height: 22, borderRadius: "50%", border: on ? "none" : `2px solid ${T.line}`, background: on ? T.accent : "transparent", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>{on && <HlCheck size={13} color="#fff" strokeWidth={3} />}</span>;
-  return <HellooCard><div role="radiogroup" aria-label={`Who can reach me: ${who}`} data-testid="helloo-reach-person">{rows.map(([k, Icon, label, sub, c], i) => <div key={k} style={{ borderTop: i ? `1px solid ${T.line}` : "none", background: mode === k ? c + "0D" : "none" }}><button role="radio" aria-checked={mode === k} data-testid={`helloo-reach-${k}`} disabled={!reach || busy} onClick={() => { if (k === "pay" && mode === "pay") { setPicking((v) => !v); return; } setPicking(k === "pay" && !price); onChange && onChange(k); }} className="v2-tap" style={{ width: "100%", display: "flex", alignItems: "center", gap: 12, padding: "12px 14px", border: "none", background: "none", textAlign: "left", fontFamily: T.fontBody, cursor: reach && !busy ? "pointer" : "default", opacity: reach ? 1 : 0.5 }}><span style={{ width: 38, height: 38, borderRadius: 12, background: c + "1A", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}><Icon size={18} color={c} /></span><span style={{ flex: 1, minWidth: 0 }}><span style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 14.5, fontWeight: 800, color: T.ink }}>{label}{k === "pay" && price ? tag(price) : null}</span><span style={{ display: "block", fontSize: 12, color: T.inkSoft, marginTop: 2 }}>{sub}</span></span>{radio(mode === k)}</button>
-    {k === "pay" && mode === "pay" && picking ? <div data-testid="helloo-reach-prices" style={{ display: "flex", gap: 6, padding: "0 14px 12px 64px", flexWrap: "wrap" }}>{[1, 2, 3, 4, 5, 6, 7].map((n) => <button key={n} aria-label={`${n} CEL ${sign}`} aria-pressed={n === price} disabled={busy} onClick={() => { setPicking(false); onChange && onChange("pay", n); }} className="v2-tap" style={{ minWidth: 38, height: 34, borderRadius: 10, border: n === price ? "2px solid #0B7A57" : `1px solid ${T.line}`, background: n === price ? "#0B7A571A" : T.surface, color: n === price ? "#0B7A57" : T.ink, fontFamily: T.fontBody, fontSize: 13.5, fontWeight: 800, cursor: "pointer" }}>{n}</button>)}<span style={{ alignSelf: "center", fontSize: 11, fontWeight: 800, color: T.inkSoft }}>CEL | {sign}</span></div> : null}</div>)}</div></HellooCard>;
+  const pct = ((Math.max(0.1, price || 0.1) - 0.1) / (HELLOO_REACH_MAX - 0.1)) * 100;
+  return <HellooCard><div role="radiogroup" aria-label={`Who can reach me: ${who}`} data-testid="helloo-reach-person">{rows.map(([k, Icon, label, sub, c], i) => <div key={k} style={{ borderTop: i ? `1px solid ${T.line}` : "none", background: mode === k ? c + "0D" : "none" }}><button role="radio" aria-checked={mode === k} data-testid={`helloo-reach-${k}`} disabled={!reach || busy} onClick={() => { if (k === "pay" && mode === "pay") { setOpen((v) => !v); return; } setOpen(k === "pay"); onChange && onChange(k); }} className="v2-tap" style={{ width: "100%", display: "flex", alignItems: "center", gap: 12, padding: "12px 14px", border: "none", background: "none", textAlign: "left", fontFamily: T.fontBody, cursor: reach && !busy ? "pointer" : "default", opacity: reach ? 1 : 0.5 }}><span style={{ width: 38, height: 38, borderRadius: 12, background: c + "1A", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}><Icon size={18} color={c} /></span><span style={{ flex: 1, minWidth: 0 }}><span style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 14.5, fontWeight: 800, color: T.ink, flexWrap: "wrap" }}>{label}{k === "pay" && price ? tag(price) : null}</span><span style={{ display: "block", fontSize: 12, color: T.inkSoft, marginTop: 2 }}>{sub}</span></span>{radio(mode === k)}</button>
+    {k === "pay" && mode === "pay" && open ? <div data-testid="helloo-reach-slider" style={{ padding: "0 16px 14px 64px" }}><div style={{ position: "relative", height: 40 }}><div style={{ position: "absolute", left: 0, right: 0, top: 17, height: 6, borderRadius: 3, background: T.line }} /><div style={{ position: "absolute", left: 0, width: `${pct}%`, top: 17, height: 6, borderRadius: 3, background: `linear-gradient(90deg, ${HT.free}, #0B7A57)` }} /><input type="range" min={0.1} max={HELLOO_REACH_MAX} step={HELLOO_REACH_STEP} value={Math.max(0.1, price || 0.1)} disabled={busy} onChange={(e) => slide(e.target.value)} aria-label={`What ${who} pays per message, in CEL ${sign}`} style={{ position: "absolute", inset: 0, width: "100%", opacity: 0, cursor: "pointer", margin: 0 }} /><span aria-hidden="true" style={{ position: "absolute", left: `calc(${pct}% - 13px)`, top: 7, width: 26, height: 26, borderRadius: "50%", background: "#fff", border: "3px solid #0B7A57", boxShadow: T.shadowCard, pointerEvents: "none" }} /></div><div style={{ display: "flex", justifyContent: "space-between", fontSize: 10.5, fontWeight: 700, color: T.inkFaint }}><span>0.10 CEL | {sign}</span><span>{fmt(HELLOO_REACH_MAX)} CEL | {sign}</span></div></div> : null}</div>)}</div></HellooCard>;
 }
 
 // A person's profile: a purple cover with their picture, name and GLOOBAL
