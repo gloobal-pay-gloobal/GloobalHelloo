@@ -77393,31 +77393,29 @@ function HellooVerifiedName({ person, size = 15 }) {
 function hellooPrefersDark() {
   try { return typeof window !== "undefined" && window.matchMedia && window.matchMedia("(prefers-color-scheme: dark)").matches; } catch (e) { return false; }
 }
-// The splash (17 Nov): the welcome screen's story, told while the server
-// wakes, so nobody has to read a page before signing in. The headline
-// already says "free with people you know" and "strangers pay", so the
-// lines under it say only what it does not: the number stays private,
-// money moves in the chat, and it works in every country. A thin line at
-// the foot fills while it waits; a tap goes on at once. Someone already
-// signed in sees only the mark on the way to their chats.
-var HELLOO_SPLASH_POINTS = [
-  ["lock", "Your number stays private", "people find you by GLOOBAL ID"],
-  ["rupee", "Pay in the chat", "send money, order from a shop"],
-  ["globe", "Every country", "one ID, no packs, no minutes"]
-];
+// The splash (17 Nov, founder's pick: "the two dots"). The two dots of
+// HELL●● carry the promise: a smaller green one, "Free, with people you
+// know", then a larger pink one sliding in beside it, "Strangers pay, to
+// reach you" — two people meeting. The Helloo mark sits in the middle at
+// the top with the name and "by GLOOBAL" under it; the three things the
+// dots don't say are one line at the foot. A thin line fills while it
+// waits and a tap goes on at once. Someone already signed in sees only the
+// mark on the way to their chats.
 var HELLOO_SPLASH_MS = 2600;
+var HELLOO_SPLASH_LINE = "Number private · Pay in the chat · Every country";
 function HellooSplash({ dark = hellooPrefersDark(), intro = false, onSkip }) {
   const ink = dark ? "#F1EEFF" : T.ink; const soft = dark ? "#B3ADCC" : T.inkSoft;
-  const icons = { lock: [HlLock, "#2563EB"], rupee: [HlRupee, "#DB2777"], globe: [HlGlobe, HT.free] };
-  if (!intro) return <HellooScreen style={{ alignItems: "center", justifyContent: "center", background: dark ? "#0F0D1F" : HT.wash, color: ink }}><HellooMark size={104} /><div style={{ marginTop: 22, fontSize: 34, letterSpacing: -0.5 }}><HellooWordmark /></div><div style={{ marginTop: 6, fontSize: 12, color: soft, display: "flex", alignItems: "center", gap: 6 }}>by <GloobalWordmark /></div></HellooScreen>;
-  return <HellooScreen onClick={onSkip} style={{ background: dark ? "#0F0D1F" : HT.wash, color: ink, padding: "calc(9vh + env(safe-area-inset-top, 0px)) 28px calc(22px + env(safe-area-inset-bottom, 0px))", cursor: "pointer" }}>
-    <div style={{ display: "flex", alignItems: "center", gap: 12 }}><HellooMark size={56} /><span style={{ display: "flex", flexDirection: "column" }}><span style={{ fontSize: 28, letterSpacing: -0.4, lineHeight: 1 }}><HellooWordmark /></span><span style={{ marginTop: 5, fontSize: 11.5, color: soft, display: "flex", alignItems: "center", gap: 5 }}>by <GloobalWordmark /></span></span></div>
-    <div data-testid="helloo-splash-line" style={{ marginTop: "clamp(26px, 6vh, 56px)", fontSize: "clamp(30px, min(5.6vh, 10.4vw), 40px)", fontWeight: 800, fontFamily: T.fontDisplay, letterSpacing: -1.2, lineHeight: 1.08 }}>Free with people you know.<br /><span style={{ color: T.accent }}>Strangers pay</span> to reach you.</div>
-    <div style={{ flex: 1, minHeight: 16 }} />
-    <div data-testid="helloo-splash-points" style={{ display: "flex", flexDirection: "column", gap: "clamp(12px, 2.2vh, 18px)" }}>{HELLOO_SPLASH_POINTS.map(([k, title, sub]) => { const [Icon, c] = icons[k]; return <div key={k} style={{ display: "flex", alignItems: "center", gap: 13 }}><span style={{ width: 38, height: 38, borderRadius: 12, background: c + "1A", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}><Icon size={18} color={c} /></span><span style={{ minWidth: 0 }}><span style={{ display: "block", fontSize: 15, fontWeight: 800, lineHeight: 1.2 }}>{title}</span><span style={{ display: "block", fontSize: 12.5, color: soft, marginTop: 2 }}>{sub}</span></span></div>; })}</div>
-    <div aria-hidden="true" style={{ marginTop: "clamp(22px, 4vh, 36px)", height: 3, borderRadius: 3, background: dark ? "rgba(255,255,255,0.12)" : "rgba(23,19,43,0.08)", overflow: "hidden" }}><span style={{ display: "block", height: "100%", width: "100%", background: T.accent, transformOrigin: "left", animation: `hlSplashFill ${HELLOO_SPLASH_MS}ms linear forwards` }} /></div>
-    <div style={{ marginTop: 9, textAlign: "center", fontSize: 11.5, color: soft }}>Tap to continue</div>
-    <style>{"@keyframes hlSplashFill{from{transform:scaleX(0)}to{transform:scaleX(1)}}"}</style>
+  const bg = dark ? "#0F0D1F" : HT.wash;
+  const brand = <><HellooMark size={intro ? 72 : 104} /><div style={{ marginTop: intro ? 14 : 22, fontSize: intro ? 30 : 34, letterSpacing: -0.5 }}><HellooWordmark /></div><div style={{ marginTop: 5, fontSize: 12, color: soft, display: "flex", alignItems: "center", gap: 6 }}>by <GloobalWordmark /></div></>;
+  if (!intro) return <HellooScreen style={{ alignItems: "center", justifyContent: "center", background: bg, color: ink }}>{brand}</HellooScreen>;
+  const dot = (size, c, title, sub, tSize) => <div style={{ width: size, height: size, borderRadius: "50%", background: c, color: "#fff", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", textAlign: "center", padding: "0 9%", boxShadow: `0 18px 40px ${c}55`, flexShrink: 0 }}><div style={{ fontSize: tSize, fontWeight: 800, fontFamily: T.fontDisplay, letterSpacing: -0.6, lineHeight: 1.05 }}>{title}</div><div style={{ marginTop: 5, fontSize: 12.5, fontWeight: 700, opacity: 0.92, lineHeight: 1.25 }}>{sub}</div></div>;
+  return <HellooScreen onClick={onSkip} style={{ alignItems: "center", background: bg, color: ink, padding: "calc(7vh + env(safe-area-inset-top, 0px)) 22px calc(22px + env(safe-area-inset-bottom, 0px))", cursor: "pointer" }}>
+    {brand}
+    <div data-testid="helloo-splash-dots" style={{ flex: 1, width: "100%", display: "flex", flexDirection: "column", justifyContent: "center" }}><div style={{ alignSelf: "flex-start", marginLeft: "4%", animation: "hlDotPop 0.5s cubic-bezier(.2,.9,.3,1.3) both" }}>{dot("min(42vw, 176px)", "#10B981", "Free", "with people you know", "clamp(24px, 7vw, 30px)")}</div><div style={{ alignSelf: "flex-end", marginTop: "-9vw", animation: "hlDotSlide 0.6s 0.55s cubic-bezier(.2,.9,.3,1.1) both" }}>{dot("min(60vw, 250px)", "#F0447C", "Strangers pay", "to reach you", "clamp(28px, 8.6vw, 36px)")}</div></div>
+    <div data-testid="helloo-splash-points" style={{ fontSize: 12.5, fontWeight: 700, color: soft, textAlign: "center", animation: "hlDotPop 0.4s 1.1s both" }}>{HELLOO_SPLASH_LINE}</div>
+    <div aria-hidden="true" style={{ width: "100%", marginTop: 16, height: 3, borderRadius: 3, background: dark ? "rgba(255,255,255,0.12)" : "rgba(23,19,43,0.08)", overflow: "hidden" }}><span style={{ display: "block", height: "100%", width: "100%", background: T.accent, transformOrigin: "left", animation: `hlSplashFill ${HELLOO_SPLASH_MS}ms linear forwards` }} /></div>
+    <div style={{ marginTop: 8, fontSize: 11.5, color: soft }}>Tap to continue</div>
+    <style>{"@keyframes hlSplashFill{from{transform:scaleX(0)}to{transform:scaleX(1)}}@keyframes hlDotPop{from{transform:scale(.4);opacity:0}to{transform:none;opacity:1}}@keyframes hlDotSlide{from{transform:translateX(40%);opacity:0}to{transform:none;opacity:1}}@media (prefers-reduced-motion: reduce){[data-testid=helloo-splash-dots] *{animation:none!important}}"}</style>
   </HellooScreen>;
 }
 
