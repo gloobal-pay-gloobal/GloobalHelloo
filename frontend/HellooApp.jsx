@@ -274,29 +274,15 @@ function HellooRoot() {
   const [sheet, setSheet] = useStateH9(null);
   const [filter, setFilter] = useStateH9("all");
   const [query, setQuery] = useStateH9("");
-  // GLOOBAL बाज़ार, a screen of its own (the bazaar button over New chat):
-  // its own search, kind of shop, open now, near me.
-  const [bz, setBz] = useStateH9({ q: "", category: "", openNow: false, near: null, nearBusy: false });
-  const [bazaarFound, setBazaarFound] = useStateH9({ shops: [], busy: false, fuzzy: false, error: "" });
-  useEffectH9(() => {
-    if (screen !== "bazaar") return undefined;
-    setBazaarFound((b) => Object.assign({}, b, { busy: true, error: "" }));
-    const t = setTimeout(() => {
-      GloobalApi.bazaarSearch({ q: bz.q.trim(), category: bz.category, openNow: bz.openNow, near: bz.near })
-        .then((shops) => setBazaarFound({ shops: (shops || []).slice(0, 40), busy: false, fuzzy: Boolean(shops && shops.fuzzy), error: "" }))
-        .catch((err) => setBazaarFound({ shops: [], busy: false, fuzzy: false, error: gloobalApiIsUnreachable(err) ? "Waking the GLOOBAL server… try again in a moment." : (err && err.message) || "Couldn't search right now." }));
-    }, bz.q ? 350 : 0);
-    return () => clearTimeout(t);
-  }, [screen, bz.q, bz.category, bz.openNow, bz.near]);
-  const bazaarNearMe = () => {
-    if (bz.near) { setBz((b) => Object.assign({}, b, { near: null })); return; }
-    if (!navigator.geolocation) { setToast("This browser can't tell where you are."); return; }
-    setBz((b) => Object.assign({}, b, { nearBusy: true }));
-    navigator.geolocation.getCurrentPosition(
-      (pos) => setBz((b) => Object.assign({}, b, { nearBusy: false, near: { lat: Math.round(pos.coords.latitude * 1e4) / 1e4, lng: Math.round(pos.coords.longitude * 1e4) / 1e4, radiusKm: 5 } })),
-      () => { setBz((b) => Object.assign({}, b, { nearBusy: false })); setToast("Allow location to see shops near you."); },
-      { timeout: 10000, maximumAge: 300000 }
-    );
+  // GLOOBAL बाज़ार, a screen of its own (the bazaar button over New chat).
+  const [bazaarQ, setBazaarQ] = useStateH9("");
+  // A shop picked in Bazaar opens on its Helloo profile.
+  const openBazaarShop = async (shop) => {
+    try {
+      const id = shop && shop.symbolId ? shop.symbolId : ((await GloobalApi.resolveCreatorHandle((shop && shop.handle) || "")) || {}).symbolId;
+      if (!id) { setToast("Could not open that shop just now."); return; }
+      openChatWith(id, true);
+    } catch (err) { setToast("Could not open that shop just now."); }
   };
   // ── The pause after wrong tries ────────────────────────────────────────
   //
@@ -1547,7 +1533,7 @@ function HellooRoot() {
     return shell(<><HellooMeScreen me={me} earned={myReach && myReach.month ? { text: hellooMoneyText((myReach.month.earned || 0) - (myReach.month.gaveBack || 0), myReach.currency), sub: myReach.month.payers ? `from ${myReach.month.payers} ${myReach.month.payers === 1 ? "person" : "people"} who paid to reach you` : "Nobody has paid to reach you yet this month" } : null} onEarned={() => { earningsFromMe.current = true; openEarnings(""); }} onHelp={() => window.open(HELLOO_GLOOBAL_SITE, "_blank", "noopener")} stats={{ text: `${contacts.length} ${contacts.length === 1 ? "person" : "people"} from GLOOBAL · ${rows.length} ${rows.length === 1 ? "chat" : "chats"} · no fees` }} rows={meRows} onRow={onMeRow} onQr={() => setScreen("qr")} onCopy={async () => { try { await navigator.clipboard.writeText(me.gloobalId); setToast("GLOOBAL ID copied"); } catch (e) { setToast("Could not copy"); } }} onShare={shareHelloo} onOpenGloobal={() => window.open(HELLOO_GLOOBAL_SITE, "_blank", "noopener")} onSignOut={() => signOut("Signed out")} onBack={() => setScreen(null)} />{faceSheets}{sheet === "privacy" && <HellooSheet title="Privacy" onClose={() => setSheet(null)}><HellooCard style={{ padding: "14px 16px" }}><div style={{ display: "flex", alignItems: "center", gap: 12 }}><span style={{ flex: 1, minWidth: 0 }}><span style={{ display: "block", fontSize: 14.5, fontWeight: 800, color: T.ink }}>Show when I'm online</span><span style={{ display: "block", fontSize: 12.5, color: T.inkSoft, marginTop: 3, lineHeight: 1.45 }}>People you chat with see "Online" and when you were last seen. Switch it off and nobody sees either.</span></span><button role="switch" aria-checked={!(myReach && myReach.hideLastSeen)} aria-label="Show when I'm online" data-testid="helloo-privacy-online" disabled={!myReach} onClick={() => setHideLastSeen(!(myReach && myReach.hideLastSeen))} className="v2-tap" style={{ width: 46, height: 26, borderRadius: 13, border: "none", background: myReach && !myReach.hideLastSeen ? HT.free : T.line, position: "relative", cursor: "pointer", padding: 0, flexShrink: 0 }}><span style={{ position: "absolute", top: 3, left: myReach && !myReach.hideLastSeen ? 23 : 3, width: 20, height: 20, borderRadius: "50%", background: "#fff", boxShadow: "0 1px 3px rgba(0,0,0,0.25)", transition: "left 0.18s" }} /></button></div></HellooCard><HellooPictureChoice picture={myReach && myReach.picture} me={me} disabled={!myReach} onChange={setPicture} /><div style={{ fontSize: 11.5, color: T.inkFaint, lineHeight: 1.5, margin: "10px 4px 0" }}>Your chats are private to you and the people you talk to. Your phone number is never shown; people reach you by GLOOBAL ID.</div></HellooSheet>}</>);
   }
   if (screen === "bazaar") {
-    return shell(<HellooBazaarScreen query={bz.q} onQuery={(q) => setBz((b) => Object.assign({}, b, { q }))} category={bz.category} onCategory={(category) => setBz((b) => Object.assign({}, b, { category }))} openNow={bz.openNow} onOpenNow={(openNow) => setBz((b) => Object.assign({}, b, { openNow }))} near={bz.near} nearBusy={bz.nearBusy} onNear={bazaarNearMe} result={bazaarFound} onShop={(sh) => openChatWith(sh.symbolId, true)} onBack={() => setScreen(null)} />);
+    return shell(<HellooBazaarScreen query={bazaarQ} onQuery={setBazaarQ} countryIso={user && user.countryIso} ownerKey={user && user.symbolId} onOpen={openBazaarShop} onToast={setToast} onBack={() => setScreen(null)} />);
   }
   if (screen === "contacts") {
     const withPresence = contacts.map((p) => { const pr = presence[p.accountId]; return pr ? Object.assign({}, p, { online: Boolean(pr.online) }) : p; });
