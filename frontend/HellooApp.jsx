@@ -274,6 +274,20 @@ function HellooRoot() {
   const [sheet, setSheet] = useStateH9(null);
   const [filter, setFilter] = useStateH9("all");
   const [query, setQuery] = useStateH9("");
+  // GLOOBAL बाज़ार, searched from the same box: shops whose name, kind or
+  // what they sell matches what is typed (two letters or more).
+  const [bazaarFound, setBazaarFound] = useStateH9({ q: "", shops: [], busy: false, fuzzy: false });
+  useEffectH9(() => {
+    const q = query.trim();
+    if ([...q].length < 2) { setBazaarFound({ q: "", shops: [], busy: false, fuzzy: false }); return undefined; }
+    setBazaarFound((b) => Object.assign({}, b, { busy: true }));
+    const t = setTimeout(() => {
+      GloobalApi.bazaarSearch({ q })
+        .then((shops) => setBazaarFound((b) => (query.trim() === q ? { q, shops: (shops || []).slice(0, 8), busy: false, fuzzy: Boolean(shops && shops.fuzzy) } : b)))
+        .catch(() => setBazaarFound({ q, shops: [], busy: false, fuzzy: false }));
+    }, 350);
+    return () => clearTimeout(t);
+  }, [query]);
   // ── The pause after wrong tries ────────────────────────────────────────
   //
   // A private chat answers only to its whole saved name, and a short one
@@ -1532,7 +1546,7 @@ function HellooRoot() {
 
   // ── Tabs ─────────────────────────────────────────────────────────────
   return shell(<div style={{ position: "absolute", inset: 0, display: "flex", flexDirection: "column" }}><div style={{ flex: 1, minHeight: 0, position: "relative" }}>
-    {tab === "chats" && <HellooChatsScreen paidCards={paidCards} me={me} chats={shownRows} query={query} onSearch={setQuery} filter={filter} onFilter={setFilter} onOpen={(c) => openChat(c.id)} onHold={(c) => setHeldChat(c)} onStart={() => setSheet("start")} onScan={() => setScreen("scan")} onMore={() => setSheet("more")} onMe={() => setScreen("me")} onContacts={() => { setContactQuery(""); refreshContacts(); setScreen("contacts"); }} onAdd={() => setSheet("add")} banner={<>{faceBanner}{banner}</>} empty={empty} requests={asks.map((a) => ({ id: a.id, person: hellooPersonFrom(a.person, photos), text: a.text }))} onRequests={() => { refreshAsks(); setScreen("requests"); }} />}
+    {tab === "chats" && <HellooChatsScreen bazaar={bazaarFound} onBazaarShop={(s) => { setQuery(""); openChatWith(s.symbolId); }} paidCards={paidCards} me={me} chats={shownRows} query={query} onSearch={setQuery} filter={filter} onFilter={setFilter} onOpen={(c) => openChat(c.id)} onHold={(c) => setHeldChat(c)} onStart={() => setSheet("start")} onScan={() => setScreen("scan")} onMore={() => setSheet("more")} onMe={() => setScreen("me")} onContacts={() => { setContactQuery(""); refreshContacts(); setScreen("contacts"); }} onAdd={() => setSheet("add")} banner={<>{faceBanner}{banner}</>} empty={empty} requests={asks.map((a) => ({ id: a.id, person: hellooPersonFrom(a.person, photos), text: a.text }))} onRequests={() => { refreshAsks(); setScreen("requests"); }} />}
     {heldChat && <HellooChatActions chat={heldChat} onClose={() => setHeldChat(null)} items={[
       hellooIsBusiness(heldChat.person)
         ? [HlBellOff, heldChat.offHome ? "Show on home" : "Hide from home", false, () => { setPrefs(heldChat.id, { offHome: !heldChat.offHome }); setHeldChat(null); }]
