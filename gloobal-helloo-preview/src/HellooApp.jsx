@@ -77036,6 +77036,30 @@ function GloobalArtifactRoot() {
 
 
 // ───── helloo: constants/hellooTheme.jsx ─────
+// ── HELLOO KEEPS ITS SIGN-IN UNDER ITS OWN NAME ────────────────────────
+//
+// Helloo is built from GLOOBAL's code, which keeps the sign-in under
+// "gloobal.session.v1". Copies of Helloo left open on a phone from before
+// 16 Nov run older code that writes week-old, expired sign-ins back under
+// that name — and a phone with such a copy signs out the moment anyone
+// signs in (seen on the founder's phone, 16–17 Nov). From here on Helloo
+// keeps its sign-in under a name no older copy knows, so nothing they do
+// can reach it. A sign-in that is still good under the old name is moved
+// across once, so nobody already signed in is signed out by this.
+(function hellooOwnSessionKey() {
+  var NEW_KEY = "helloo.session.v2";
+  var OLD_KEY = GLOOBAL_SESSION_KEY;
+  try {
+    if (!window.localStorage.getItem(NEW_KEY)) {
+      var old = JSON.parse(window.localStorage.getItem(OLD_KEY) || "null");
+      if (old && old.token && typeof gloobalAuthTokenLooksLive === "function" && gloobalAuthTokenLooksLive(old.token)) {
+        window.localStorage.setItem(NEW_KEY, JSON.stringify(old));
+      }
+    }
+  } catch (e) { /* storage off: nothing to move */ }
+  GLOOBAL_SESSION_KEY = NEW_KEY;
+})();
+
 // frontend/constants/hellooTheme.jsx
 //
 // Helloo is built on Gloobal's own theme (T) and components, so the two
