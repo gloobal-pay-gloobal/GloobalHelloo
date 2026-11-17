@@ -77393,31 +77393,32 @@ function HellooVerifiedName({ person, size = 15 }) {
 function hellooPrefersDark() {
   try { return typeof window !== "undefined" && window.matchMedia && window.matchMedia("(prefers-color-scheme: dark)").matches; } catch (e) { return false; }
 }
-// The splash (17 Nov, founder's pick: "the two dots"). The two dots of
-// HELL●● carry the promise: a smaller green one, "Free, with people you
-// know", then a larger pink one sliding in beside it, "Strangers pay, to
-// reach you" — two people meeting. The Helloo mark sits in the middle at
-// the top with the name and "by GLOOBAL" under it; the three things the
-// dots don't say are one line at the foot. A thin line fills while it
-// waits and a tap goes on at once. Someone already signed in sees only the
-// mark on the way to their chats.
+// The splash (17 Nov, founder's pick after several rounds): two tickets
+// held together. Green behind, "People you know · Free · 0 CEL"; pink in
+// front, "Strangers · They pay · +3 CEL" — the price of reaching you, read
+// at a glance. The HELLOO name stands above the mark; a globe sits in the
+// top-right corner; "by GLOOBAL" is centred at the foot under a line that
+// fills while the server wakes. A tap goes on at once. Someone already
+// signed in sees only the name and mark on the way to their chats.
 var HELLOO_SPLASH_MS = 2600;
 var HELLOO_SPLASH_LINE = "Number private · Pay in the chat · Every country";
+function HellooSplashTicket({ bg, page, label, big, sub, stub, stubSub, rot = 0, style, delay = 0, z = 1 }) {
+  const notch = (pos) => <span style={{ position: "absolute", right: 82, [pos]: -10, width: 20, height: 20, borderRadius: "50%", background: page }} />;
+  return <div style={Object.assign({ position: "absolute", display: "flex", background: bg, color: "#fff", borderRadius: 22, boxShadow: `0 18px 36px ${bg}55, 0 2px 6px rgba(23,19,43,0.08)`, transform: `rotate(${rot}deg)`, animation: `hlTicketIn 0.55s ${delay}s cubic-bezier(.2,.9,.3,1.15) both`, zIndex: z, "--r": `${rot}deg` }, style || {})}><div style={{ flex: 1, minWidth: 0, padding: "16px 16px 17px 18px" }}><div style={{ fontSize: 11.5, fontWeight: 800, letterSpacing: 1.2, textTransform: "uppercase", opacity: 0.85 }}>{label}</div><div style={{ marginTop: 4, fontSize: "clamp(30px, 9.4vw, 40px)", fontWeight: 900, fontFamily: T.fontDisplay, letterSpacing: -1.1, lineHeight: 1 }}>{big}</div><div style={{ marginTop: 6, fontSize: 13, fontWeight: 700, opacity: 0.92, lineHeight: 1.3 }}>{sub}</div></div><div style={{ width: 92, flexShrink: 0, borderLeft: "2px dashed rgba(255,255,255,0.5)", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: 3 }}><div style={{ fontSize: 26, fontWeight: 900, fontFamily: T.fontDisplay, letterSpacing: -0.5, lineHeight: 1 }}>{stub}</div><div style={{ fontSize: 10.5, fontWeight: 800, opacity: 0.88, letterSpacing: 0.8 }}>{stubSub}</div></div>{notch("top")}{notch("bottom")}</div>;
+}
 function HellooSplash({ dark = hellooPrefersDark(), intro = false, onSkip }) {
   const ink = dark ? "#F1EEFF" : T.ink; const soft = dark ? "#B3ADCC" : T.inkSoft;
-  const bg = dark ? "#0F0D1F" : HT.wash;
-  const byGloobal = <span style={{ fontSize: 12, color: soft, display: "inline-flex", alignItems: "center", gap: 6 }}>by <GloobalWordmark /></span>;
-  // First time: mark and name at the top, "by GLOOBAL" moves to the foot.
-  const brand = <><HellooMark size={intro ? 72 : 104} /><div style={{ marginTop: intro ? 14 : 22, fontSize: intro ? 30 : 34, letterSpacing: -0.5 }}><HellooWordmark /></div>{!intro && <div style={{ marginTop: 5 }}>{byGloobal}</div>}</>;
-  if (!intro) return <HellooScreen style={{ alignItems: "center", justifyContent: "center", background: bg, color: ink }}>{brand}</HellooScreen>;
-  const dot = (size, c, title, sub, tSize) => <div style={{ width: size, height: size, borderRadius: "50%", background: c, color: "#fff", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", textAlign: "center", padding: "0 9%", boxShadow: `0 18px 40px ${c}55`, flexShrink: 0 }}><div style={{ fontSize: tSize, fontWeight: 800, fontFamily: T.fontDisplay, letterSpacing: -0.6, lineHeight: 1.05 }}>{title}</div><div style={{ marginTop: 5, fontSize: 12.5, fontWeight: 700, opacity: 0.92, lineHeight: 1.25 }}>{sub}</div></div>;
-  return <HellooScreen onClick={onSkip} style={{ alignItems: "center", background: bg, color: ink, padding: "calc(7vh + env(safe-area-inset-top, 0px)) 22px calc(22px + env(safe-area-inset-bottom, 0px))", cursor: "pointer" }}>
-    {brand}
-    <div data-testid="helloo-splash-dots" style={{ flex: 1, width: "100%", display: "flex", flexDirection: "column", justifyContent: "center" }}><div style={{ alignSelf: "flex-start", marginLeft: "4%", animation: "hlDotPop 0.5s cubic-bezier(.2,.9,.3,1.3) both" }}>{dot("min(42vw, 176px)", "#10B981", "Free", "with people you know", "clamp(24px, 7vw, 30px)")}</div><div style={{ alignSelf: "flex-end", marginTop: "-9vw", animation: "hlDotSlide 0.6s 0.55s cubic-bezier(.2,.9,.3,1.1) both" }}>{dot("min(60vw, 250px)", "#F0447C", "Strangers pay", "to reach you", "clamp(28px, 8.6vw, 36px)")}</div></div>
-    <div data-testid="helloo-splash-points" style={{ fontSize: 12.5, fontWeight: 700, color: soft, textAlign: "center", animation: "hlDotPop 0.4s 1.1s both" }}>{HELLOO_SPLASH_LINE}</div>
+  const page = dark ? "#0F0D1F" : HT.wash;
+  const brand = (markSize, nameSize) => <div style={{ display: "flex", flexDirection: "column", alignItems: "center" }}><div style={{ fontSize: nameSize, letterSpacing: -0.5, color: ink }}><HellooWordmark /></div><div style={{ marginTop: 14 }}><HellooMark size={markSize} /></div></div>;
+  if (!intro) return <HellooScreen style={{ alignItems: "center", justifyContent: "center", background: page, color: ink }}>{brand(104, 34)}<div style={{ marginTop: 14, fontSize: 12, color: soft, display: "flex", alignItems: "center", gap: 6 }}>by <GloobalWordmark /></div></HellooScreen>;
+  return <HellooScreen onClick={onSkip} style={{ alignItems: "center", background: page, color: ink, padding: "calc(7vh + env(safe-area-inset-top, 0px)) 22px calc(18px + env(safe-area-inset-bottom, 0px))", cursor: "pointer" }}>
+    <span aria-label="Every country" style={{ position: "absolute", top: "calc(16px + env(safe-area-inset-top, 0px))", right: 16, width: 40, height: 40, borderRadius: "50%", background: dark ? "rgba(255,255,255,0.08)" : "#fff", display: "flex", alignItems: "center", justifyContent: "center", boxShadow: "0 4px 14px rgba(23,19,43,0.08)" }}><HlGlobe size={20} color={T.accent} /></span>
+    {brand(64, 28)}
+    <div data-testid="helloo-splash-tickets" style={{ flex: 1, width: "100%", display: "flex", alignItems: "center", justifyContent: "center" }}><div style={{ position: "relative", width: "100%", height: 270 }}><HellooSplashTicket bg="#10B981" page={page} label="People you know" big="Free" sub="calls and chats, every country" stub="0" stubSub="CEL" rot={-5} delay={0.1} z={1} style={{ left: 0, right: 16, top: 0 }} /><HellooSplashTicket bg="#F0447C" page={page} label="Strangers" big="They pay" sub="your price to reach you, or they ask" stub="+3" stubSub="CEL" rot={3} delay={0.55} z={2} style={{ left: 16, right: 0, top: 128 }} /></div></div>
+    <div data-testid="helloo-splash-points" style={{ fontSize: 12.5, fontWeight: 700, color: soft, textAlign: "center" }}>{HELLOO_SPLASH_LINE}</div>
     <div aria-hidden="true" style={{ width: "100%", marginTop: 16, height: 3, borderRadius: 3, background: dark ? "rgba(255,255,255,0.12)" : "rgba(23,19,43,0.08)", overflow: "hidden" }}><span style={{ display: "block", height: "100%", width: "100%", background: T.accent, transformOrigin: "left", animation: `hlSplashFill ${HELLOO_SPLASH_MS}ms linear forwards` }} /></div>
-    <div data-testid="helloo-splash-foot" style={{ width: "100%", marginTop: 12, display: "flex", alignItems: "center", justifyContent: "space-between", gap: 10 }}>{byGloobal}<span style={{ display: "inline-flex", alignItems: "center", gap: 6, fontSize: 12, fontWeight: 800, color: T.accent }}><HlGlobe size={14} color={T.accent} />Connect globally</span></div>
-    <style>{"@keyframes hlSplashFill{from{transform:scaleX(0)}to{transform:scaleX(1)}}@keyframes hlDotPop{from{transform:scale(.4);opacity:0}to{transform:none;opacity:1}}@keyframes hlDotSlide{from{transform:translateX(40%);opacity:0}to{transform:none;opacity:1}}@media (prefers-reduced-motion: reduce){[data-testid=helloo-splash-dots] *{animation:none!important}}"}</style>
+    <div data-testid="helloo-splash-foot" style={{ marginTop: 12, fontSize: 12, color: soft, display: "flex", alignItems: "center", gap: 6 }}>by <GloobalWordmark /></div>
+    <style>{"@keyframes hlSplashFill{from{transform:scaleX(0)}to{transform:scaleX(1)}}@keyframes hlTicketIn{from{transform:translateY(24px) rotate(0deg);opacity:0}to{transform:rotate(var(--r));opacity:1}}@media (prefers-reduced-motion: reduce){[data-testid=helloo-splash-tickets] *{animation:none!important}}"}</style>
   </HellooScreen>;
 }
 
