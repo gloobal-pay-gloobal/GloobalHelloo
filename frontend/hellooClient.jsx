@@ -371,7 +371,7 @@ function hellooChatRowFrom(chat, photos) {
   // that must say who they really are (a payment, their profile).
   const savedName = typeof chat.savedName === "string" ? chat.savedName : "";
   if (person && savedName) { person.accountName = person.name; person.name = savedName; }
-  return { id: chat.id, person, unread: chat.unread || 0, muted: Boolean(chat.muted), pinned: Boolean(chat.pinned), savedName, private: Boolean(chat.private), offHome: Boolean(chat.offHome), released: chat.released || null, releaseState: chat.releaseState || null, messages: last ? [last] : [], lastAt: chat.lastAt, theyReadAt: chat.theyReadAt };
+  return { id: chat.id, person, unread: chat.unread || 0, muted: Boolean(chat.muted), pinned: Boolean(chat.pinned), savedName, private: Boolean(chat.private), offHome: Boolean(chat.offHome), theme: typeof chat.theme === "string" ? chat.theme : "", released: chat.released || null, releaseState: chat.releaseState || null, messages: last ? [last] : [], lastAt: chat.lastAt, theyReadAt: chat.theyReadAt };
 }
 
 // ── FINDING A CHAT ──────────────────────────────────────────────────────

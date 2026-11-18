@@ -82,6 +82,8 @@ function HellooRoot() {
   // ── Theme ────────────────────────────────────────────────────────────
   const [, setThemeTick] = useStateH9(0);
   const [themeKey, setThemeKey] = useStateH9(() => { const k = hellooSavedTheme(); applyHellooTheme(k); return k; });
+  // The colours actually on screen: the app's, or an open chat's own.
+  const shownThemeRef = useRefH9("");
   // The phone's status bar takes the app's own background colour.
   useEffectH9(() => {
     try {
@@ -1365,6 +1367,11 @@ function HellooRoot() {
   });
 
   // ── Shell ────────────────────────────────────────────────────────────
+  // An open chat wears its own colours when it has them (yours alone, saved
+  // with the chat); everywhere else the app's. Applied before anything draws.
+  const chatThemeNow = openId && !screen ? ((((chatRows || []).find((c) => c.id === openId)) || {}).theme || (threads[openId] && threads[openId].chat && threads[openId].chat.theme) || "") : "";
+  const themeNow = chatThemeNow && hellooFindTheme(chatThemeNow) ? chatThemeNow : themeKey;
+  if (shownThemeRef.current !== themeNow + "|" + hellooSideNow()) { applyHellooTheme(themeNow); shownThemeRef.current = themeNow + "|" + hellooSideNow(); }
   const shell = (children) => <div style={{ position: "absolute", inset: 0, overflow: "hidden", background: T.bg }}>{callLayer}<div style={{ position: "absolute", left: 0, right: 0, bottom: 0, top: callBar ? "calc(48px + env(safe-area-inset-top, 0px))" : 0 }}>{children}</div>{gReceipt && user && typeof LedgerProvider === "function" ? <LedgerProvider userId={user.accountId || "me"} currency={user.currency || "INR"}><ReceiptModal receipt={gReceipt} onClose={() => setGReceipt(null)} /></LedgerProvider> : null}{callBar}{toast && <div role="status" style={{ position: "absolute", left: 16, right: 16, bottom: "calc(96px + env(safe-area-inset-bottom, 0px))", display: "flex", justifyContent: "center", zIndex: 300, pointerEvents: "none" }}><span style={{ background: T.ink, color: T.bg, borderRadius: 18, padding: "9px 16px", fontSize: 13, fontWeight: 700, fontFamily: T.fontBody, boxShadow: "0 8px 24px rgba(0,0,0,0.25)", textAlign: "center", maxWidth: "100%" }}>{toast}</span></div>}</div>;
 
   // ── A call fills the screen — or, made small, a bar at the top ───────
@@ -1453,6 +1460,8 @@ function HellooRoot() {
       [HlCalendar, chatPeriod && chatPeriod !== "all" ? "Find by date · on" : "Find by date", false, null, () => setSheet("find-date")],
       // Every payment between you two, from your GLOOBAL history.
       person.gloobalId ? [HlWallet, "Payment history", false, null, () => openPayHistory(person)] : null,
+      // This chat's own colours: it recolours behind the picker as you tap.
+      [HlPalette, "Chat colours", false, null, () => setSheet("chat-theme")],
       [HlBellOff, muted ? "Unmute notifications" : "Mute notifications", false, null, () => { setSheet(null); setPrefs(openId, { muted: !muted }); setToast(muted ? "Notifications on for this chat" : "Muted · no notifications from this chat"); }],
       // Who can reach me, just for this person: Free, Pays per message, Never.
       ...(!hellooIsBusiness(person) && !iBlocked ? [[HlRupee, "Who can reach me", false, null, () => { loadPersonReach(person.accountId); setSheet("reach-person"); }]] : []),
@@ -1487,6 +1496,7 @@ function HellooRoot() {
         const box = (label, v, color) => <span style={{ flex: 1, minWidth: 0, background: T.surface, borderRadius: 14, padding: "10px 12px", boxShadow: T.shadowCard }}><span style={{ display: "block", fontSize: 11, fontWeight: 700, color: T.inkSoft }}>{label}</span><span style={{ display: "block", fontSize: 15, fontWeight: 800, color, marginTop: 3, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{hellooMoneyText(v, cur)}</span></span>;
         return <div style={{ display: "flex", gap: 8, margin: "12px 0" }}>{box("You paid", sum("out"), T.ink)}{box("You got", sum("in"), HT.free)}</div>;
       })()}<div style={{ borderRadius: 18, background: T.surface, boxShadow: T.shadowCard, overflow: "hidden", maxHeight: "52vh", overflowY: "auto" }}>{payHist.rows.map((t, k) => { const got = t.direction === "received"; return typeof TransactionRow === "function" ? <TransactionRow key={t.txnId || k} t={t} color={got ? (T.txnIn || HT.free) : (T.txnOut || T.ink)} sign={got ? "+" : "−"} ccyCode={(me && me.currency) || "INR"} isFirst={k === 0} onSelect={() => { const b = buildGloobalReceipt(t, payHist.h); if (b) { setSheet(null); setGReceipt(b); } }} /> : null; })}</div><div style={{ fontSize: 11.5, color: T.inkFaint, textAlign: "center", marginTop: 10 }}>From your GLOOBAL history · tap one for its receipt</div></>}</div></HellooSheet>}
+      {sheet === "chat-theme" && <HellooChatThemeSheet current={chatThemeNow} onPick={(k) => setPrefs(openId, { theme: k })} onClose={() => setSheet(null)} />}
       {sheet === "find-date" && <HellooDateSheet title="Find messages by date" value={chatPeriod || "all"} marks={new Set(allMsgs.filter((m) => m.at).map((m) => hellooDayKey(new Date(m.at))))} onClose={() => setSheet(null)} onPick={(k) => { setSheet(null); setChatPeriod(k === "all" ? null : k); }} />}
       {sheet === "reach-person" && <HellooSheet label="Who can reach me" onClose={() => setSheet(null)}><div style={{ fontSize: 16, fontWeight: 800, fontFamily: T.fontDisplay, color: T.ink }}>Who can reach me</div><div style={{ fontSize: 12.5, color: T.inkSoft, margin: "3px 0 12px" }}>Just for {firstName}. Everyone else follows your usual settings.</div><HellooReachChoice who={firstName} reach={together[person.accountId] && together[person.accountId].reachMode ? together[person.accountId] : null} busy={reachBusy} onChange={(mode, price) => setPersonReach(person.accountId, mode, price)} /></HellooSheet>}
       {sheet === "confirm-clear" && <HellooSheet label="Clear chat" onClose={() => setSheet(null)}><div style={{ fontSize: 15, fontWeight: 800, color: T.ink }}>Clear this chat?</div><div style={{ fontSize: 13, color: T.inkSoft, marginTop: 6, lineHeight: 1.45 }}>Every message disappears for you. {firstName} still has them. Payments stay in your GLOOBAL history.</div><div style={{ display: "flex", gap: 10, marginTop: 16 }}><HellooSecondary onClick={() => setSheet(null)}>Cancel</HellooSecondary><HellooPrimary color={T.negative} onClick={() => { setSheet(null); clearChat(openId, false); }}>Clear chat</HellooPrimary></div></HellooSheet>}
@@ -1560,14 +1570,13 @@ function HellooRoot() {
     : rows.length ? <>{rows.filter((c) => c.released && new Date(c.released.expiresAt).getTime() > Date.now()).map((c) => <button key={"rel" + c.id} data-testid="helloo-released-card" onClick={() => { setRelease({ chatId: c.id, pin: "", busy: false, error: "", mode: "take" }); setSheet("release"); }} className="v2-tap" style={{ width: "100%", display: "flex", alignItems: "center", gap: 12, marginBottom: 10, padding: "14px 16px", borderRadius: 18, border: `1px dashed ${T.accent}`, background: T.accentSoft, cursor: "pointer", textAlign: "left", fontFamily: T.fontBody }}><span style={{ width: 40, height: 40, borderRadius: "50%", background: T.accent, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}><HlLock size={18} color="#fff" /></span><span style={{ flex: 1, minWidth: 0 }}><span style={{ display: "block", fontSize: 14.5, fontWeight: 800, color: T.ink }}>A private chat was released for you</span><span style={{ display: "block", fontSize: 12, color: T.inkSoft, marginTop: 2 }}>Open it with your PIN within {Math.max(1, Math.ceil((new Date(c.released.expiresAt).getTime() - Date.now()) / 60000))} min</span></span><HlChevron size={18} color={T.accent} /></button>)}<HellooCard style={{ padding: "20px 16px", textAlign: "center" }}><div data-testid="helloo-home-count" style={{ fontSize: 15, fontWeight: 800, color: T.ink, fontFamily: T.fontDisplay }}>{unreadOwn > 0 ? `${unreadOwn} new ${unreadOwn === 1 ? "message" : "messages"}${unreadChats > 1 ? ` in ${unreadChats} chats` : ""}` : paidCards.length ? "Nothing else new" : "Nothing new"}</div><div style={{ fontSize: 12.5, color: T.inkSoft, marginTop: 5, lineHeight: 1.5 }}>Your chats stay off this screen. Type a name above to open one.</div></HellooCard></>
     : <><HellooCard style={{ padding: "18px 16px" }}><div style={{ fontSize: 16, fontWeight: 800, color: T.ink, fontFamily: T.fontDisplay }}>No chats yet</div><div style={{ fontSize: 13, color: T.inkSoft, marginTop: 4, lineHeight: 1.45 }}>{contacts.length ? "Start with someone you have paid on GLOOBAL, or dial any GLOOBAL ID." : "Dial a GLOOBAL ID or scan someone's GLOOBAL QR to start."}</div><div style={{ display: "flex", gap: 8, marginTop: 12 }}><HellooSecondary Icon={HlHash} onClick={() => { setDial({ value: "", status: "", match: null }); setSheet("dial"); }}>Dial an ID</HellooSecondary><HellooSecondary Icon={HlScan} onClick={() => setScreen("scan")}>Scan</HellooSecondary></div></HellooCard>{contacts.length > 0 && <HellooSection title="People you've paid" hint="free to message"><HellooCard>{contacts.slice(0, 12).map((p, i) => <button key={p.id} onClick={() => contactPick(p)} className="v2-tap" style={{ width: "100%", display: "flex", alignItems: "center", gap: 12, padding: "10px 14px", border: "none", borderTop: i ? `1px solid ${T.line}` : "none", background: "none", cursor: "pointer", textAlign: "left", fontFamily: T.fontBody }}><HellooAvatar person={p} size={42} /><span style={{ flex: 1, minWidth: 0 }}><span style={{ display: "block", fontSize: 14.5, fontWeight: 800, color: T.ink }}>{p.name}</span><span style={{ display: "block", fontSize: 12, color: T.inkSoft, marginTop: 2, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{p.lastPaid}</span></span><HlChat size={18} color={T.accent} /></button>)}</HellooCard></HellooSection>}</>;
 
-  const themeName = (hellooFindTheme(themeKey) || HELLOO_THEMES[0]).name;
   const reachValue = !myReach ? "" : (myReach.people.closed && myReach.business.closed) ? "Requests only" : [myReach.people, myReach.business].map((g) => (g.closed ? "Requests only" : g.price ? hellooMoneyText(g.price, myReach.currency) : "Free")).join(" · ");
   const isIos = typeof navigator !== "undefined" && /iphone|ipad|ipod/i.test(navigator.userAgent);
   const meRows = ((faces || []).length > 1 ? [[HlUsers, "Using Helloo as", activeFace ? (activeFace.kind === "shop" ? activeFace.name : "Personal") : "Choose", "#7C3AED"]] : []).concat(activeFace && activeFace.kind === "shop" ? [[HlPhone, "Shop calls", hellooCallsText(activeFace.calls), HT.free], [HlUser, "On my personal profile", activeFace.show ? "Shown" : "Not shown", "#7C3AED"]] : []).concat([
     [HlRupee, "Who can reach me", reachValue, HT.free],
     [HlShield, "Privacy", !myReach ? "" : myReach.hideLastSeen ? "Online status hidden" : "Online status shown", "#2563EB"],
     [HlBell, "Notifications", push === "on" ? "On" : push === "blocked" ? "Blocked" : push === "unsupported" ? "Not on this browser" : "Off", "#EA580C"],
-    [HlPalette, "App theme", themeName, "#9333EA"],
+    [HlPalette, "Colours", "", "#9333EA"],
     [HlBan, "Blocked people", blocked ? String(blocked.length) : "", "#DC2626"]
   ]).concat(!standalone && (installEvent || isIos) ? [[HlDownload, "Install Helloo", "Home screen app", "#2563EB"]] : []);
   const onMeRow = (title) => {
@@ -1585,7 +1594,7 @@ function HellooRoot() {
     }
     if (title === "Who can reach me") { earningsFromMe.current = false; refreshMyReach(); setScreen("reach"); return; }
     if (title === "Privacy") { refreshMyReach(); setSheet("privacy"); return; }
-    if (title === "App theme") setScreen("theme");
+    if (title === "Colours") setScreen("theme");
     else if (title === "Blocked people") { refreshBlocked(); setScreen("blocked"); }
     else if (title === "Notifications") turnOnPush();
   };
@@ -1658,6 +1667,8 @@ function HellooRoot() {
         ? [HlBellOff, heldChat.offHome ? "Show on home" : "Hide from home", false, () => { setPrefs(heldChat.id, { offHome: !heldChat.offHome }); setHeldChat(null); }]
         : [HlPencil, heldChat.private ? "Private chat · change name" : "Name this chat · make private", false, () => { const c = heldChat; setHeldChat(null); openNameEdit(c); }],
       [HlPinIcon, heldChat.pinned ? "Unpin" : "Pin to top", false, () => { setPrefs(heldChat.id, { pinned: !heldChat.pinned }); setHeldChat(null); }],
+      // Opens the chat with its colours picker over it, so a tap shows itself.
+      [HlPalette, "Chat colours", false, () => { const c = heldChat; setHeldChat(null); openChat(c.id); setTimeout(() => setSheet("chat-theme"), 0); }],
       [HlBellOff, heldChat.muted ? "Unmute" : "Mute", false, () => { setPrefs(heldChat.id, { muted: !heldChat.muted }); setHeldChat(null); }],
       heldChat.unread > 0 && [HlCheckCheck, "Mark as read", false, () => { markRead(heldChat.id); setHeldChat(null); }],
       [HlTrash, "Delete chat", true, () => { const id = heldChat.id; setHeldChat(null); setSheet({ confirmDelete: id }); }]
@@ -1668,7 +1679,7 @@ function HellooRoot() {
       unread > 0 && [HlCheckCheck, "Mark all as read", () => { rows.filter((c) => c.unread).forEach((c) => markRead(c.id)); setSheet(null); }],
       [HlUser, "Me · profile & settings", () => { setSheet(null); setScreen("me"); }],
       [HlBan, "Blocked people", () => { setSheet(null); refreshBlocked(); setScreen("blocked"); }],
-      [HlPalette, "App theme", () => { setSheet(null); setScreen("theme"); }]
+      [HlPalette, "Colours", () => { setSheet(null); setScreen("theme"); }]
     ].filter(Boolean).map(([Icon, title, onPress], i) => <HellooRow key={title} Icon={Icon} title={title} first={i === 0} onPress={onPress} />)}</HellooCard></HellooSheet>}
     {tab === "calls" && <HellooCallsHome me={me} calls={callsAll} filter={callFilter} onFilter={setCallFilter} when={callWhen} onWhen={setCallWhen} onCallBack={(c) => startCall(c.person, c.video)} onInfo={(c) => openChatWith(c.person.accountId, true)} onOpenDial={() => { setDial({ value: "", status: "", match: null }); setSheet("dial"); }} onAdd={() => setSheet("add")} onSearch={() => { setContactQuery(""); refreshContacts(); setScreen("contacts"); }} onScan={() => setScreen("scan")} onMe={() => setScreen("me")} />}
     {sheet === "dial" && <HellooDialSheet dial={dial.value} onDial={(v) => setDial((d) => Object.assign({}, d, { value: v }))} match={dial.match} status={dial.status} onMessage={() => dial.match && openChatWith(dial.match.gloobalId, false, false, dial.match.handle ? "" : "self")} onCall={() => { if (dial.match) { setSheet(null); startCall(dial.match, false); } }} onVideo={() => { if (dial.match) { setSheet(null); startCall(dial.match, true); } }} onClose={() => setSheet(null)} />}
