@@ -220,7 +220,9 @@ function hellooPersonFrom(card, photos) {
     photo: (photos && photos[(card.logo ? "logo:" : "") + card.accountId]) || null,
     lastPaid: paid
       ? `${paid.direction === "sent" ? "You paid" : "Paid you"} ${hellooMoneyText(paid.amount, paid.currency)} · ${hellooShortDate(paid.at)}`
-      : card.chatted ? "Chatted on Helloo" : ""
+      : card.chatted ? "Chatted on Helloo" : "",
+    // The same, in parts, for rows that draw it rather than say it.
+    lastPay: paid ? { out: paid.direction === "sent", amountText: hellooMoneyText(paid.amount, paid.currency), when: hellooShortDate(paid.at) } : null
   };
 }
 
