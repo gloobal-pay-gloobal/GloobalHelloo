@@ -880,30 +880,51 @@ function HellooRoot() {
   // (mapServerTransaction → receiptForRow), from this account's own
   // history. A payment not in it opens in GLOOBAL instead.
   const [gReceipt, setGReceipt] = useStateH9(null);
+  // This account's GLOOBAL history, read and shaped exactly as GLOOBAL
+  // reads it (mapServerTransaction). Used by the receipt and by a chat's
+  // Payment history.
+  const loadGloobalHistory = () => {
+    const sid = user && user.symbolId;
+    if (!sid || typeof mapServerTransaction !== "function") return Promise.reject(new Error("no history"));
+    return GloobalApi.getTransactionSummary(sid, "all").then((r) => {
+      const rows = (r && Array.isArray(r.transactions) ? r.transactions : []).map((row) => mapServerTransaction(row, sid));
+      return { rows, sent: rows.filter((t) => t.direction !== "received"), got: rows.filter((t) => t.direction === "received") };
+    });
+  };
+  const buildGloobalReceipt = (found, h) => {
+    if (!found || typeof receiptForRow !== "function") return null;
+    const country = typeof ALL_COUNTRIES !== "undefined" ? ALL_COUNTRIES.find((c) => c.iso === user.countryIso) : null;
+    const cur = user.currency || "INR";
+    return receiptForRow(found, found.direction === "received" ? "received" : "sent", {
+      dialCountry: country || null,
+      ccy: (typeof CURRENCY_SYMBOL === "object" && CURRENCY_SYMBOL[cur]) || cur,
+      sendHistory: h.sent,
+      receiveHistory: h.got,
+      viewer: typeof receiptViewer === "function" ? receiptViewer({ name: user.fullName, symbolId: user.symbolId, countryName: country && country.name, countryFlag: country && country.flag }) : null
+    });
+  };
   const openGloobalReceipt = (referenceId) => {
     if (!referenceId || !user || !user.symbolId) return;
-    const sid = user.symbolId;
     const outside = () => { try { window.open(`${GLOOBAL_API_BASE}/t/${encodeURIComponent(referenceId)}`, "_blank", "noopener"); } catch (e) { /* blocked */ } };
     if (typeof ReceiptModal !== "function" || typeof receiptForRow !== "function" || typeof mapServerTransaction !== "function") { outside(); return; }
     setToast("Opening receipt…");
-    GloobalApi.getTransactionSummary(sid, "all").then((r) => {
-      const rows = (r && Array.isArray(r.transactions) ? r.transactions : []).map((row) => mapServerTransaction(row, sid));
-      const sent = rows.filter((t) => t.direction !== "received");
-      const got = rows.filter((t) => t.direction === "received");
-      const found = rows.find((t) => t.txnId === referenceId);
-      if (!found) { setToast(""); outside(); return; }
-      const country = typeof ALL_COUNTRIES !== "undefined" ? ALL_COUNTRIES.find((c) => c.iso === user.countryIso) : null;
-      const cur = user.currency || "INR";
-      const built = receiptForRow(found, found.direction === "received" ? "received" : "sent", {
-        dialCountry: country || null,
-        ccy: (typeof CURRENCY_SYMBOL === "object" && CURRENCY_SYMBOL[cur]) || cur,
-        sendHistory: sent,
-        receiveHistory: got,
-        viewer: typeof receiptViewer === "function" ? receiptViewer({ name: user.fullName, symbolId: sid, countryName: country && country.name, countryFlag: country && country.flag }) : null
-      });
+    loadGloobalHistory().then((h) => {
+      const built = buildGloobalReceipt(h.rows.find((t) => t.txnId === referenceId), h);
       setToast("");
       if (built) setGReceipt(built); else outside();
     }).catch(() => { setToast(""); outside(); });
+  };
+  // Payment history with one person: every GLOOBAL payment between you two,
+  // in GLOOBAL's own history rows; a row opens GLOOBAL's receipt.
+  const [payHist, setPayHist] = useStateH9(null);
+  const openPayHistory = (person) => {
+    if (!person || !person.gloobalId) return;
+    setPayHist({ person, rows: null, h: null, error: "" });
+    setSheet("pay-history");
+    loadGloobalHistory().then((h) => {
+      const rows = h.rows.filter((t) => t.id === person.gloobalId);
+      setPayHist((v) => (v && v.person === person ? Object.assign({}, v, { rows, h }) : v));
+    }).catch(() => setPayHist((v) => (v ? Object.assign({}, v, { rows: [], error: "Couldn't load your GLOOBAL history. Try again." }) : v)));
   };
   // GLOOBAL's receipt says "Pay again" with a window event (its own app
   // listens for it). Here it opens the chat with that person and its Pay.
@@ -1031,6 +1052,9 @@ function HellooRoot() {
       });
       const referenceId = result && result.transaction && result.transaction.referenceId;
       if (referenceId) {
+        // Filed under the choice picked, the way GLOOBAL's Send files it:
+        // quietly, after the money moved, never failing the payment.
+        if (pay.choiceId && typeof choicesTagQuietly === "function") choicesTagQuietly(referenceId, pay.choiceId);
         try { await sendMessage(chatId, { kind: "payment", referenceId }); } catch (e) { /* the money moved; the bubble can follow on refresh */ }
       }
       setPay({ amount: "", note: "", busy: false, error: "" });
@@ -1427,6 +1451,8 @@ function HellooRoot() {
       // Find by date lives here, not in the header: the header keeps just
       // video, call and ⋮. On while a period is set, so it reads as a filter.
       [HlCalendar, chatPeriod && chatPeriod !== "all" ? "Find by date · on" : "Find by date", false, null, () => setSheet("find-date")],
+      // Every payment between you two, from your GLOOBAL history.
+      person.gloobalId ? [HlWallet, "Payment history", false, null, () => openPayHistory(person)] : null,
       [HlBellOff, muted ? "Unmute notifications" : "Mute notifications", false, null, () => { setSheet(null); setPrefs(openId, { muted: !muted }); setToast(muted ? "Notifications on for this chat" : "Muted · no notifications from this chat"); }],
       // Who can reach me, just for this person: Free, Pays per message, Never.
       ...(!hellooIsBusiness(person) && !iBlocked ? [[HlRupee, "Who can reach me", false, null, () => { loadPersonReach(person.accountId); setSheet("reach-person"); }]] : []),
@@ -1448,13 +1474,19 @@ function HellooRoot() {
       return shell(<><HellooPriceCard person={priceGate.person} price={priceGate.rule.price} currency={priceGate.rule.currency} viewerIsBusiness={priceGate.rule.kind === "business"} balance={priceGate.balance != null && !Number.isNaN(priceGate.balance) ? priceGate.balance : null} balanceCurrency={me.currency} busy={Boolean(priceGate.busy)} onAgree={() => payAndSend(priceGate)} onAsk={card && card.askPending ? undefined : () => { setPriceGate(null); setAskText(""); setSheet("ask"); }} onBack={() => setPriceGate(null)} /><PayPinModal open={Boolean(reachPin)} onClose={() => setReachPin(null)} amountLabel={hellooMoneyText(priceGate.rule.price, priceGate.rule.currency)} onVerified={(pinValue) => payAndSend(priceGate, pinValue)} /></>);
     }
     return shell(<HellooThreadScreen me={me} chat={{ id: openId, person, messages: bubbles }} onFindDate={() => setSheet("find-date")} dateOn={Boolean(chatPeriod && chatPeriod !== "all")} strip={<>{chatPeriod && chatPeriod !== "all" ? <div style={{ display: "flex", alignItems: "center", gap: 10, padding: "8px 12px", background: HT.barBg || T.surface, borderBottom: `1px solid ${T.line}` }}><HellooPeriodPill value={chatPeriod} onOpen={() => setSheet("find-date")} onClear={() => setChatPeriod(null)} />{msgs.length === 0 ? <span data-testid="helloo-period-empty" style={{ fontSize: 12.5, color: T.inkSoft }}>Nothing {hellooPeriodWords(chatPeriod)} in this chat.</span> : <span style={{ fontSize: 12, color: T.inkFaint, fontWeight: 700 }}>{msgs.length} {msgs.length === 1 ? "message" : "messages"}</span>}</div> : null}{paidStrip}{strip}</>} paidPrice={rule && !rule.free && !rule.closed ? rule.price : 0} paidCurrency={rule && rule.currency} typing={Boolean(typing[openId]) && !iBlocked} draft={draft} onDraft={(v) => onDraftChange(openId, v)} onSend={sendText} recording={recording} onMic={recording ? stopAndSend : startRecording} onCancelRecording={cancelRecording} hasOlder={Boolean(thread && thread.more)} onLoadOlder={() => loadThread(openId, true)} onPay={person.gloobalId ? () => { setPay({ amount: "", note: "", busy: false, error: "" }); setSheet("pay"); } : undefined} onAttach={() => setSheet("attach")} onMenu={person.handle && person.gloobalId && !iBlocked ? () => openMenu(person) : undefined} onMore={() => setSheet("menu")} onOpenPerson={() => setScreen("contact")} onCall={!iBlocked && person.gloobalId ? () => startCall(person, false) : undefined} onVideo={!iBlocked && person.gloobalId ? () => startCall(person, true) : undefined} onMessageHold={(m) => setHeld(m)} replyTo={reply} onCancelReply={() => setReplyTo(null)} composerNote={note} onBack={closeThread}>
-      {sheet === "pay" && <HellooPaySheet person={person} me={me} amount={pay.amount} onAmount={(a) => setPay((p) => Object.assign({}, p, { amount: a.replace(/^0+/, ""), error: "" }))} note={pay.note} onNote={(n) => setPay((p) => Object.assign({}, p, { note: n }))} busy={pay.busy} error={pay.error} onClose={() => { if (!pay.busy) setSheet(null); }} onSend={() => setPayPinOpen(true)} />}
+      {sheet === "pay" && <HellooPaySheet person={person} me={me} amount={pay.amount} onAmount={(a) => setPay((p) => Object.assign({}, p, { amount: a.replace(/^0+/, ""), error: "" }))} note={pay.note} onNote={(n) => setPay((p) => Object.assign({}, p, { note: n }))} choiceId={pay.choiceId || null} onChoice={(id) => setPay((p) => Object.assign({}, p, { choiceId: id }))} busy={pay.busy} error={pay.error} onClose={() => { if (!pay.busy) setSheet(null); }} onSend={() => setPayPinOpen(true)} />}
       {sheet === "shopmenu" && <HellooShopMenuSheet shop={person} items={menu.items} basket={menu.basket} onAdd={(it) => menuBump(it, 1)} onRemove={(it) => menuBump(it, -1)} totalText={hellooMoneyText(menuTotal, menuCurrency)} note={menu.note} onNote={(v) => setMenu((m) => Object.assign({}, m, { note: v }))} busy={menu.busy} error={menu.error} loadError={menu.loadError} paidAlready={Boolean(menu.paidRef)} onPay={() => (menu.paidRef ? orderNow(person, openId, "") : setOrderPinOpen(true))} onClose={() => { if (!menu.busy) setSheet(null); }} />}
       <PayPinModal open={orderPinOpen} onClose={() => setOrderPinOpen(false)} amountLabel={hellooMoneyText(menuTotal, menuCurrency)} onVerified={(pinValue) => orderNow(person, openId, pinValue)} />
       {sheet === "attach" && <HellooAttachSheet onClose={() => setSheet(null)} items={[[HlImage, "Gallery", "#7C3AED", () => galleryRef.current && galleryRef.current.click()], [HlCamera, "Camera", "#DB2777", () => cameraRef.current && cameraRef.current.click()], [HlRupee, "Pay", "#0B7A57", () => { setPay({ amount: "", note: "", busy: false, error: "" }); setSheet("pay"); }]]} />}
       {sheet === "menu" && <HellooThreadMenu chat={{ person: Object.assign({}, person, { id: person.gloobalId }) }} items={menuItems.filter(Boolean)} onClose={() => setSheet(null)} />}
       {sheet === "savename" && nameSheet}
       {sheet === "release" && release && releaseSheet}
+      {sheet === "pay-history" && payHist && <HellooSheet label="Payment history" onClose={() => setSheet(null)}><div data-testid="helloo-pay-history"><div style={{ fontSize: 17, fontWeight: 800, fontFamily: T.fontDisplay, color: T.ink, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>Payments with {firstName || hellooName(person)}</div>{payHist.rows === null ? <div style={{ padding: "26px 0", textAlign: "center", fontSize: 13, color: T.inkSoft }}>Loading your GLOOBAL history…</div> : payHist.error ? <div style={{ padding: "26px 0", textAlign: "center", fontSize: 13, color: T.negative, fontWeight: 700 }}>{payHist.error}</div> : !payHist.rows.length ? <div style={{ padding: "26px 0", textAlign: "center", fontSize: 13, color: T.inkSoft }}>No payments between you two yet.</div> : <>{(() => {
+        const cur = (me && me.currency) || user.currency || "INR";
+        const sum = (dir) => payHist.rows.filter((t) => (dir === "in" ? t.direction === "received" : t.direction !== "received") && (!t.currency || t.currency === cur)).reduce((a, t) => a + (Number(t.amount) || 0), 0);
+        const box = (label, v, color) => <span style={{ flex: 1, minWidth: 0, background: T.surface, borderRadius: 14, padding: "10px 12px", boxShadow: T.shadowCard }}><span style={{ display: "block", fontSize: 11, fontWeight: 700, color: T.inkSoft }}>{label}</span><span style={{ display: "block", fontSize: 15, fontWeight: 800, color, marginTop: 3, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{hellooMoneyText(v, cur)}</span></span>;
+        return <div style={{ display: "flex", gap: 8, margin: "12px 0" }}>{box("You paid", sum("out"), T.ink)}{box("You got", sum("in"), HT.free)}</div>;
+      })()}<div style={{ borderRadius: 18, background: T.surface, boxShadow: T.shadowCard, overflow: "hidden", maxHeight: "52vh", overflowY: "auto" }}>{payHist.rows.map((t, k) => { const got = t.direction === "received"; return typeof TransactionRow === "function" ? <TransactionRow key={t.txnId || k} t={t} color={got ? (T.txnIn || HT.free) : (T.txnOut || T.ink)} sign={got ? "+" : "−"} ccyCode={(me && me.currency) || "INR"} isFirst={k === 0} onSelect={() => { const b = buildGloobalReceipt(t, payHist.h); if (b) { setSheet(null); setGReceipt(b); } }} /> : null; })}</div><div style={{ fontSize: 11.5, color: T.inkFaint, textAlign: "center", marginTop: 10 }}>From your GLOOBAL history · tap one for its receipt</div></>}</div></HellooSheet>}
       {sheet === "find-date" && <HellooDateSheet title="Find messages by date" value={chatPeriod || "all"} marks={new Set(allMsgs.filter((m) => m.at).map((m) => hellooDayKey(new Date(m.at))))} onClose={() => setSheet(null)} onPick={(k) => { setSheet(null); setChatPeriod(k === "all" ? null : k); }} />}
       {sheet === "reach-person" && <HellooSheet label="Who can reach me" onClose={() => setSheet(null)}><div style={{ fontSize: 16, fontWeight: 800, fontFamily: T.fontDisplay, color: T.ink }}>Who can reach me</div><div style={{ fontSize: 12.5, color: T.inkSoft, margin: "3px 0 12px" }}>Just for {firstName}. Everyone else follows your usual settings.</div><HellooReachChoice who={firstName} reach={together[person.accountId] && together[person.accountId].reachMode ? together[person.accountId] : null} busy={reachBusy} onChange={(mode, price) => setPersonReach(person.accountId, mode, price)} /></HellooSheet>}
       {sheet === "confirm-clear" && <HellooSheet label="Clear chat" onClose={() => setSheet(null)}><div style={{ fontSize: 15, fontWeight: 800, color: T.ink }}>Clear this chat?</div><div style={{ fontSize: 13, color: T.inkSoft, marginTop: 6, lineHeight: 1.45 }}>Every message disappears for you. {firstName} still has them. Payments stay in your GLOOBAL history.</div><div style={{ display: "flex", gap: 10, marginTop: 16 }}><HellooSecondary onClick={() => setSheet(null)}>Cancel</HellooSecondary><HellooPrimary color={T.negative} onClick={() => { setSheet(null); clearChat(openId, false); }}>Clear chat</HellooPrimary></div></HellooSheet>}
