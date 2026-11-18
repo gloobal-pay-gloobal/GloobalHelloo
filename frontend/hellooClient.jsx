@@ -306,6 +306,7 @@ function hellooBubbleFrom(m, meAccountId, theyReadAt, voiceState, names) {
       paid: true,
       status: o.status || "placed",
       referenceId: m.payment && m.payment.referenceId,
+      onOpenReceipt: v.onOpenReceipt,
       onStatus: v.onStatus,
       onRefund: v.onRefund,
       statusBusy: Boolean(v.statusBusy)
@@ -317,7 +318,8 @@ function hellooBubbleFrom(m, meAccountId, theyReadAt, voiceState, names) {
       kind: "receipt",
       amountText: mine ? hellooMoneyText(p.amount, p.currency) : hellooMoneyText(p.destAmount || p.amount, p.destCurrency || p.currency),
       note: p.note || "",
-      referenceId: p.referenceId
+      referenceId: p.referenceId,
+      onOpenReceipt: voiceState && voiceState.onOpenReceipt
     });
   }
   return Object.assign(base, { kind: "text", text: m.text || "" });

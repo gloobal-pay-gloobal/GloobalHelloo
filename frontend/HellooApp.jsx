@@ -874,6 +874,49 @@ function HellooRoot() {
   // The basic facts of a business's shop, for its profile: { kind, where,
   // open, count, rating }, keyed by GLOOBAL ID. Read once per profile
   // visit; a part that cannot be read is simply left out.
+  // ── A payment's receipt is GLOOBAL's own ─────────────────────────────
+  // Helloo draws no receipt of its own: the card in a chat opens the same
+  // ReceiptModal GLOOBAL opens from its history, built the same way
+  // (mapServerTransaction → receiptForRow), from this account's own
+  // history. A payment not in it opens in GLOOBAL instead.
+  const [gReceipt, setGReceipt] = useStateH9(null);
+  const openGloobalReceipt = (referenceId) => {
+    if (!referenceId || !user || !user.symbolId) return;
+    const sid = user.symbolId;
+    const outside = () => { try { window.open(`${GLOOBAL_API_BASE}/t/${encodeURIComponent(referenceId)}`, "_blank", "noopener"); } catch (e) { /* blocked */ } };
+    if (typeof ReceiptModal !== "function" || typeof receiptForRow !== "function" || typeof mapServerTransaction !== "function") { outside(); return; }
+    setToast("Opening receipt…");
+    GloobalApi.getTransactionSummary(sid, "all").then((r) => {
+      const rows = (r && Array.isArray(r.transactions) ? r.transactions : []).map((row) => mapServerTransaction(row, sid));
+      const sent = rows.filter((t) => t.direction !== "received");
+      const got = rows.filter((t) => t.direction === "received");
+      const found = rows.find((t) => t.txnId === referenceId);
+      if (!found) { setToast(""); outside(); return; }
+      const country = typeof ALL_COUNTRIES !== "undefined" ? ALL_COUNTRIES.find((c) => c.iso === user.countryIso) : null;
+      const cur = user.currency || "INR";
+      const built = receiptForRow(found, found.direction === "received" ? "received" : "sent", {
+        dialCountry: country || null,
+        ccy: (typeof CURRENCY_SYMBOL === "object" && CURRENCY_SYMBOL[cur]) || cur,
+        sendHistory: sent,
+        receiveHistory: got,
+        viewer: typeof receiptViewer === "function" ? receiptViewer({ name: user.fullName, symbolId: sid, countryName: country && country.name, countryFlag: country && country.flag }) : null
+      });
+      setToast("");
+      if (built) setGReceipt(built); else outside();
+    }).catch(() => { setToast(""); outside(); });
+  };
+  // GLOOBAL's receipt says "Pay again" with a window event (its own app
+  // listens for it). Here it opens the chat with that person and its Pay.
+  const payAgainRef = useRefH9(null);
+  payAgainRef.current = (d) => {
+    if (!d || !d.gloobalId) return;
+    Promise.resolve(openChatWith(d.gloobalId)).then(() => { setPay({ amount: "", note: "", busy: false, error: "" }); setSheet("pay"); }).catch(() => {});
+  };
+  useEffectH9(() => {
+    const on = (e) => payAgainRef.current && payAgainRef.current(e.detail);
+    window.addEventListener("gloobal:payAgain", on);
+    return () => window.removeEventListener("gloobal:payAgain", on);
+  }, []);
   const [shopCards, setShopCards] = useStateH9({});
   const loadShopCard = (person) => {
     if (!person || !person.handle || !person.gloobalId) return;
@@ -1298,7 +1341,7 @@ function HellooRoot() {
   });
 
   // ── Shell ────────────────────────────────────────────────────────────
-  const shell = (children) => <div style={{ position: "absolute", inset: 0, overflow: "hidden", background: T.bg }}>{callLayer}<div style={{ position: "absolute", left: 0, right: 0, bottom: 0, top: callBar ? "calc(48px + env(safe-area-inset-top, 0px))" : 0 }}>{children}</div>{callBar}{toast && <div role="status" style={{ position: "absolute", left: 16, right: 16, bottom: "calc(96px + env(safe-area-inset-bottom, 0px))", display: "flex", justifyContent: "center", zIndex: 300, pointerEvents: "none" }}><span style={{ background: T.ink, color: T.bg, borderRadius: 18, padding: "9px 16px", fontSize: 13, fontWeight: 700, fontFamily: T.fontBody, boxShadow: "0 8px 24px rgba(0,0,0,0.25)", textAlign: "center", maxWidth: "100%" }}>{toast}</span></div>}</div>;
+  const shell = (children) => <div style={{ position: "absolute", inset: 0, overflow: "hidden", background: T.bg }}>{callLayer}<div style={{ position: "absolute", left: 0, right: 0, bottom: 0, top: callBar ? "calc(48px + env(safe-area-inset-top, 0px))" : 0 }}>{children}</div>{gReceipt && user && typeof LedgerProvider === "function" ? <LedgerProvider userId={user.accountId || "me"} currency={user.currency || "INR"}><ReceiptModal receipt={gReceipt} onClose={() => setGReceipt(null)} /></LedgerProvider> : null}{callBar}{toast && <div role="status" style={{ position: "absolute", left: 16, right: 16, bottom: "calc(96px + env(safe-area-inset-bottom, 0px))", display: "flex", justifyContent: "center", zIndex: 300, pointerEvents: "none" }}><span style={{ background: T.ink, color: T.bg, borderRadius: 18, padding: "9px 16px", fontSize: 13, fontWeight: 700, fontFamily: T.fontBody, boxShadow: "0 8px 24px rgba(0,0,0,0.25)", textAlign: "center", maxWidth: "100%" }}>{toast}</span></div>}</div>;
 
   // ── A call fills the screen — or, made small, a bar at the top ───────
   // The call's screen is always the first thing in the shell while there
@@ -1345,7 +1388,8 @@ function HellooRoot() {
     const firstName = (person.name || "").split(" ")[0];
     const bubbles = hellooThreadBubbles(msgs, meId, serverChat && serverChat.theyReadAt, (m) => {
       if (m.kind === "call") return { onCallBack: () => startCall(person, Boolean(m.call && m.call.video)) };
-      if (m.kind === "order" && m.id) return { statusBusy: orderBusy === m.id, onStatus: (status) => answerOrder(m.id, status), onRefund: () => { setPay({ amount: String((m.order && m.order.total) || ""), note: "Order sold out · money back", busy: false, error: "" }); setSheet("pay"); } };
+      if (m.kind === "payment" && m.payment && m.payment.referenceId) return { onOpenReceipt: () => openGloobalReceipt(m.payment.referenceId) };
+      if (m.kind === "order" && m.id) return { onOpenReceipt: m.payment && m.payment.referenceId ? () => openGloobalReceipt(m.payment.referenceId) : undefined, statusBusy: orderBusy === m.id, onStatus: (status) => answerOrder(m.id, status), onRefund: () => { setPay({ amount: String((m.order && m.order.total) || ""), note: "Order sold out · money back", busy: false, error: "" }); setSheet("pay"); } };
       if (m.kind === "voice" && m.id) return { playing: voicePlay.id === m.id, progress: voicePlay.id === m.id ? voicePlay.progress : 0, onPlay: () => playVoice(m.id) };
       if (m.kind === "photo") { const src = (m.id && mediaUrls[m.id]) || m.localSrc || null; return { src, onOpen: src ? () => setPhotoView(src) : undefined }; }
       return null;
