@@ -1330,6 +1330,7 @@ function HellooRoot() {
       if (gone) return;
       const parsed = text ? parseGloobalPayPayload(String(text)) : null;
       if (!parsed || !parsed.gloobalId) { setPhotoQr({ status: "none" }); return; }
+      if (user && parsed.gloobalId === user.symbolId) { setPhotoQr({ status: "found", gloobalId: parsed.gloobalId, person: null, mine: true }); return; }
       setPhotoQr({ status: "found", gloobalId: parsed.gloobalId, person: null });
       hellooApi.lookup(parsed.gloobalId).then((r) => { if (!gone) { setPhotoQr((q) => (q && q.gloobalId === parsed.gloobalId ? Object.assign({}, q, { person: hellooPersonFrom(r.person, photos) }) : q)); askPhotos([r.person]); } }).catch((err) => { if (!gone && err && err.body && err.body.code === "person_is_you") setPhotoQr((q) => (q ? Object.assign({}, q, { mine: true }) : q)); });
     }).catch(() => { if (!gone) setPhotoQr({ status: "none" }); });
