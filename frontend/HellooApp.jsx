@@ -965,6 +965,8 @@ function HellooRoot() {
         where: parts ? [parts.area, parts.city].filter(Boolean).join(", ") : "",
         open: hours && hours.text ? hours.text : "",
         count: n ? `${n} ${n === 1 ? "thing" : "things"}` : "",
+        // What it sells, for the profile's list: name, price, photo.
+        items: Array.isArray(items) ? items.slice(0, 12).map((it) => ({ id: it.id || it._id, title: it.title || "", photo: it.photo || (Array.isArray(it.photos) && it.photos[0]) || "", currency: it.currency || "", priceText: it.price != null ? hellooMoneyText(it.price, it.currency) : "" })) : [],
         rating: reviews && reviews.count ? `${Number(reviews.average).toFixed(1)} · ${reviews.count} ${reviews.count === 1 ? "review" : "reviews"}` : "",
         // Its feedback: the summary with the star split, the newest ones
         // (never with a name), your own, and whether you may write one.
