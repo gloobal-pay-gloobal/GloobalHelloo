@@ -3,7 +3,7 @@
 // The furniture every Helloo screen shares: the top bar, the tab bar, a
 // bottom sheet, and a round icon button. Built on Gloobal's theme so a
 // Helloo screen and a Gloobal screen side by side look like one app.
-import { useState as useStateH1 } from "react";
+import { useState as useStateH1, useRef as useRefH1 } from "react";
 import {
   MessageCircle as HlChat, Phone as HlPhone, Video as HlVideo, User as HlUser, Users as HlUsers,
   Search as HlSearch, ScanLine as HlScan, Plus as HlPlus, MoreVertical as HlMore, Mic as HlMic,
@@ -41,13 +41,50 @@ var HELLOO_SIDES = [
 // The home buttons, one column on the right, top to bottom: Calls,
 // Messages, GLOOBAL बाज़ार, and + (start something new). Icons only. The
 // tab you are on is the filled one; a count or a dot sits on its corner.
-function HellooSideRail({ active, onChange, badges = {}, onBazaar, onPlus, plusLabel = "New chat or call" }) {
+// Which side of the screen the button column sits on: the person's choice,
+// kept on this phone. Right by default.
+var HELLOO_RAIL_SIDE_KEY = "helloo.rail.side";
+function hellooRailSide() {
+  try { return localStorage.getItem(HELLOO_RAIL_SIDE_KEY) === "left" ? "left" : "right"; } catch (e) { return "right"; }
+}
+function hellooSaveRailSide(side) {
+  try { localStorage.setItem(HELLOO_RAIL_SIDE_KEY, side === "left" ? "left" : "right"); } catch (e) { /* this phone only */ }
+}
+
+// The button column: Scan, Calls, Messages, GLOOBAL बाज़ार and +, icons only.
+// It sits on the right or the left, whichever thumb the person uses: slide
+// it across the screen and it moves to the other side and stays there.
+function HellooSideRail({ active, onChange, badges = {}, onBazaar, onScan, onPlus, plusLabel = "New chat or call", side: sideProp, onSide }) {
+  const [sideOwn, setSideOwn] = useStateH1(hellooRailSide);
+  const side = sideProp || sideOwn;
+  const [dx, setDx] = useStateH1(0);
+  const drag = useRefH1(null);
+  const moved = useRefH1(false);
+  const setSide = (v) => { hellooSaveRailSide(v); setSideOwn(v); if (onSide) onSide(v); };
   const round = (size, filled) => ({ position: "relative", width: size, height: size, borderRadius: "50%", border: filled ? "none" : (HT.cardBorder || `1px solid ${T.line}`), background: filled ? T.gradButton : (HT.cardBg || T.surface), boxShadow: filled ? (HT.buttonGlow || "0 10px 24px rgba(76,29,149,0.32)") : (HT.cardShadow ?? T.shadowCard), display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer", padding: 0, flexShrink: 0 });
+  const guard = (fn) => (e) => { if (moved.current) { e.preventDefault(); moved.current = false; return; } if (fn) fn(e); };
   const tab = (key, label, Icon) => {
     const on = active === key; const n = badges[key] || 0; const dot = badges[key + "Dot"];
-    return <button key={key} onClick={() => onChange && onChange(key)} aria-current={on ? "page" : undefined} aria-label={label} title={label} className="v2-tap" style={round(52, on)}><Icon size={22} strokeWidth={on ? 2.4 : 2} color={on ? (HT.onAccent || "#fff") : T.inkSoft} />{n > 0 ? <span data-testid={on ? "helloo-tab-count" : undefined} style={{ position: "absolute", top: -3, right: -3, minWidth: 19, height: 19, borderRadius: 10, background: T.negative, color: "#fff", fontSize: 10.5, fontWeight: 800, display: "flex", alignItems: "center", justifyContent: "center", padding: "0 5px", border: `2px solid ${T.bg}` }}>{n}</span> : dot ? <span style={{ position: "absolute", top: 2, right: 2, width: 11, height: 11, borderRadius: "50%", background: T.negative, border: `2px solid ${T.bg}` }} /> : null}</button>;
+    return <button key={key} onClick={guard(() => onChange && onChange(key))} aria-current={on ? "page" : undefined} aria-label={label} title={label} className="v2-tap" style={round(52, on)}><Icon size={22} strokeWidth={on ? 2.4 : 2} color={on ? (HT.onAccent || "#fff") : T.inkSoft} />{n > 0 ? <span data-testid={on ? "helloo-tab-count" : undefined} style={{ position: "absolute", top: -3, right: -3, minWidth: 19, height: 19, borderRadius: 10, background: T.negative, color: "#fff", fontSize: 10.5, fontWeight: 800, display: "flex", alignItems: "center", justifyContent: "center", padding: "0 5px", border: `2px solid ${T.bg}` }}>{n}</span> : dot ? <span style={{ position: "absolute", top: 2, right: 2, width: 11, height: 11, borderRadius: "50%", background: T.negative, border: `2px solid ${T.bg}` }} /> : null}</button>;
   };
-  return <nav aria-label="Main" data-testid="helloo-rail" style={{ position: "absolute", right: 16, bottom: "calc(18px + env(safe-area-inset-bottom, 0px))", zIndex: 30, display: "flex", flexDirection: "column", alignItems: "center", gap: 12 }}>{tab("calls", "Calls", HlPhone)}{tab("chats", "Messages", HlChat)}{onBazaar ? <button onClick={onBazaar} data-testid="helloo-bazaar-button" aria-label="GLOOBAL बाज़ार: find a shop" title="GLOOBAL बाज़ार" className="v2-tap" style={round(52, false)}><HlStore size={22} color={T.accent} /></button> : null}<button onClick={onPlus} data-testid="helloo-new-chat" aria-label={plusLabel} title={plusLabel} className="v2-tap" style={round(60, true)}><HlPlus size={28} strokeWidth={2.6} color={HT.onAccent || "#fff"} /></button></nav>;
+  // Sliding: the column follows the finger sideways; let go past a third of
+  // the way across and it settles on the other side.
+  const down = (e) => { drag.current = { x: e.clientX, y: e.clientY, w: (e.currentTarget.parentElement && e.currentTarget.parentElement.clientWidth) || 390 }; moved.current = false; };
+  const move = (e) => {
+    const d = drag.current; if (!d) return;
+    const ddx = e.clientX - d.x;
+    if (!moved.current && Math.abs(ddx) > 12 && Math.abs(ddx) > Math.abs(e.clientY - d.y)) { moved.current = true; try { e.currentTarget.setPointerCapture(e.pointerId); } catch (er) { /* fine */ } }
+    if (moved.current) setDx(side === "right" ? Math.min(0, ddx) : Math.max(0, ddx));
+  };
+  const up = (e) => {
+    const d = drag.current; drag.current = null;
+    if (!d) return;
+    if (moved.current && Math.abs(dx) > d.w / 3) setSide(side === "right" ? "left" : "right");
+    setDx(0);
+    if (moved.current) setTimeout(() => { moved.current = false; }, 0);
+  };
+  const pos = side === "left" ? { left: 16 } : { right: 16 };
+  return <nav aria-label="Main" data-testid="helloo-rail" data-side={side} onPointerDown={down} onPointerMove={move} onPointerUp={up} onPointerCancel={up} style={{ position: "absolute", ...pos, bottom: "calc(18px + env(safe-area-inset-bottom, 0px))", zIndex: 30, display: "flex", flexDirection: "column", alignItems: "center", gap: 12, transform: dx ? `translateX(${dx}px)` : "none", transition: dx ? "none" : "transform 0.22s ease", touchAction: "pan-y", userSelect: "none" }}>{onScan ? <button onClick={guard(onScan)} data-testid="helloo-rail-scan" aria-label="Scan a GLOOBAL QR" title="Scan" className="v2-tap" style={round(52, false)}><HlScan size={22} color={T.inkSoft} /></button> : null}{tab("calls", "Calls", HlPhone)}{tab("chats", "Messages", HlChat)}{onBazaar ? <button onClick={guard(onBazaar)} data-testid="helloo-bazaar-button" aria-label="GLOOBAL बाज़ार: find a shop" title="GLOOBAL बाज़ार" className="v2-tap" style={round(52, false)}><HlStore size={22} color={T.accent} /></button> : null}<button onClick={guard(onPlus)} data-testid="helloo-new-chat" aria-label={plusLabel} title={plusLabel} className="v2-tap" style={round(60, true)}><HlPlus size={28} strokeWidth={2.6} color={HT.onAccent || "#fff"} /></button></nav>;
 }
 
 function HellooTabBar({ active, onChange, badges = {} }) {
