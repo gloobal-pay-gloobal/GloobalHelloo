@@ -330,6 +330,11 @@ function HellooRoot() {
   const [held, setHeld] = useStateH9(null); // the message whose actions are open
   const [heldChat, setHeldChat] = useStateH9(null); // the chat row whose actions are open
   const [photoView, setPhotoView] = useStateH9(null); // url of a photo open full-screen
+  // A GLOOBAL code found in the open photo: { status: "looking" | "found" |
+  // "none", gloobalId, person }. Read the moment a photo opens, so a code
+  // somebody shared in a chat is one tap from paying.
+  const [photoQr, setPhotoQr] = useStateH9(null);
+  const scanFileRef = useRefH9(null);
   const [mediaUrls, setMediaUrls] = useStateH9({}); // messageId -> object URL
   const mediaAsked = useRefH9(new Set());
   const liveSend = useRefH9(null);
@@ -1310,6 +1315,33 @@ function HellooRoot() {
   }, [dial.value]);
 
   // ── Scan ─────────────────────────────────────────────────────────────
+  // Pay somebody by their GLOOBAL ID: their chat, with Pay open in it.
+  const payGloobalId = (gloobalId) => {
+    if (!gloobalId) return;
+    if (gloobalId === user.symbolId) { setToast("That is your own code"); return; }
+    Promise.resolve(openChatWith(gloobalId)).then(() => { setPay({ amount: "", note: "", busy: false, error: "" }); setSheet("pay"); }).catch(() => {});
+  };
+  useEffectH9(() => {
+    if (!photoView) { setPhotoQr(null); return undefined; }
+    if (typeof decodeGloobalQrFromImageFile !== "function" || typeof parseGloobalPayPayload !== "function") return undefined;
+    let gone = false;
+    setPhotoQr({ status: "looking" });
+    fetch(photoView).then((r) => r.blob()).then((b) => decodeGloobalQrFromImageFile(b)).then((text) => {
+      if (gone) return;
+      const parsed = text ? parseGloobalPayPayload(String(text)) : null;
+      if (!parsed || !parsed.gloobalId) { setPhotoQr({ status: "none" }); return; }
+      setPhotoQr({ status: "found", gloobalId: parsed.gloobalId, person: null });
+      hellooApi.lookup(parsed.gloobalId).then((r) => { if (!gone) { setPhotoQr((q) => (q && q.gloobalId === parsed.gloobalId ? Object.assign({}, q, { person: hellooPersonFrom(r.person, photos) }) : q)); askPhotos([r.person]); } }).catch((err) => { if (!gone && err && err.body && err.body.code === "person_is_you") setPhotoQr((q) => (q ? Object.assign({}, q, { mine: true }) : q)); });
+    }).catch(() => { if (!gone) setPhotoQr({ status: "none" }); });
+    return () => { gone = true; };
+  }, [photoView]);
+  // A picture of a code chosen from the gallery on the scan screen.
+  const onScanFile = (e) => {
+    const file = e.target.files && e.target.files[0];
+    e.target.value = "";
+    if (!file || typeof decodeGloobalQrFromImageFile !== "function") return;
+    decodeGloobalQrFromImageFile(file).then((text) => { if (text) onScanned(text); else setToast("No GLOOBAL code in that picture"); });
+  };
   const onScanned = (text) => {
     const parsed = typeof parseGloobalPayPayload === "function" ? parseGloobalPayPayload(String(text || "")) : null;
     if (!parsed || !parsed.gloobalId) { setToast("That is not a GLOOBAL code"); return; }
@@ -1392,7 +1424,7 @@ function HellooRoot() {
 
   // ── Photo, full screen ───────────────────────────────────────────────
   if (photoView) {
-    return shell(<div style={{ position: "absolute", inset: 0, background: "#000", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 50 }}><img src={photoView} alt="Photo" style={{ maxWidth: "100%", maxHeight: "100%", objectFit: "contain", touchAction: "pinch-zoom" }} /><div style={{ position: "absolute", top: "calc(14px + env(safe-area-inset-top, 0px))", left: 14, right: 14, display: "flex", justifyContent: "space-between" }}><NavBackButton onClick={() => setPhotoView(null)} /><a href={photoView} download="helloo-photo.jpg" aria-label="Save photo" style={{ width: 40, height: 40, borderRadius: "50%", background: "rgba(255,255,255,0.16)", display: "flex", alignItems: "center", justifyContent: "center" }}><HlDownload size={18} color="#fff" /></a></div></div>);
+    return shell(<div style={{ position: "absolute", inset: 0, background: "#000", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 50 }}><img src={photoView} alt="Photo" style={{ maxWidth: "100%", maxHeight: "100%", objectFit: "contain", touchAction: "pinch-zoom" }} /><div style={{ position: "absolute", top: "calc(14px + env(safe-area-inset-top, 0px))", left: 14, right: 14, display: "flex", justifyContent: "space-between" }}><NavBackButton onClick={() => setPhotoView(null)} /><a href={photoView} download="helloo-photo.jpg" aria-label="Save photo" style={{ width: 40, height: 40, borderRadius: "50%", background: "rgba(255,255,255,0.16)", display: "flex", alignItems: "center", justifyContent: "center" }}><HlDownload size={18} color="#fff" /></a></div>{photoQr && photoQr.status === "found" ? <div data-testid="helloo-photo-qr" style={{ position: "absolute", left: 14, right: 14, bottom: "calc(18px + env(safe-area-inset-bottom, 0px))", background: T.surface, borderRadius: 22, padding: 14, boxShadow: "0 20px 40px -18px rgba(0,0,0,0.6)", display: "flex", alignItems: "center", gap: 12 }}>{photoQr.person ? <HellooAvatar person={photoQr.person} size={46} /> : <span style={{ width: 46, height: 46, borderRadius: "50%", background: T.accentSoft, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}><HlScan size={20} color={T.accent} /></span>}<span style={{ flex: 1, minWidth: 0 }}><span style={{ display: "block", fontSize: 11, fontWeight: 800, letterSpacing: 0.8, color: T.inkFaint, textTransform: "uppercase" }}><GloobalWordmark /> QR</span><span style={{ display: "block", fontSize: 15.5, fontWeight: 800, color: T.ink, marginTop: 2, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{photoQr.mine ? "Your own code" : photoQr.person ? (photoQr.person.handle ? <CreatorHandleText handle={photoQr.person.handle} icon={false} /> : photoQr.person.name) : "Finding who this is…"}</span><span style={{ display: "block", fontSize: 12, color: T.inkSoft, marginTop: 1, letterSpacing: 1, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{photoQr.gloobalId}</span></span>{photoQr.mine ? null : <><button onClick={() => { const id = photoQr.gloobalId; setPhotoView(null); Promise.resolve(openChatWith(id)).catch(() => {}); }} aria-label="Message" className="v2-tap" style={{ width: 44, height: 44, borderRadius: "50%", border: "none", background: T.accentSoft, display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer", flexShrink: 0 }}><HlChat size={19} color={T.accent} /></button><button onClick={() => { const id = photoQr.gloobalId; setPhotoView(null); payGloobalId(id); }} data-testid="helloo-photo-qr-pay" className="v2-tap" style={{ height: 44, padding: "0 18px", borderRadius: 999, border: "none", background: T.gradButton, color: "#fff", fontFamily: T.fontBody, fontSize: 14.5, fontWeight: 800, cursor: "pointer", flexShrink: 0 }}>Pay</button></>}</div> : null}</div>);
   }
 
   // ── A chat ───────────────────────────────────────────────────────────
@@ -1629,7 +1661,9 @@ function HellooRoot() {
     return shell(<HellooMyQrScreen me={me} onBack={() => setScreen(null)} onSave={saveQr} onShare={shareQr} />);
   }
   if (screen === "scan") {
-    return shell(<div style={{ position: "absolute", inset: 0, background: "#000" }}><QrCameraScanner onDetected={onScanned} active fullScreen quiet /><div style={{ position: "absolute", top: "calc(14px + env(safe-area-inset-top, 0px))", left: 14, zIndex: 400 }}><NavBackButton onClick={() => setScreen(null)} /></div></div>);
+    // GLOOBAL's own scanner with all its controls: torch, zoom, and a
+    // picture from the gallery.
+    return shell(<div style={{ position: "absolute", inset: 0, background: "#000" }}><QrCameraScanner onDetected={onScanned} active fullScreen onUploadRequested={() => scanFileRef.current && scanFileRef.current.click()} /><input ref={scanFileRef} type="file" accept="image/*" onChange={onScanFile} data-testid="helloo-scan-file" style={{ display: "none" }} /><div style={{ position: "absolute", top: "calc(14px + env(safe-area-inset-top, 0px))", left: 14, zIndex: 400 }}><NavBackButton onClick={() => setScreen(null)} /></div></div>);
   }
 
   if (screen === "reach" && myReach) {
