@@ -163,8 +163,18 @@ function hellooCountry(iso) {
   return { iso: code, name: (c && c.name) || code, flag: code.length === 2 ? isoToFlag(code) : "" };
 }
 
-function hellooMoneyText(amount, currency) {
-  return typeof fmtMoney === "function" ? fmtMoney(Number(amount) || 0, currency) : `${amount} ${currency}`;
+// Every amount in Helloo reads the way GLOOBAL's receipt does: the number
+// first, then the unit — "300.00 CEL | ₹", never "CEL | ₹ 300". A sign, when
+// one is wanted, goes in front of the number ("+300.00 CEL | ₹").
+function hellooMoneyText(amount, currency, sign) {
+  const n = Math.abs(Number(amount) || 0);
+  const num = typeof fmt === "function" ? fmt(n, currency) : n.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  const code = String(currency || "").toUpperCase();
+  const coin = typeof COIN_CURRENCY === "string" && code === COIN_CURRENCY;
+  const ticker = typeof COIN_TICKER !== "undefined" ? COIN_TICKER : "CEL";
+  const symbol = (typeof CURRENCY_SYMBOL === "object" && CURRENCY_SYMBOL[code]) || code;
+  const head = sign === "+" ? "+" : sign === "-" || sign === "−" ? "−" : (Number(amount) < 0 ? "−" : "");
+  return coin || !symbol ? `${head}${num} ${ticker}` : `${head}${num} ${ticker} | ${symbol}`;
 }
 
 // What a paid message earned you, the way a chat says it: "+ 3 CEL". The
@@ -316,7 +326,7 @@ function hellooBubbleFrom(m, meAccountId, theyReadAt, voiceState, names) {
     const p = m.payment || {};
     return Object.assign(base, {
       kind: "receipt",
-      amountText: mine ? hellooMoneyText(p.amount, p.currency) : hellooMoneyText(p.destAmount || p.amount, p.destCurrency || p.currency),
+      amountText: mine ? hellooMoneyText(p.amount, p.currency, "-") : hellooMoneyText(p.destAmount || p.amount, p.destCurrency || p.currency, "+"),
       note: p.note || "",
       referenceId: p.referenceId,
       onOpenReceipt: voiceState && voiceState.onOpenReceipt
