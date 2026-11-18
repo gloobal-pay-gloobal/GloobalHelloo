@@ -60,6 +60,43 @@ var HELLOO_THEMES = [
   }
 ];
 
+// ── GLOOBAL's own themes ─────────────────────────────────────────────
+//
+// Helloo wears the same themes as GLOOBAL (Peacock, Lotus, Chai…), and the
+// same way: each is a pair, one colour for your own side and one for the
+// shop. Which half you see follows the side you use Helloo as, so a shop
+// owner talking as the shop sees the shop colours, like in GLOOBAL. Read
+// from GLOOBAL_THEMES in GLOOBAL's bundle, so a theme added there shows up
+// here with no copy to keep in step. One font everywhere (the body face):
+// headings, names and numbers all read as one app.
+var HELLOO_GLOOBAL_PREFIX = "g-";
+function hellooSideNow() {
+  try { return hellooFaceNow && hellooFaceNow.as && hellooFaceNow.as !== "self" ? "creator" : "personal"; } catch (e) { return "personal"; }
+}
+function hellooGloobalTheme(name, side) {
+  if (typeof GLOOBAL_THEMES !== "object" || !GLOOBAL_THEMES || !GLOOBAL_THEMES[name]) return null;
+  const g = GLOOBAL_THEMES[name];
+  const p = g[side] || g.personal;
+  if (!p) return null;
+  const font = HELLOO_FONT_BODY;
+  return {
+    key: HELLOO_GLOOBAL_PREFIX + name, name: g.name, note: g.looks ? `${g.looks.personal} · ${g.looks.creator}` : (g.tagline || ""), dark: !!p.dark, gloobal: true,
+    swatch: [g.personal.accent, g.personal.bg, g.creator.accent],
+    t: { bg: p.bg, surface: p.surface, surfaceAlt: p.surfaceAlt, surfaceSunk: p.surfaceSunk, ink: p.ink, inkSoft: p.inkSoft, inkFaint: p.inkFaint, line: p.line, accent: p.accent, accent2: p.accent2, accentSoft: p.accentSoft, gradButton: p.gradButton, gradButtonDisabled: p.gradButtonDisabled, gradWallet: p.gradWallet, positive: p.positive, positiveSoft: p.positiveSoft, negative: p.negative, negativeSoft: p.negativeSoft, shadowCard: p.shadowCard, shadowFloat: p.shadowFloat, fontDisplay: font, fontBody: font },
+    ht: { wash: p.bg, bubbleMe: p.gradButton || p.accent, bubbleThem: p.surface, callBg: p.accentDeep || "#0B1020" }
+  };
+}
+function hellooGloobalThemeList(side) {
+  if (typeof GLOOBAL_THEMES !== "object" || !GLOOBAL_THEMES) return [];
+  return Object.keys(GLOOBAL_THEMES).map((k) => hellooGloobalTheme(k, side)).filter(Boolean);
+}
+function hellooFindTheme(key) {
+  if (key && key.indexOf(HELLOO_GLOOBAL_PREFIX) === 0) return hellooGloobalTheme(key.slice(HELLOO_GLOOBAL_PREFIX.length), hellooSideNow());
+  return HELLOO_THEMES.find((x) => x.key === key) || null;
+}
+// A new phone opens in GLOOBAL's Peacock: the same look as GLOOBAL.
+var HELLOO_DEFAULT_THEME = "g-peacock";
+
 // Style keys a theme may set on HT; cleared before each apply so a key
 // one theme sets never leaks into the next.
 var HELLOO_THEME_STYLE_KEYS = ["screenBg", "chatBg", "cardBg", "cardBorder", "cardShadow", "blur", "barBg", "tabBar", "tabBg", "tabTopBorder", "radius", "chipRadius", "buttonRadius", "iconRadius", "bubbleRadius", "bubbleTail", "bubbleBorder", "bubbleMeShadow", "bubbleMeInk", "buttonGlow", "onAccent", "chipOnBorder", "buttonTracking", "buttonCase"];
@@ -68,7 +105,7 @@ var HELLOO_THEME_KEY = "helloo.theme.v1";
 
 // Writes a theme into T and HT. Callers re-render after.
 function applyHellooTheme(key) {
-  const theme = HELLOO_THEMES.find((x) => x.key === key) || HELLOO_THEMES[0];
+  const theme = hellooFindTheme(key) || hellooFindTheme(HELLOO_DEFAULT_THEME) || HELLOO_THEMES[0];
   const values = Object.assign({}, theme.t, { fontWordmark: theme.key === "paper" ? "Inter, sans-serif" : T.fontWordmark });
   // Gloobal's T became a set of getters over its active palette (its themes,
   // 0233–0235), so a value can no longer be written onto T itself: it goes
@@ -89,10 +126,11 @@ function applyHellooTheme(key) {
 }
 
 function hellooSavedTheme() {
-  try { return localStorage.getItem(HELLOO_THEME_KEY) || "gloobal"; } catch (e) { return "gloobal"; }
+  try { return localStorage.getItem(HELLOO_THEME_KEY) || HELLOO_DEFAULT_THEME; } catch (e) { return HELLOO_DEFAULT_THEME; }
 }
 
 // Me → App theme. Each card is a tiny live chat in that theme's colours.
 function HellooThemeScreen({ current, onPick, onBack }) {
-  return <HellooScreen><HellooTop left={<NavBackButton onClick={onBack} />} title="App theme" subtitle="The whole app changes, money colours keep their meaning" /><div style={{ flex: 1, minHeight: 0, overflowY: "auto", padding: "0 16px 30px", display: "grid", gridTemplateColumns: "repeat(2, minmax(0, 1fr))", gap: 12, alignContent: "start" }}>{HELLOO_THEMES.map((th) => { const on = th.key === current; const t = th.t; return <button key={th.key} onClick={() => onPick && onPick(th.key)} aria-pressed={on} className="v2-tap" style={{ border: on ? `2px solid ${T.accent}` : `1px solid ${T.line}`, borderRadius: 20, padding: 0, overflow: "hidden", background: th.ht.screenBg || th.ht.chatBg || t.bg, cursor: "pointer", textAlign: "left", boxShadow: on ? T.shadowCard : "none" }}><div style={{ padding: "12px 10px 10px", display: "flex", flexDirection: "column", gap: 6 }}><span style={{ fontFamily: t.fontDisplay, fontSize: 15, fontWeight: 800, color: t.ink }}>Helloo</span><span style={{ alignSelf: "flex-start", maxWidth: "80%", background: (th.ht.bubbleThem), border: th.ht.bubbleBorder || "none", color: t.ink, borderRadius: `${th.ht.bubbleRadius ?? 12}px ${th.ht.bubbleRadius ?? 12}px ${th.ht.bubbleRadius ?? 12}px ${th.ht.bubbleTail ?? 4}px`, padding: "6px 9px", fontSize: 11 }}>Did it land?</span><span style={{ alignSelf: "flex-end", maxWidth: "80%", background: th.ht.bubbleMe, color: th.ht.bubbleMeInk || "#fff", borderRadius: `${th.ht.bubbleRadius ?? 12}px ${th.ht.bubbleRadius ?? 12}px ${th.ht.bubbleTail ?? 4}px ${th.ht.bubbleRadius ?? 12}px`, padding: "6px 9px", fontSize: 11 }}>Yes, in seconds</span><span style={{ alignSelf: "flex-end", display: "inline-flex", alignItems: "center", gap: 4, fontSize: 10, fontWeight: 800, color: t.positive, background: t.positiveSoft, borderRadius: 999, padding: "3px 8px" }}>₹ Paid 500</span></div><div style={{ display: "flex", alignItems: "center", gap: 8, padding: "9px 12px", background: t.surface, borderTop: `1px solid ${t.line}` }}><span style={{ display: "flex" }}>{th.swatch.map((c, i) => <i key={i} style={{ width: 14, height: 14, borderRadius: "50%", background: c, marginLeft: i ? -4 : 0, border: `2px solid ${t.surface}` }} />)}</span><span style={{ flex: 1, minWidth: 0 }}><span style={{ display: "block", fontSize: 13, fontWeight: 800, color: t.ink }}>{th.name}</span><span style={{ display: "block", fontSize: 10, color: t.inkSoft, marginTop: 1, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{th.note}</span></span>{on && <HlCheck size={16} color={t.accent} />}{!on && th.dark && <span style={{ fontSize: 10, fontWeight: 800, color: t.inkFaint }}>dark</span>}</div></button>; })}<div style={{ gridColumn: "1 / -1", fontSize: 11.5, color: T.inkFaint, lineHeight: 1.5, padding: "4px 2px" }}>Follow the phone: GLOOBAL in light mode, Aurora in dark mode — or pick one to keep.</div></div></HellooScreen>;
+  const card = (th) => { const on = th.key === current; const t = th.t; return <button key={th.key} onClick={() => onPick && onPick(th.key)} aria-pressed={on} className="v2-tap" style={{ border: on ? `2px solid ${T.accent}` : `1px solid ${T.line}`, borderRadius: 20, padding: 0, overflow: "hidden", background: th.ht.screenBg || th.ht.chatBg || t.bg, cursor: "pointer", textAlign: "left", boxShadow: on ? T.shadowCard : "none" }}><div style={{ padding: "12px 10px 10px", display: "flex", flexDirection: "column", gap: 6 }}><span style={{ fontFamily: t.fontDisplay, fontSize: 15, fontWeight: 800, color: t.ink }}>Helloo</span><span style={{ alignSelf: "flex-start", maxWidth: "80%", background: (th.ht.bubbleThem), border: th.ht.bubbleBorder || "none", color: t.ink, borderRadius: `${th.ht.bubbleRadius ?? 12}px ${th.ht.bubbleRadius ?? 12}px ${th.ht.bubbleRadius ?? 12}px ${th.ht.bubbleTail ?? 4}px`, padding: "6px 9px", fontSize: 11 }}>Did it land?</span><span style={{ alignSelf: "flex-end", maxWidth: "80%", background: th.ht.bubbleMe, color: th.ht.bubbleMeInk || "#fff", borderRadius: `${th.ht.bubbleRadius ?? 12}px ${th.ht.bubbleRadius ?? 12}px ${th.ht.bubbleTail ?? 4}px ${th.ht.bubbleRadius ?? 12}px`, padding: "6px 9px", fontSize: 11 }}>Yes, in seconds</span><span style={{ alignSelf: "flex-end", display: "inline-flex", alignItems: "center", gap: 4, fontSize: 10, fontWeight: 800, color: t.positive, background: t.positiveSoft, borderRadius: 999, padding: "3px 8px" }}>₹ Paid 500</span></div><div style={{ display: "flex", alignItems: "center", gap: 8, padding: "9px 12px", background: t.surface, borderTop: `1px solid ${t.line}` }}><span style={{ display: "flex" }}>{th.swatch.map((c, i) => <i key={i} style={{ width: 14, height: 14, borderRadius: "50%", background: c, marginLeft: i ? -4 : 0, border: `2px solid ${t.surface}` }} />)}</span><span style={{ flex: 1, minWidth: 0 }}><span style={{ display: "block", fontSize: 13, fontWeight: 800, color: t.ink }}>{th.name}</span><span style={{ display: "block", fontSize: 10, color: t.inkSoft, marginTop: 1, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{th.note}</span></span>{on && <HlCheck size={16} color={t.accent} />}{!on && th.dark && <span style={{ fontSize: 10, fontWeight: 800, color: t.inkFaint }}>dark</span>}</div></button>; };
+  return <HellooScreen><HellooTop left={<NavBackButton onClick={onBack} />} title="App theme" subtitle="The whole app changes, money colours keep their meaning" /><div style={{ flex: 1, minHeight: 0, overflowY: "auto", padding: "0 16px 30px", display: "grid", gridTemplateColumns: "repeat(2, minmax(0, 1fr))", gap: 12, alignContent: "start" }}><div style={{ gridColumn: "1 / -1", fontSize: 11, fontWeight: 800, letterSpacing: 0.6, textTransform: "uppercase", color: T.inkFaint, padding: "6px 2px 0" }}>GLOOBAL themes · same as GLOOBAL</div>{hellooGloobalThemeList(hellooSideNow()).map(card)}<div style={{ gridColumn: "1 / -1", fontSize: 11, fontWeight: 800, letterSpacing: 0.6, textTransform: "uppercase", color: T.inkFaint, padding: "6px 2px 0" }}>Helloo looks</div>{HELLOO_THEMES.map(card)}<div style={{ gridColumn: "1 / -1", fontSize: 11.5, color: T.inkFaint, lineHeight: 1.5, padding: "4px 2px" }}>GLOOBAL themes show your own colour on your personal side and the shop colour when you use Helloo as your shop.</div></div></HellooScreen>;
 }
