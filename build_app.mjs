@@ -34,6 +34,7 @@ const HELLOO_MODULES = [
   "screens/Social.jsx",
   "screens/Ads.jsx",
   "screens/Stickers.jsx",
+  "screens/Snap.jsx",
   "hellooClient.jsx",
   "HellooApp.jsx"
 ];

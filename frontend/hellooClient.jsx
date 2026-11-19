@@ -61,7 +61,8 @@ var hellooApi = {
     hellooHttp.post(`/api/helloo/chats/${encodeURIComponent(chatId)}/messages`, body, { timeoutMs: GLOOBAL_API_COLD_START_TIMEOUT_MS }),
   read: (chatId) => hellooHttp.post(`/api/helloo/chats/${encodeURIComponent(chatId)}/read`, {}),
   voice: (messageId) => hellooHttp.get(`/api/helloo/voice/${encodeURIComponent(messageId)}`),
-  media: (messageId) => hellooHttp.get(`/api/helloo/media/${encodeURIComponent(messageId)}`),
+  media: (messageId) => hellooHttp.get(`/api/helloo/media/${encodeURIComponent(messageId)}`, { timeoutMs: 120e3 }),
+  saved: (messageId) => hellooHttp.post(`/api/helloo/messages/${encodeURIComponent(messageId)}/saved`, {}),
   prefs: (chatId, prefs) => hellooHttp.post(`/api/helloo/chats/${encodeURIComponent(chatId)}/prefs`, prefs),
   clear: (chatId) => hellooHttp.post(`/api/helloo/chats/${encodeURIComponent(chatId)}/clear`, {}),
   orderStatus: (messageId, status) => hellooHttp.post(`/api/helloo/messages/${encodeURIComponent(messageId)}/order`, { status }),
@@ -116,6 +117,7 @@ function hellooPreviewOf(m) {
   if (m.kind === "voice") return `Voice note · ${Math.round((m.voice && m.voice.seconds) || m.seconds || 0)}s`;
   if (m.kind === "photo") return m.text ? `Photo · ${m.text}` : "Photo";
   if (m.kind === "sticker") return "Sticker";
+  if (m.kind === "video") return m.text ? `Video · ${m.text}` : "Video";
   if (m.kind === "payment") return "Payment on GLOOBAL";
   if (m.kind === "order") { const n = ((m.order && m.order.items) || []).reduce((t, l) => t + (Number(l.qty) || 0), 0); return `Order · ${n} ${n === 1 ? "thing" : "things"}`; }
   return String(m.text || "").replace(/\s+/g, " ").trim().slice(0, 120);
@@ -198,6 +200,13 @@ function hellooShortDate(at) {
 }
 
 // A contact card from the server → the person object the screens draw.
+// How long a photo or clip stays, and what has happened to it.
+function hellooSnapFields(m) {
+  const view = m.view || {};
+  const mode = view.mode || "keep";
+  const gone = (mode === "once" && Boolean(view.opened)) || (mode === "day" && view.expiresAt && new Date(view.expiresAt).getTime() < Date.now());
+  return { viewMode: mode, opened: Boolean(view.opened), gone: Boolean(gone), fx: m.fx || "", saved: Boolean(m.saved) };
+}
 function hellooPersonFrom(card, photos) {
   if (!card) return null;
   const country = hellooCountry(card.countryIso);
@@ -289,7 +298,11 @@ function hellooBubbleFrom(m, meAccountId, theyReadAt, voiceState, names) {
   }
   if (m.kind === "photo") {
     const v = voiceState || {};
-    return Object.assign(base, { kind: "photo", text: m.text || "", width: (m.photo && m.photo.width) || 0, height: (m.photo && m.photo.height) || 0, src: v.src || m.localSrc || null, onOpen: v.onOpen });
+    return Object.assign(base, hellooSnapFields(m), { kind: "photo", text: m.text || "", width: (m.photo && m.photo.width) || 0, height: (m.photo && m.photo.height) || 0, src: v.src || m.localSrc || null, onOpen: v.onOpen, busy: Boolean(v.busy) });
+  }
+  if (m.kind === "video") {
+    const v = voiceState || {};
+    return Object.assign(base, hellooSnapFields(m), { kind: "video", text: m.text || "", seconds: (m.video && m.video.seconds) || 0, onOpen: v.onOpen, busy: Boolean(v.busy) });
   }
   if (m.kind === "voice") {
     const v = voiceState || {};

@@ -106,6 +106,8 @@ function HellooRoot() {
   // ── Sign-in ──────────────────────────────────────────────────────────
   const [user, setUser] = useStateH9(() => { const u = hellooSignedInUser(); hellooBootFace(u); applyHellooTheme(hellooSavedTheme()); return u; });
   const [stage, setStage] = useStateH9(() => (hellooSignedInUser() ? "splash-in" : "splash"));
+  // True right after a PIN sign-in on this open, so it is not asked twice.
+  const hellooJustSignedIn = useRefH9(false);
   const [idValue, setIdValue] = useStateH9("");
   // Sign in by GLOOBAL ID or by mobile number (country code first).
   // How this phone last signed in (GLOOBAL ID or mobile number) is how the
@@ -175,6 +177,7 @@ function HellooRoot() {
       hellooFaceLoad(signedIn.accountId);
       setUser(signedIn);
       setPin("");
+      hellooJustSignedIn.current = true;
       setStage("back");
     } catch (err) {
       setPin("");
@@ -189,6 +192,52 @@ function HellooRoot() {
 
   // ── Data ─────────────────────────────────────────────────────────────
   const signedIn = Boolean(user) && stage === "app";
+  // ── Fingerprint, face, PIN: GLOOBAL's own checks ─────────────────────
+  // The account already chose how it confirms a payment in GLOOBAL (PIN,
+  // the phone's fingerprint / Face ID, or the face check); Helloo follows
+  // the same choice. The PIN is always behind it.
+  const security = (user && user.securitySettings) || null;
+  useEffectH9(() => {
+    if (!user) return;
+    if (typeof gloobalSetBiometricSymbolId === "function") gloobalSetBiometricSymbolId(user.symbolId);
+    if (typeof gloobalSetPaymentCheck === "function") gloobalSetPaymentCheck((security && security.paymentCheck) || "pin");
+    if (typeof gloobalSetBiometricLoginEnabled === "function") gloobalSetBiometricLoginEnabled(security ? security.biometricLogin !== false : true);
+  }, [user && user.symbolId, security && security.paymentCheck, security && security.biometricLogin]);
+  // The PIN behind every such check, asked for from one place.
+  const [pinFallback, setPinFallback] = useStateH9(null);
+  useEffectH9(() => {
+    if (typeof gloobalRegisterPinFallbackHost !== "function") return undefined;
+    gloobalRegisterPinFallbackHost((opts) => new Promise((resolve) => setPinFallback({ reason: (opts && opts.pinReason) || "Confirm it's you with your PIN.", resolve })));
+    return () => gloobalRegisterPinFallbackHost(null);
+  }, []);
+  const resolvePinFallback = (ok) => { if (pinFallback) pinFallback.resolve(ok); setPinFallback(null); };
+  // Locked after more than five minutes away: fingerprint or Face ID where
+  // this phone has it for Helloo, else the PIN. Never unlocked without one.
+  const [locked, setLocked] = useStateH9(false);
+  const [unlocking, setUnlocking] = useStateH9(false);
+  const [lockNote, setLockNote] = useStateH9("");
+  const unlock = useCallbackH9(async () => {
+    if (typeof requireBiometric !== "function") { setLocked(false); return; }
+    setUnlocking(true); setLockNote("");
+    let ok = false;
+    try { ok = await requireBiometric({ symbolId: user && user.symbolId, pinReason: "Confirm it's you to open Helloo.", onBiometricError: (why) => setLockNote(why || "") }); } catch (e) { ok = false; }
+    setUnlocking(false);
+    if (ok) { setLocked(false); setLockNote(""); if (typeof gloobalMarkAway === "function") gloobalMarkAway(); }
+  }, [user && user.symbolId]);
+  useEffectH9(() => {
+    if (!signedIn || typeof document === "undefined" || typeof gloobalAwayRecently !== "function") return undefined;
+    const awayKey = typeof GLOOBAL_LAST_AWAY_KEY === "string" ? GLOOBAL_LAST_AWAY_KEY : "";
+    const wasAway = () => { try { return Boolean(awayKey && localStorage.getItem(awayKey)); } catch (e) { return false; } };
+    const check = () => { if (wasAway() && !gloobalAwayRecently()) setLocked(true); };
+    // A cold open counts: the page was closed, however long ago.
+    if (!hellooJustSignedIn.current) check();
+    hellooJustSignedIn.current = false;
+    const onVis = () => { if (document.visibilityState === "hidden") gloobalMarkAway(); else check(); };
+    document.addEventListener("visibilitychange", onVis);
+    window.addEventListener("pagehide", gloobalMarkAway);
+    return () => { document.removeEventListener("visibilitychange", onVis); window.removeEventListener("pagehide", gloobalMarkAway); };
+  }, [signedIn]);
+  useEffectH9(() => { if (locked && !unlocking && !pinFallback) unlock(); }, [locked]);
   const [photos, setPhotos] = useStateH9({});
   const [contactCards, setContactCards] = useStateH9(null);
   const [chatRows, setChatRows] = useStateH9(null);
@@ -334,6 +383,9 @@ function HellooRoot() {
   const [held, setHeld] = useStateH9(null); // the message whose actions are open
   const [heldChat, setHeldChat] = useStateH9(null); // the chat row whose actions are open
   const [photoView, setPhotoView] = useStateH9(null); // url of a photo open full-screen
+  const [photoMeta, setPhotoMeta] = useStateH9(null); // { id, kind, fx, canSave, mine, once } of what is open
+  const [snapCam, setSnapCam] = useStateH9(false);
+  const [snapBusy, setSnapBusy] = useStateH9(null);
   // A GLOOBAL code found in the open photo: { status: "looking" | "found" |
   // "none", gloobalId, person }. Read the moment a photo opens, so a code
   // somebody shared in a chat is one tap from paying.
@@ -585,6 +637,11 @@ function HellooRoot() {
       }
       return;
     }
+    if (frame.type === "media-opened" || frame.type === "media-saved") {
+      if (frame.type === "media-saved") setToast(frame.kind === "video" ? "They saved your video" : "They saved your photo");
+      if (frame.chatId && threadsRef.current[frame.chatId]) loadThread(frame.chatId);
+      return;
+    }
     if (frame.type === "ask-answer") {
       refreshCard(frame.to);
       if (frame.allowed) { setToast("Your request was accepted · message them free"); refreshChats(); }
@@ -607,7 +664,8 @@ function HellooRoot() {
       body.kind === "voice" ? { kind: "voice", voice: { seconds: body.seconds } }
         : body.kind === "text" ? { kind: "text", text: body.text }
           : body.kind === "sticker" ? { kind: "sticker", sticker: { id: body.stickerId } }
-          : body.kind === "photo" ? { kind: "photo", text: body.text || "", photo: { width: body.width, height: body.height }, localSrc: body.localSrc }
+          : body.kind === "video" ? { kind: "video", text: body.text || "", video: { seconds: body.seconds, width: body.width, height: body.height }, view: { mode: body.view || "keep" }, fx: body.fx || "", localSrc: body.localSrc }
+          : body.kind === "photo" ? { kind: "photo", text: body.text || "", photo: { width: body.width, height: body.height }, view: { mode: body.view || "keep" }, fx: body.fx || "", localSrc: body.localSrc }
             : { kind: body.kind },
       body.replyPreview ? { replyTo: body.replyPreview } : {});
     const wire = Object.assign({}, body);
@@ -805,6 +863,43 @@ function HellooRoot() {
       .then((r) => { const url = URL.createObjectURL(new Blob([hellooB64ToBytes(r.audio)], { type: r.mime })); setMediaUrls((all) => Object.assign({}, all, { [messageId]: url })); })
       .catch(() => mediaAsked.current.delete(messageId));
   }, []);
+  // Open a clip or a see-once photo: asked for now, shown, and (see once)
+  // forgotten when closed.
+  const openSnap = (m, meta, src) => {
+    if (src && !meta.once) { setPhotoMeta(meta); setPhotoView(src); return; }
+    if (!m.id || snapBusy) return;
+    setSnapBusy(m.id);
+    hellooApi.media(m.id).then((r) => {
+      const url = URL.createObjectURL(new Blob([hellooB64ToBytes(r.audio)], { type: r.mime }));
+      if (!meta.once) setMediaUrls((all) => Object.assign({}, all, { [m.id]: url }));
+      setPhotoMeta(meta); setPhotoView(url);
+    }).catch((err) => setToast(err && err.body && err.body.code === "gone" ? "That is gone now" : "Couldn't open that")).then(() => setSnapBusy(null));
+  };
+  const closePhoto = () => {
+    const meta = photoMeta;
+    if (meta && meta.once && photoView) { try { URL.revokeObjectURL(photoView); } catch (e) { /* fine */ } if (openIdRef.current) loadThread(openIdRef.current); }
+    setPhotoView(null); setPhotoMeta(null);
+  };
+  const savePhoto = () => {
+    const meta = photoMeta || { kind: "photo", fx: "" };
+    hellooSaveMedia(photoView, meta.kind, meta.fx);
+    if (meta.id && !meta.mine) hellooApi.saved(meta.id).catch(() => {});
+    setToast(meta.mine ? "Saved" : "Saved · they are told you saved it");
+  };
+  const sendSnap = async (shot) => {
+    const chatId = openIdRef.current;
+    if (!chatId) return;
+    if (shot.kind === "video") {
+      if (shot.blob.size > 8 * 1024 * 1024) throw new Error("That clip is over 8 MB. Try a shorter one.");
+      const b64 = await hellooBlobToB64(shot.blob);
+      setSnapCam(false);
+      deliver(chatId, { kind: "video", video: b64, mime: String(shot.blob.type || "video/mp4").split(";")[0], seconds: Math.max(1, Math.min(30, shot.seconds)), width: shot.width, height: shot.height, text: shot.caption, view: shot.view, fx: shot.fx, localSrc: shot.url });
+      return;
+    }
+    const small = await hellooCompressPhoto(shot.blob);
+    setSnapCam(false);
+    deliver(chatId, { kind: "photo", image: small.image, mime: small.mime, width: small.width, height: small.height, text: shot.caption, view: shot.view, fx: shot.fx, localSrc: small.preview });
+  };
   const pickPhoto = async (file) => {
     if (!file || !openIdRef.current) return;
     setSheet(null);
@@ -1050,22 +1145,39 @@ function HellooRoot() {
   };
 
   const [payPinOpen, setPayPinOpen] = useStateH9(false);
+  // One key for one payment, kept across the checks it may be asked for.
+  const payKey = useRefH9("");
+  // How this account confirms a payment: "pin", "device" or "face".
+  const payCheck = () => (typeof GLOOBAL_PAYMENT_CHECK === "object" && GLOOBAL_PAYMENT_CHECK && GLOOBAL_PAYMENT_CHECK.method) || "pin";
+  const startPay = (person, chatId) => {
+    payKey.current = `helloo-${hellooClientId()}`;
+    if (payCheck() === "pin" || typeof withPaymentFaceCheck !== "function") { setPayPinOpen(true); return; }
+    payNow(person, chatId, "");
+  };
   const payNow = async (person, chatId, pinValue) => {
     setPayPinOpen(false);
     setPay((p) => Object.assign({}, p, { busy: true, error: "" }));
     try {
       const amount = Number(pay.amount);
-      const result = await GloobalApi.sendTransaction({
+      if (!payKey.current) payKey.current = `helloo-${hellooClientId()}`;
+      const base = {
         senderSymbolId: user.symbolId,
         receiverSymbolId: person.gloobalId,
         amountBasis: "source",
         sourceAmount: amount,
         amount,
         note: pay.note,
-        pin: pinValue,
+        pin: pinValue || undefined,
         payMethod: "helloo",
-        idempotencyKey: `helloo-${hellooClientId()}`
-      });
+        idempotencyKey: payKey.current
+      };
+      // GLOOBAL's own loop: it answers whatever check the server asks for
+      // (fingerprint / Face ID, or the face check) and sends the same
+      // payment again with the approval.
+      const result = typeof withPaymentFaceCheck === "function"
+        ? await withPaymentFaceCheck(user.symbolId, (extra) => GloobalApi.sendTransaction(Object.assign({}, base, extra)))
+        : await GloobalApi.sendTransaction(base);
+      payKey.current = "";
       const referenceId = result && result.transaction && result.transaction.referenceId;
       if (referenceId) {
         // Filed under the choice picked, the way GLOOBAL's Send files it:
@@ -1079,6 +1191,8 @@ function HellooRoot() {
       setSheet(null);
       setToast(`Paid ${hellooMoneyText(amount, me.currency)} on GLOOBAL`);
     } catch (err) {
+      // The check could not be done, or this one needs the PIN after all.
+      if (err && err.needPin && !pinValue) { setPay((p) => Object.assign({}, p, { busy: false, error: "" })); setToast(err.message || "Enter your PIN for this payment."); setPayPinOpen(true); return; }
       setPay((p) => Object.assign({}, p, { busy: false, error: gloobalApiIsUnreachable(err) ? "The GLOOBAL server is waking up. Try again in a moment." : err.message }));
     }
   };
@@ -1399,7 +1513,7 @@ function HellooRoot() {
     if (held) return setHeld(null);
     if (heldChat) return setHeldChat(null);
     if (sheet) return setSheet(null);
-    if (photoView) return setPhotoView(null);
+    if (photoView) return closePhoto();
     if (priceGate) return setPriceGate(null);
     if (screen === "contact") return closeProfile();
     if (openId) { closeThread(); return undefined; }
@@ -1416,7 +1530,7 @@ function HellooRoot() {
   const chatThemeNow = openId && !screen ? ((((chatRows || []).find((c) => c.id === openId)) || {}).theme || (threads[openId] && threads[openId].chat && threads[openId].chat.theme) || "") : "";
   const themeNow = chatThemeNow && hellooFindTheme(chatThemeNow) ? chatThemeNow : themeKey;
   if (shownThemeRef.current !== themeNow + "|" + hellooSideNow()) { applyHellooTheme(themeNow); shownThemeRef.current = themeNow + "|" + hellooSideNow(); }
-  const shell = (children) => <div style={{ position: "absolute", inset: 0, overflow: "hidden", background: T.bg }}>{callLayer}<div style={{ position: "absolute", left: 0, right: 0, bottom: 0, top: callBar ? "calc(48px + env(safe-area-inset-top, 0px))" : 0 }}>{children}</div>{gReceipt && user && typeof LedgerProvider === "function" ? <LedgerProvider userId={user.accountId || "me"} currency={user.currency || "INR"}><ReceiptModal receipt={gReceipt} onClose={() => setGReceipt(null)} /></LedgerProvider> : null}{callBar}{toast && <div role="status" style={{ position: "absolute", left: 16, right: 16, bottom: "calc(96px + env(safe-area-inset-bottom, 0px))", display: "flex", justifyContent: "center", zIndex: 300, pointerEvents: "none" }}><span style={{ background: T.ink, color: T.bg, borderRadius: 18, padding: "9px 16px", fontSize: 13, fontWeight: 700, fontFamily: T.fontBody, boxShadow: "0 8px 24px rgba(0,0,0,0.25)", textAlign: "center", maxWidth: "100%" }}>{toast}</span></div>}</div>;
+  const shell = (children) => <div style={{ position: "absolute", inset: 0, overflow: "hidden", background: T.bg }}>{callLayer}<div style={{ position: "absolute", left: 0, right: 0, bottom: 0, top: callBar ? "calc(48px + env(safe-area-inset-top, 0px))" : 0 }}>{children}</div>{gReceipt && user && typeof LedgerProvider === "function" ? <LedgerProvider userId={user.accountId || "me"} currency={user.currency || "INR"}><ReceiptModal receipt={gReceipt} onClose={() => setGReceipt(null)} /></LedgerProvider> : null}{callBar}{typeof PaymentFaceHost === "function" ? <PaymentFaceHost /> : null}{typeof BiometricPinFallbackModal === "function" ? <BiometricPinFallbackModal open={Boolean(pinFallback)} symbolId={user && user.symbolId} reason={pinFallback && pinFallback.reason} onResolve={resolvePinFallback} /> : null}{toast && <div role="status" style={{ position: "absolute", left: 16, right: 16, bottom: "calc(96px + env(safe-area-inset-bottom, 0px))", display: "flex", justifyContent: "center", zIndex: 300, pointerEvents: "none" }}><span style={{ background: T.ink, color: T.bg, borderRadius: 18, padding: "9px 16px", fontSize: 13, fontWeight: 700, fontFamily: T.fontBody, boxShadow: "0 8px 24px rgba(0,0,0,0.25)", textAlign: "center", maxWidth: "100%" }}>{toast}</span></div>}</div>;
 
   // ── A call fills the screen — or, made small, a bar at the top ───────
   // The call's screen is always the first thing in the shell while there
@@ -1424,6 +1538,7 @@ function HellooRoot() {
   // full and small.
   const callBar = call && me && callMin ? <button data-testid="helloo-call-bar" onClick={() => setCallMin(false)} className="v2-tap" style={{ position: "absolute", top: 0, left: 0, right: 0, height: "calc(48px + env(safe-area-inset-top, 0px))", paddingTop: "env(safe-area-inset-top, 0px)", boxSizing: "border-box", zIndex: 280, display: "flex", alignItems: "center", justifyContent: "center", gap: 8, border: "none", background: "#0B9E6B", color: "#fff", fontFamily: T.fontBody, fontSize: 13.5, fontWeight: 800, cursor: "pointer", whiteSpace: "nowrap", overflow: "hidden" }}><HlPhone size={15} color="#fff" /><span>{call.state === "live" ? hellooDuration(call.seconds) : call.state === "ringing" ? (call.direction === "in" ? "Incoming call" : "Calling…") : "Connecting…"}</span><span style={{ opacity: 0.85, maxWidth: 140, overflow: "hidden", textOverflow: "ellipsis" }}>· {call.person.handle || hellooName(call.person)}</span><span style={{ opacity: 0.85 }}>· Back to call</span></button> : null;
   const callLayer = call && me ? <div key="helloo-call" style={callMin ? { display: "none" } : { position: "absolute", inset: 0, zIndex: 200 }}><HellooCallScreen person={call.person} paid={Boolean(call.paid)} video={call.video} state={call.state} seconds={call.seconds} muted={call.muted} cameraOff={call.cameraOff} speaker={call.speaker} incoming={call.direction === "in"} onAccept={answerCall} onEnd={hangUp} onMute={toggleMute} onCamera={toggleCamera} onSpeaker={toggleSpeaker} onFlip={flipCamera} onMinimise={() => setCallMin(true)} onChat={() => { if (call.chatId) { setCallMin(true); setScreen(null); openChat(call.chatId); } }} onShop={hellooIsBusiness(call.person) && call.person.gloobalId ? () => { const shopPerson = call.person; setCallMin(true); setScreen(null); Promise.resolve(openChatWith(shopPerson.accountId)).then(() => openMenu(shopPerson)); } : undefined} localVideoRef={localVideoRef} remoteVideoRef={remoteVideoRef} remoteAudioRef={remoteAudioRef} /></div> : null;
+  if (locked && signedIn && me && !call) return shell(<HellooScreen><div data-testid="helloo-locked" style={{ flex: 1, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: 14, padding: "0 32px", textAlign: "center" }}><span style={{ fontSize: 30 }}><HellooWordmark /></span><span style={{ width: 72, height: 72, borderRadius: "50%", background: T.accentSoft, display: "flex", alignItems: "center", justifyContent: "center", marginTop: 8 }}><HlFinger size={34} color={T.accent} /></span><div style={{ fontSize: 18, fontWeight: 800, fontFamily: T.fontDisplay, color: T.ink }}>Locked</div><div style={{ fontSize: 13.5, color: T.inkSoft, lineHeight: 1.45 }}>{lockNote || "Your chats are locked after five minutes away. Open with your fingerprint, Face ID or GLOOBAL PIN."}</div><div style={{ width: "100%", maxWidth: 300, marginTop: 8, display: "flex", flexDirection: "column", gap: 10 }}><HellooPrimary Icon={HlFinger} onClick={unlock} disabled={unlocking}>{unlocking ? "Checking…" : "Unlock"}</HellooPrimary><HellooSecondary Icon={HlLogOut} onClick={() => { setLocked(false); signOut("Signed out"); }}>Sign out</HellooSecondary></div></div></HellooScreen>);
   if (call && me && !callMin) return shell(null);
 
 
@@ -1436,7 +1551,7 @@ function HellooRoot() {
 
   // ── Photo, full screen ───────────────────────────────────────────────
   if (photoView) {
-    return shell(<div style={{ position: "absolute", inset: 0, background: "#000", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 50 }}><img src={photoView} alt="Photo" style={{ maxWidth: "100%", maxHeight: "100%", objectFit: "contain", touchAction: "pinch-zoom" }} /><div style={{ position: "absolute", top: "calc(14px + env(safe-area-inset-top, 0px))", left: 14, right: 14, display: "flex", justifyContent: "space-between" }}><NavBackButton onClick={() => setPhotoView(null)} /><a href={photoView} download="helloo-photo.jpg" aria-label="Save photo" style={{ width: 40, height: 40, borderRadius: "50%", background: "rgba(255,255,255,0.16)", display: "flex", alignItems: "center", justifyContent: "center" }}><HlDownload size={18} color="#fff" /></a></div>{photoQr && photoQr.status === "found" ? <div data-testid="helloo-photo-qr" style={{ position: "absolute", left: 14, right: 14, bottom: "calc(18px + env(safe-area-inset-bottom, 0px))", background: T.surface, borderRadius: 22, padding: 14, boxShadow: "0 20px 40px -18px rgba(0,0,0,0.6)", display: "flex", alignItems: "center", gap: 12 }}>{photoQr.person ? <HellooAvatar person={photoQr.person} size={46} /> : <span style={{ width: 46, height: 46, borderRadius: "50%", background: T.accentSoft, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}><HlScan size={20} color={T.accent} /></span>}<span style={{ flex: 1, minWidth: 0 }}><span style={{ display: "block", fontSize: 11, fontWeight: 800, letterSpacing: 0.8, color: T.inkFaint, textTransform: "uppercase" }}><GloobalWordmark /> QR</span><span style={{ display: "block", fontSize: 15.5, fontWeight: 800, color: T.ink, marginTop: 2, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{photoQr.mine ? "Your own code" : photoQr.person ? (photoQr.person.handle ? <CreatorHandleText handle={photoQr.person.handle} icon={false} /> : photoQr.person.name) : "Finding who this is…"}</span><span style={{ display: "block", fontSize: 12, color: T.inkSoft, marginTop: 1, letterSpacing: 1, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{photoQr.gloobalId}</span></span>{photoQr.mine ? null : <><button onClick={() => { const id = photoQr.gloobalId; setPhotoView(null); Promise.resolve(openChatWith(id)).catch(() => {}); }} aria-label="Message" className="v2-tap" style={{ width: 44, height: 44, borderRadius: "50%", border: "none", background: T.accentSoft, display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer", flexShrink: 0 }}><HlChat size={19} color={T.accent} /></button><button onClick={() => { const id = photoQr.gloobalId; setPhotoView(null); payGloobalId(id); }} data-testid="helloo-photo-qr-pay" className="v2-tap" style={{ height: 44, padding: "0 18px", borderRadius: 999, border: "none", background: T.gradButton, color: "#fff", fontFamily: T.fontBody, fontSize: 14.5, fontWeight: 800, cursor: "pointer", flexShrink: 0 }}>Pay</button></>}</div> : null}</div>);
+    return shell(<div style={{ position: "absolute", inset: 0, background: "#000", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 50 }}>{photoMeta && photoMeta.kind === "video" ? <video src={photoView} controls autoPlay playsInline loop={!photoMeta.once} data-testid="helloo-snap-video" style={{ maxWidth: "100%", maxHeight: "100%", filter: hellooFx(photoMeta.fx) }} /> : <img src={photoView} alt="Photo" style={{ maxWidth: "100%", maxHeight: "100%", objectFit: "contain", touchAction: "pinch-zoom", filter: hellooFx(photoMeta && photoMeta.fx) }} />}<div style={{ position: "absolute", top: "calc(14px + env(safe-area-inset-top, 0px))", left: 14, right: 14, display: "flex", justifyContent: "space-between" }}><NavBackButton onClick={closePhoto} />{!photoMeta || photoMeta.canSave ? <button onClick={savePhoto} aria-label="Save to phone" data-testid="helloo-snap-save" className="v2-tap" style={{ height: 40, padding: "0 14px", borderRadius: 999, border: "none", background: "rgba(255,255,255,0.18)", color: "#fff", display: "flex", alignItems: "center", gap: 6, fontSize: 13, fontWeight: 800, cursor: "pointer", fontFamily: T.fontBody }}><HlDownload size={16} color="#fff" />Save</button> : <span style={{ height: 40, padding: "0 12px", borderRadius: 999, background: "rgba(255,255,255,0.14)", color: "#fff", display: "flex", alignItems: "center", fontSize: 12, fontWeight: 800 }}>{photoMeta.once ? "See once · closes for good" : "Not for saving"}</span>}</div>{photoQr && photoQr.status === "found" ? <div data-testid="helloo-photo-qr" style={{ position: "absolute", left: 14, right: 14, bottom: "calc(18px + env(safe-area-inset-bottom, 0px))", background: T.surface, borderRadius: 22, padding: 14, boxShadow: "0 20px 40px -18px rgba(0,0,0,0.6)", display: "flex", alignItems: "center", gap: 12 }}>{photoQr.person ? <HellooAvatar person={photoQr.person} size={46} /> : <span style={{ width: 46, height: 46, borderRadius: "50%", background: T.accentSoft, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}><HlScan size={20} color={T.accent} /></span>}<span style={{ flex: 1, minWidth: 0 }}><span style={{ display: "block", fontSize: 11, fontWeight: 800, letterSpacing: 0.8, color: T.inkFaint, textTransform: "uppercase" }}><GloobalWordmark /> QR</span><span style={{ display: "block", fontSize: 15.5, fontWeight: 800, color: T.ink, marginTop: 2, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{photoQr.mine ? "Your own code" : photoQr.person ? (photoQr.person.handle ? <CreatorHandleText handle={photoQr.person.handle} icon={false} /> : photoQr.person.name) : "Finding who this is…"}</span><span style={{ display: "block", fontSize: 12, color: T.inkSoft, marginTop: 1, letterSpacing: 1, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{photoQr.gloobalId}</span></span>{photoQr.mine ? null : <><button onClick={() => { const id = photoQr.gloobalId; setPhotoView(null); Promise.resolve(openChatWith(id)).catch(() => {}); }} aria-label="Message" className="v2-tap" style={{ width: 44, height: 44, borderRadius: "50%", border: "none", background: T.accentSoft, display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer", flexShrink: 0 }}><HlChat size={19} color={T.accent} /></button><button onClick={() => { const id = photoQr.gloobalId; setPhotoView(null); payGloobalId(id); }} data-testid="helloo-photo-qr-pay" className="v2-tap" style={{ height: 44, padding: "0 18px", borderRadius: 999, border: "none", background: T.gradButton, color: "#fff", fontFamily: T.fontBody, fontSize: 14.5, fontWeight: 800, cursor: "pointer", flexShrink: 0 }}>Pay</button></>}</div> : null}</div>);
   }
 
   // ── A chat ───────────────────────────────────────────────────────────
@@ -1459,14 +1574,22 @@ function HellooRoot() {
     }
     const allMsgs = thread ? (fresh ? thread.messages.filter((m) => !m.at || new Date(m.at).getTime() >= fresh - 2000) : thread.messages) : [];
     const msgs = chatPeriod && chatPeriod !== "all" ? allMsgs.filter((m) => !m.at || hellooInPeriod(m.at, chatPeriod)) : allMsgs;
-    msgs.forEach((m) => { if (m.kind === "photo" && m.id && !m.localSrc && !mediaUrls[m.id]) loadMedia(m.id); });
+    msgs.forEach((m) => { if (m.kind === "photo" && m.id && !m.localSrc && !mediaUrls[m.id] && (!m.view || !m.view.mode || m.view.mode === "keep" || (m.view.mode === "day" && new Date(m.view.expiresAt).getTime() > Date.now()))) loadMedia(m.id); });
     const firstName = (person.name || "").split(" ")[0];
     const bubbles = hellooThreadBubbles(msgs, meId, serverChat && serverChat.theyReadAt, (m) => {
       if (m.kind === "call") return { onCallBack: () => startCall(person, Boolean(m.call && m.call.video)) };
       if (m.kind === "payment" && m.payment && m.payment.referenceId) return { onOpenReceipt: () => openGloobalReceipt(m.payment.referenceId) };
       if (m.kind === "order" && m.id) return { onOpenReceipt: m.payment && m.payment.referenceId ? () => openGloobalReceipt(m.payment.referenceId) : undefined, statusBusy: orderBusy === m.id, onStatus: (status) => answerOrder(m.id, status), onRefund: () => { setPay({ amount: String((m.order && m.order.total) || ""), note: "Order sold out · money back", busy: false, error: "" }); setSheet("pay"); } };
       if (m.kind === "voice" && m.id) return { playing: voicePlay.id === m.id, progress: voicePlay.id === m.id ? voicePlay.progress : 0, onPlay: () => playVoice(m.id) };
-      if (m.kind === "photo") { const src = (m.id && mediaUrls[m.id]) || m.localSrc || null; return { src, onOpen: src ? () => setPhotoView(src) : undefined }; }
+      if (m.kind === "photo" || m.kind === "video") {
+        const mode = (m.view && m.view.mode) || "keep";
+        const mineMsg = m.from === meId;
+        const meta = { id: m.id, kind: m.kind, fx: m.fx || "", canSave: mode === "keep", mine: mineMsg, once: mode === "once" && !mineMsg };
+        const src = (m.id && mediaUrls[m.id]) || m.localSrc || null;
+        if (m.kind === "photo" && mode !== "once") return { src, onOpen: src ? () => { setPhotoMeta(meta); setPhotoView(src); } : undefined };
+        // A clip, or a see-once photo: fetched when tapped, never before.
+        return { busy: snapBusy === m.id, onOpen: m.id || src ? () => openSnap(m, meta, src) : undefined };
+      }
       return null;
     }, { them: firstName });
     const failed = allMsgs.filter((m) => m.failed).length;
@@ -1526,8 +1649,9 @@ function HellooRoot() {
     if (priceGate && priceGate.chatId === openId) {
       return shell(<><HellooPriceCard person={priceGate.person} price={priceGate.rule.price} currency={priceGate.rule.currency} viewerIsBusiness={priceGate.rule.kind === "business"} balance={priceGate.balance != null && !Number.isNaN(priceGate.balance) ? priceGate.balance : null} balanceCurrency={me.currency} busy={Boolean(priceGate.busy)} onAgree={() => payAndSend(priceGate)} onAsk={card && card.askPending ? undefined : () => { setPriceGate(null); setAskText(""); setSheet("ask"); }} onBack={() => setPriceGate(null)} /><PayPinModal open={Boolean(reachPin)} onClose={() => setReachPin(null)} amountLabel={hellooMoneyText(priceGate.rule.price, priceGate.rule.currency)} onVerified={(pinValue) => payAndSend(priceGate, pinValue)} /></>);
     }
-    return shell(<HellooThreadScreen onSticker={(id) => deliver(openId, { kind: "sticker", stickerId: id })} onPaySticker={(id) => { const st = HELLOO_STICKERS[id] || {}; const amt = hellooStickerAmount(id); setPay({ amount: amt ? String(amt) : "", note: st.words || "", busy: false, error: "", sticker: id }); setSheet("pay"); }} me={me} chat={{ id: openId, person, messages: bubbles }} onFindDate={() => setSheet("find-date")} dateOn={Boolean(chatPeriod && chatPeriod !== "all")} strip={<>{chatPeriod && chatPeriod !== "all" ? <div style={{ display: "flex", alignItems: "center", gap: 10, padding: "8px 12px", background: HT.barBg || T.surface, borderBottom: `1px solid ${T.line}` }}><HellooPeriodPill value={chatPeriod} onOpen={() => setSheet("find-date")} onClear={() => setChatPeriod(null)} />{msgs.length === 0 ? <span data-testid="helloo-period-empty" style={{ fontSize: 12.5, color: T.inkSoft }}>Nothing {hellooPeriodWords(chatPeriod)} in this chat.</span> : <span style={{ fontSize: 12, color: T.inkFaint, fontWeight: 700 }}>{msgs.length} {msgs.length === 1 ? "message" : "messages"}</span>}</div> : null}{paidStrip}{strip}</>} paidPrice={rule && !rule.free && !rule.closed ? rule.price : 0} paidCurrency={rule && rule.currency} typing={Boolean(typing[openId]) && !iBlocked} draft={draft} onDraft={(v) => onDraftChange(openId, v)} onSend={sendText} recording={recording} onMic={recording ? stopAndSend : startRecording} onCancelRecording={cancelRecording} hasOlder={Boolean(thread && thread.more)} onLoadOlder={() => loadThread(openId, true)} onPay={person.gloobalId ? () => { setPay({ amount: "", note: "", busy: false, error: "" }); setSheet("pay"); } : undefined} onAttach={() => setSheet("attach")} onMenu={person.handle && person.gloobalId && !iBlocked ? () => openMenu(person) : undefined} onMore={() => setSheet("menu")} onOpenPerson={() => setScreen("contact")} onCall={!iBlocked && person.gloobalId ? () => startCall(person, false) : undefined} onVideo={!iBlocked && person.gloobalId ? () => startCall(person, true) : undefined} onMessageHold={(m) => setHeld(m)} replyTo={reply} onCancelReply={() => setReplyTo(null)} composerNote={note} onBack={closeThread}>
-      {sheet === "pay" && <HellooPaySheet sticker={pay.sticker || ""} person={person} me={me} amount={pay.amount} onAmount={(a) => setPay((p) => Object.assign({}, p, { amount: a.replace(/^0+/, ""), error: "" }))} note={pay.note} onNote={(n) => setPay((p) => Object.assign({}, p, { note: n }))} choiceId={pay.choiceId || null} onChoice={(id) => setPay((p) => Object.assign({}, p, { choiceId: id }))} busy={pay.busy} error={pay.error} onClose={() => { if (!pay.busy) setSheet(null); }} onSend={() => setPayPinOpen(true)} />}
+    if (snapCam) return shell(<HellooSnapCamera person={person} onClose={() => setSnapCam(false)} onSend={sendSnap} onToast={setToast} />);
+    return shell(<HellooThreadScreen onSnap={() => setSnapCam(true)} onSticker={(id) => deliver(openId, { kind: "sticker", stickerId: id })} onPaySticker={(id) => { const st = HELLOO_STICKERS[id] || {}; const amt = hellooStickerAmount(id); setPay({ amount: amt ? String(amt) : "", note: st.words || "", busy: false, error: "", sticker: id }); setSheet("pay"); }} me={me} chat={{ id: openId, person, messages: bubbles }} onFindDate={() => setSheet("find-date")} dateOn={Boolean(chatPeriod && chatPeriod !== "all")} strip={<>{chatPeriod && chatPeriod !== "all" ? <div style={{ display: "flex", alignItems: "center", gap: 10, padding: "8px 12px", background: HT.barBg || T.surface, borderBottom: `1px solid ${T.line}` }}><HellooPeriodPill value={chatPeriod} onOpen={() => setSheet("find-date")} onClear={() => setChatPeriod(null)} />{msgs.length === 0 ? <span data-testid="helloo-period-empty" style={{ fontSize: 12.5, color: T.inkSoft }}>Nothing {hellooPeriodWords(chatPeriod)} in this chat.</span> : <span style={{ fontSize: 12, color: T.inkFaint, fontWeight: 700 }}>{msgs.length} {msgs.length === 1 ? "message" : "messages"}</span>}</div> : null}{paidStrip}{strip}</>} paidPrice={rule && !rule.free && !rule.closed ? rule.price : 0} paidCurrency={rule && rule.currency} typing={Boolean(typing[openId]) && !iBlocked} draft={draft} onDraft={(v) => onDraftChange(openId, v)} onSend={sendText} recording={recording} onMic={recording ? stopAndSend : startRecording} onCancelRecording={cancelRecording} hasOlder={Boolean(thread && thread.more)} onLoadOlder={() => loadThread(openId, true)} onPay={person.gloobalId ? () => { setPay({ amount: "", note: "", busy: false, error: "" }); setSheet("pay"); } : undefined} onAttach={() => setSheet("attach")} onMenu={person.handle && person.gloobalId && !iBlocked ? () => openMenu(person) : undefined} onMore={() => setSheet("menu")} onOpenPerson={() => setScreen("contact")} onCall={!iBlocked && person.gloobalId ? () => startCall(person, false) : undefined} onVideo={!iBlocked && person.gloobalId ? () => startCall(person, true) : undefined} onMessageHold={(m) => setHeld(m)} replyTo={reply} onCancelReply={() => setReplyTo(null)} composerNote={note} onBack={closeThread}>
+      {sheet === "pay" && <HellooPaySheet sticker={pay.sticker || ""} person={person} me={me} amount={pay.amount} onAmount={(a) => setPay((p) => Object.assign({}, p, { amount: a.replace(/^0+/, ""), error: "" }))} note={pay.note} onNote={(n) => setPay((p) => Object.assign({}, p, { note: n }))} choiceId={pay.choiceId || null} onChoice={(id) => setPay((p) => Object.assign({}, p, { choiceId: id }))} busy={pay.busy} error={pay.error} onClose={() => { if (!pay.busy) setSheet(null); }} onSend={() => startPay(person, openId)} />}
       {sheet === "shopmenu" && <HellooShopMenuSheet shop={person} items={menu.items} basket={menu.basket} onAdd={(it) => menuBump(it, 1)} onRemove={(it) => menuBump(it, -1)} totalText={hellooMoneyText(menuTotal, menuCurrency)} note={menu.note} onNote={(v) => setMenu((m) => Object.assign({}, m, { note: v }))} busy={menu.busy} error={menu.error} loadError={menu.loadError} paidAlready={Boolean(menu.paidRef)} onPay={() => (menu.paidRef ? orderNow(person, openId, "") : setOrderPinOpen(true))} onClose={() => { if (!menu.busy) setSheet(null); }} />}
       <PayPinModal open={orderPinOpen} onClose={() => setOrderPinOpen(false)} amountLabel={hellooMoneyText(menuTotal, menuCurrency)} onVerified={(pinValue) => orderNow(person, openId, pinValue)} />
       {sheet === "attach" && <HellooAttachSheet onClose={() => setSheet(null)} items={[[HlImage, "Gallery", "#7C3AED", () => galleryRef.current && galleryRef.current.click()], [HlCamera, "Camera", "#DB2777", () => cameraRef.current && cameraRef.current.click()], [HlRupee, "Pay", "#0B7A57", () => { setPay({ amount: "", note: "", busy: false, error: "" }); setSheet("pay"); }]]} />}
