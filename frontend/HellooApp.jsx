@@ -1907,7 +1907,7 @@ function HellooRoot() {
       [HlPalette, "Colours", () => { setSheet(null); setScreen("theme"); }]
     ].filter(Boolean).map(([Icon, title, onPress], i) => <HellooRow key={title} Icon={Icon} title={title} first={i === 0} onPress={onPress} />)}</HellooCard></HellooSheet>}
     {tab === "social" && <HellooSocialHome me={me} faces={faces} photos={photos} composeTick={socialCompose} onCards={askPhotos} onToast={setToast}
-      onOpenChat={(card) => openChatWith(card.gloobalId)}
+      onOpenChat={(card) => openChatWith(card.gloobalId, false, false, card.side === "self" ? "self" : undefined)}
       onTip={(card) => payGloobalId(card.gloobalId)}
       onShop={(card) => Promise.resolve(openChatWith(card.gloobalId)).then(() => openMenu({ gloobalId: card.gloobalId })).catch(() => {})}
       onShopItem={(tag) => { if (user && tag.shop === user.symbolId) { setToast("That is your own shop"); return; } Promise.resolve(openChatWith(tag.shop)).then(() => openMenu({ gloobalId: tag.shop }, tag.itemId)).catch(() => {}); }} />}
