@@ -588,6 +588,7 @@ function HellooRoot() {
     if (frame.type === "ask-answer") {
       refreshCard(frame.to);
       if (frame.allowed) { setToast("Your request was accepted · message them free"); refreshChats(); }
+      else if (frame.paid) setToast(`You can write to them by paying ${hellooMoneyText(frame.price, frame.currency)} a message`);
       return;
     }
     if (frame.type === "hidden") {
@@ -718,12 +719,13 @@ function HellooRoot() {
       setToast(gloobalApiIsUnreachable(err) ? "The GLOOBAL server is waking up. Try again." : err.message);
     }
   };
-  const answerAsk = async (ask, action) => {
+  const answerAsk = async (ask, action, price) => {
     try {
-      const r = await hellooApi.answerAsk(ask.id, action);
+      const r = await hellooApi.answerAsk(ask.id, action, price);
       setAsks((list) => list.filter((a) => a.id !== ask.id));
       refreshMyReach();
       if (action === "allow" && r.chatId) { setScreen(null); refreshChats(); openChat(r.chatId); }
+      else if (action === "paid") setToast(`${(ask.person && ask.person.name ? ask.person.name.split(" ")[0] : "They")} can write by paying ${hellooMoneyText(r.price, r.currency)} a message`);
       else setToast("Declined");
     } catch (err) { setToast(err.message); }
   };
@@ -1684,7 +1686,7 @@ function HellooRoot() {
   }
   if (screen === "requests") {
     const reqs = asks.map((a) => ({ id: a.id, person: Object.assign(hellooPersonFrom(a.person, photos), { business: Boolean(a.person.handle) }), kind: a.kind, text: a.text, when: hellooWhen(a.at) }));
-    return shell(<HellooRequestsScreen me={me} requests={reqs} onAllow={(r) => answerAsk(r, "allow")} onDecline={(r) => answerAsk(r, "decline")} onBack={() => setScreen(null)} />);
+    return shell(<HellooRequestsScreen me={me} requests={reqs} onAllow={(r) => answerAsk(r, "allow")} onDecline={(r) => answerAsk(r, "decline")} onPaid={(r, price) => answerAsk(r, "paid", price)} currency={(myReach && myReach.currency) || (me && me.currency)} onBack={() => setScreen(null)} />);
   }
   if (screen === "me") {
     return shell(<><HellooMeScreen me={me} earned={myReach && myReach.month ? { text: hellooMoneyText((myReach.month.earned || 0) - (myReach.month.gaveBack || 0), myReach.currency), sub: myReach.month.payers ? `from ${myReach.month.payers} ${myReach.month.payers === 1 ? "person" : "people"} who paid to reach you` : "Nobody has paid to reach you yet this month" } : null} onEarned={() => { earningsFromMe.current = true; openEarnings(""); }} onHelp={() => window.open(HELLOO_GLOOBAL_SITE, "_blank", "noopener")} stats={{ text: `${contacts.length} ${contacts.length === 1 ? "person" : "people"} from GLOOBAL · ${rows.length} ${rows.length === 1 ? "chat" : "chats"} · no fees` }} rows={meRows} onRow={onMeRow} onQr={() => setScreen("qr")} onCopy={async () => { try { await navigator.clipboard.writeText(me.gloobalId); setToast("GLOOBAL ID copied"); } catch (e) { setToast("Could not copy"); } }} onShare={shareHelloo} onOpenGloobal={() => window.open(HELLOO_GLOOBAL_SITE, "_blank", "noopener")} onSignOut={() => signOut("Signed out")} onBack={() => setScreen(null)} />{faceSheets}{sheet === "privacy" && <HellooSheet title="Privacy" onClose={() => setSheet(null)}><HellooPrivacyPanel picture={myReach && myReach.picture} me={me} disabled={!myReach} onPicture={setPicture} online={myReach ? !myReach.hideLastSeen : null} onOnline={(show) => setHideLastSeen(!show)} /></HellooSheet>}</>);

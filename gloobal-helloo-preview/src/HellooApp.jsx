@@ -501,6 +501,7 @@ import { useState as useStateH4, useRef as useRefH4, useEffect as useEffectH4 } 
 import { useState as useStateH12, useRef as useRefH12 } from "react";
 import { useState as useStateH13, useEffect as useEffectH13, useRef as useRefH13 } from "react";
 import { useState as useStateH5 } from "react";
+import { useState as useStateH42 } from "react";
 import { useState as useStateH6 } from "react";
 import { useState as useStateH7, useEffect as useEffectH7, useRef as useRefH7 } from "react";
 import { useState as useStateH8 } from "react";
@@ -78638,8 +78639,16 @@ function HellooRequestsRow({ requests, onOpen }) {
   return <button onClick={onOpen} className="v2-tap" style={{ width: "100%", display: "flex", alignItems: "center", gap: 12, padding: "11px 14px", marginBottom: 10, border: "none", borderRadius: 18, background: T.accentSoft, cursor: "pointer", textAlign: "left", fontFamily: T.fontBody }}><span style={{ display: "flex" }}>{requests.slice(0, 3).map((r, i) => <span key={r.id} style={{ marginLeft: i ? -10 : 0, border: "2px solid #fff", borderRadius: "50%" }}><HellooAvatar person={r.person} size={32} flag={false} /></span>)}</span><span style={{ flex: 1, minWidth: 0 }}><span style={{ display: "block", fontSize: 13.5, fontWeight: 800, color: T.accent }}>{requests.length} {requests.length === 1 ? "person wants" : "people want"} to reach you</span><span style={{ display: "block", fontSize: 11.5, color: T.inkSoft, marginTop: 1, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{requests[0].person.name}: “{requests[0].text}”</span></span><HlChevron size={17} color={T.accent} /></button>;
 }
 
-function HellooRequestsScreen({ me, requests, onBack, onAllow, onDecline }) {
-  return <HellooScreen><HellooTop left={<NavBackButton onClick={onBack} />} title="Requests" subtitle="Free to ask · yours to decide" right={<NavFlagBadge flag={me.flag} />} /><div style={{ flex: 1, minHeight: 0, overflowY: "auto", padding: "0 16px 20px", display: "flex", flexDirection: "column", gap: 10 }}>{requests.map((r) => <HellooCard key={r.id} style={{ padding: 14 }}><div style={{ display: "flex", alignItems: "center", gap: 12 }}><HellooAvatar person={r.person} size={46} /><span style={{ flex: 1, minWidth: 0 }}><span style={{ display: "block", fontSize: 14.5, fontWeight: 800, color: T.ink }}>{r.person.name}{r.person.business && <span style={{ marginLeft: 6, fontSize: 10, fontWeight: 800, color: "#DB2777", background: "#DB27771A", borderRadius: 999, padding: "2px 7px" }}>business</span>}</span><span style={{ display: "flex", alignItems: "center", gap: 5, fontSize: 11.5, color: T.inkSoft, marginTop: 2 }}>{r.kind === "call" ? <HlPhone size={12} /> : <HlChat size={12} />}{r.kind === "call" ? "wants to call you" : "wants to message you"} · {r.when}</span></span></div><div style={{ margin: "10px 0 0", padding: "9px 12px", borderRadius: 12, background: T.surfaceAlt, fontSize: 13, color: T.ink, lineHeight: 1.45 }}>“{r.text}”</div><div style={{ display: "flex", gap: 8, marginTop: 12 }}><button onClick={() => onDecline && onDecline(r)} className="v2-tap" style={{ flex: 1, minWidth: 0, whiteSpace: "nowrap", minHeight: 40, borderRadius: 999, border: `1px solid ${T.line}`, background: T.surface, color: T.inkSoft, fontSize: 12.5, fontWeight: 800, cursor: "pointer", fontFamily: T.fontBody }}>Decline</button><button onClick={() => onAllow && onAllow(r)} className="v2-tap" style={{ flex: 1.2, minWidth: 0, whiteSpace: "nowrap", minHeight: 40, borderRadius: 999, border: "none", background: T.gradButton, color: "#fff", fontSize: 12.5, fontWeight: 800, cursor: "pointer", fontFamily: T.fontBody }}>Allow · free</button></div></HellooCard>)}<div style={{ fontSize: 11.5, color: T.inkFaint, lineHeight: 1.5, padding: "0 4px" }}>{requests.length === 0 ? "No requests right now." : "Allow · free lets them message you free from now on, and their line arrives as the first message. Decline says nothing more; they can still pay your price."}</div></div></HellooScreen>;
+function HellooRequestsScreen({ me, requests, onBack, onAllow, onDecline, onPaid, currency }) {
+  // Which request has its price row open, and the price picked for it.
+  const [pricing, setPricing] = useStateH42(null);
+  const [price, setPrice] = useStateH42(1);
+  const pill = (label, fn, kind, testId) => <button onClick={fn} data-testid={testId} className="v2-tap" style={{ flex: kind === "main" ? 1.3 : 1, minWidth: 0, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis", minHeight: 42, borderRadius: 999, border: kind === "plain" ? `1px solid ${T.line}` : "none", background: kind === "main" ? T.gradButton : kind === "paid" ? HT.freeSoft : T.surface, color: kind === "main" ? (HT.onAccent || "#fff") : kind === "paid" ? HT.free : T.inkSoft, fontSize: 12.5, fontWeight: 800, cursor: "pointer", fontFamily: T.fontBody, padding: "0 8px" }}>{label}</button>;
+  return <HellooScreen><HellooTop left={<NavBackButton onClick={onBack} />} title="Requests" subtitle="Free to ask · yours to decide" right={<NavFlagBadge flag={me.flag} />} /><div style={{ flex: 1, minHeight: 0, overflowY: "auto", padding: "0 16px 20px", display: "flex", flexDirection: "column", gap: 10 }}>{requests.map((r) => <HellooCard key={r.id} style={{ padding: 14 }}><div style={{ display: "flex", alignItems: "center", gap: 12 }}><HellooAvatar person={r.person} size={46} /><span style={{ flex: 1, minWidth: 0 }}><span style={{ display: "block", fontSize: 14.5, fontWeight: 800, color: T.ink, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{r.person.name}{r.person.business && <span style={{ marginLeft: 6, fontSize: 10, fontWeight: 800, color: "#DB2777", background: "#DB27771A", borderRadius: 999, padding: "2px 7px" }}>business</span>}</span><span style={{ display: "flex", alignItems: "center", gap: 5, fontSize: 11.5, color: T.inkSoft, marginTop: 2 }}>{r.kind === "call" ? <HlPhone size={12} /> : <HlChat size={12} />}{r.kind === "call" ? "wants to call you" : "wants to message you"} · {r.when}</span></span></div><div style={{ margin: "10px 0 0", padding: "9px 12px", borderRadius: 12, background: T.surfaceAlt, fontSize: 13, color: T.ink, lineHeight: 1.45, overflowWrap: "anywhere" }}>“{r.text}”</div>
+    {pricing === r.id && onPaid
+      ? <div data-testid="helloo-ask-price" style={{ marginTop: 12 }}><div style={{ fontSize: 12.5, fontWeight: 800, color: T.ink, marginBottom: 8 }}>They pay you for each message</div><div style={{ display: "flex", gap: 6 }}>{[1, 2, 3, 5, 7].map((v) => <button key={v} onClick={() => setPrice(v)} aria-pressed={price === v} className="v2-tap" style={{ flex: 1, minWidth: 0, height: 40, borderRadius: 12, border: "none", background: price === v ? HT.free : T.surfaceAlt, color: price === v ? "#fff" : T.ink, fontSize: 14, fontWeight: 800, cursor: "pointer", fontFamily: T.fontBody }}>{v}</button>)}</div><div style={{ display: "flex", gap: 8, marginTop: 10 }}>{pill("Back", () => setPricing(null), "plain")}{pill(<>Allow · {hellooMoneyText(price, currency)}</>, () => { onPaid(r, price); setPricing(null); }, "main", "helloo-ask-paid-confirm")}</div></div>
+      : <div style={{ display: "flex", gap: 8, marginTop: 12 }}>{pill("Decline", () => onDecline && onDecline(r), "plain")}{onPaid ? pill("Paid", () => { setPrice(1); setPricing(r.id); }, "paid", "helloo-ask-paid") : null}{pill("Allow · free", () => onAllow && onAllow(r), "main")}</div>}
+  </HellooCard>)}<div style={{ fontSize: 11.5, color: T.inkFaint, lineHeight: 1.5, padding: "0 4px" }}>{requests.length === 0 ? "No requests right now." : "Allow · free lets them message you free from now on, and their line arrives as the first message. Paid lets them write by paying you for each message. Decline says nothing more."}</div></div></HellooScreen>;
 }
 
 
@@ -79317,7 +79326,7 @@ var hellooApi = {
   reachCard: (accountId) => hellooHttp.get(`/api/helloo/people/${encodeURIComponent(accountId)}/reach`),
   ask: (to, text, kind) => hellooHttp.post("/api/helloo/asks", { to, text, kind: kind || "message" }),
   asks: () => hellooHttp.get("/api/helloo/asks"),
-  answerAsk: (id, action) => hellooHttp.post(`/api/helloo/asks/${encodeURIComponent(id)}`, { action }),
+  answerAsk: (id, action, price) => hellooHttp.post(`/api/helloo/asks/${encodeURIComponent(id)}`, price ? { action, price } : { action }),
   earnings: (month) => hellooHttp.get(`/api/helloo/earnings${month ? `?month=${encodeURIComponent(month)}` : ""}`),
   together: (accountId) => hellooHttp.get(`/api/helloo/people/${encodeURIComponent(accountId)}/together`),
   startCall: (to, video, face) => hellooHttp.post("/api/helloo/calls", face ? { to, video: Boolean(video), face } : { to, video: Boolean(video) }),
@@ -80502,6 +80511,7 @@ function HellooRoot() {
     if (frame.type === "ask-answer") {
       refreshCard(frame.to);
       if (frame.allowed) { setToast("Your request was accepted · message them free"); refreshChats(); }
+      else if (frame.paid) setToast(`You can write to them by paying ${hellooMoneyText(frame.price, frame.currency)} a message`);
       return;
     }
     if (frame.type === "hidden") {
@@ -80632,12 +80642,13 @@ function HellooRoot() {
       setToast(gloobalApiIsUnreachable(err) ? "The GLOOBAL server is waking up. Try again." : err.message);
     }
   };
-  const answerAsk = async (ask, action) => {
+  const answerAsk = async (ask, action, price) => {
     try {
-      const r = await hellooApi.answerAsk(ask.id, action);
+      const r = await hellooApi.answerAsk(ask.id, action, price);
       setAsks((list) => list.filter((a) => a.id !== ask.id));
       refreshMyReach();
       if (action === "allow" && r.chatId) { setScreen(null); refreshChats(); openChat(r.chatId); }
+      else if (action === "paid") setToast(`${(ask.person && ask.person.name ? ask.person.name.split(" ")[0] : "They")} can write by paying ${hellooMoneyText(r.price, r.currency)} a message`);
       else setToast("Declined");
     } catch (err) { setToast(err.message); }
   };
@@ -81598,7 +81609,7 @@ function HellooRoot() {
   }
   if (screen === "requests") {
     const reqs = asks.map((a) => ({ id: a.id, person: Object.assign(hellooPersonFrom(a.person, photos), { business: Boolean(a.person.handle) }), kind: a.kind, text: a.text, when: hellooWhen(a.at) }));
-    return shell(<HellooRequestsScreen me={me} requests={reqs} onAllow={(r) => answerAsk(r, "allow")} onDecline={(r) => answerAsk(r, "decline")} onBack={() => setScreen(null)} />);
+    return shell(<HellooRequestsScreen me={me} requests={reqs} onAllow={(r) => answerAsk(r, "allow")} onDecline={(r) => answerAsk(r, "decline")} onPaid={(r, price) => answerAsk(r, "paid", price)} currency={(myReach && myReach.currency) || (me && me.currency)} onBack={() => setScreen(null)} />);
   }
   if (screen === "me") {
     return shell(<><HellooMeScreen me={me} earned={myReach && myReach.month ? { text: hellooMoneyText((myReach.month.earned || 0) - (myReach.month.gaveBack || 0), myReach.currency), sub: myReach.month.payers ? `from ${myReach.month.payers} ${myReach.month.payers === 1 ? "person" : "people"} who paid to reach you` : "Nobody has paid to reach you yet this month" } : null} onEarned={() => { earningsFromMe.current = true; openEarnings(""); }} onHelp={() => window.open(HELLOO_GLOOBAL_SITE, "_blank", "noopener")} stats={{ text: `${contacts.length} ${contacts.length === 1 ? "person" : "people"} from GLOOBAL · ${rows.length} ${rows.length === 1 ? "chat" : "chats"} · no fees` }} rows={meRows} onRow={onMeRow} onQr={() => setScreen("qr")} onCopy={async () => { try { await navigator.clipboard.writeText(me.gloobalId); setToast("GLOOBAL ID copied"); } catch (e) { setToast("Could not copy"); } }} onShare={shareHelloo} onOpenGloobal={() => window.open(HELLOO_GLOOBAL_SITE, "_blank", "noopener")} onSignOut={() => signOut("Signed out")} onBack={() => setScreen(null)} />{faceSheets}{sheet === "privacy" && <HellooSheet title="Privacy" onClose={() => setSheet(null)}><HellooPrivacyPanel picture={myReach && myReach.picture} me={me} disabled={!myReach} onPicture={setPicture} online={myReach ? !myReach.hideLastSeen : null} onOnline={(show) => setHideLastSeen(!show)} /></HellooSheet>}</>);

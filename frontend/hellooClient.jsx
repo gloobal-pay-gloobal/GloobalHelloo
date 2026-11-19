@@ -88,7 +88,7 @@ var hellooApi = {
   reachCard: (accountId) => hellooHttp.get(`/api/helloo/people/${encodeURIComponent(accountId)}/reach`),
   ask: (to, text, kind) => hellooHttp.post("/api/helloo/asks", { to, text, kind: kind || "message" }),
   asks: () => hellooHttp.get("/api/helloo/asks"),
-  answerAsk: (id, action) => hellooHttp.post(`/api/helloo/asks/${encodeURIComponent(id)}`, { action }),
+  answerAsk: (id, action, price) => hellooHttp.post(`/api/helloo/asks/${encodeURIComponent(id)}`, price ? { action, price } : { action }),
   earnings: (month) => hellooHttp.get(`/api/helloo/earnings${month ? `?month=${encodeURIComponent(month)}` : ""}`),
   together: (accountId) => hellooHttp.get(`/api/helloo/people/${encodeURIComponent(accountId)}/together`),
   startCall: (to, video, face) => hellooHttp.post("/api/helloo/calls", face ? { to, video: Boolean(video), face } : { to, video: Boolean(video) }),
