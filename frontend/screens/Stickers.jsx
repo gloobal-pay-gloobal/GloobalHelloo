@@ -6,7 +6,7 @@
 // Two of them carry money: tapping one opens Pay with the sticker on it,
 // and the sticker goes out with the payment.
 import { useState as useStateH44 } from "react";
-import { Sticker as SkIcon, Coins as SkCoins, Clock as SkClock } from "lucide-react";
+import { Coins as SkCoins, Clock as SkClock } from "lucide-react";
 
 // id → how Kullu is drawn. An id is never renamed once sent in a chat.
 var HELLOO_STICKERS = {
@@ -59,6 +59,18 @@ function hellooStickerAmountSave(id, amount) {
 }
 
 // Kullu: drawn here, cut out with a white edge like a real sticker.
+// The button that opens the stickers: a small sticker of a happy face, in
+// colour, with one corner peeling up — it looks like what it opens.
+function HellooStickerIcon({ size = 24, on = false }) {
+  return <svg width={size} height={size} viewBox="0 0 24 24" aria-hidden="true" style={{ display: "block", transform: on ? "rotate(-8deg) scale(1.08)" : "none", transition: "transform 0.18s ease" }}>
+    <defs><linearGradient id="hlStickerFace" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stopColor="#FFD86B" /><stop offset="1" stopColor="#FF9F43" /></linearGradient></defs>
+    <path d="M7 2.5h10A4.5 4.5 0 0 1 21.500 7v6.200L13.200 21.500H7A4.500 4.500 0 0 1 2.500 17V7A4.500 4.500 0 0 1 7 2.500z" fill="url(#hlStickerFace)" stroke="#fff" strokeWidth="1" />
+    <path d="M21.500 13.200L13.200 21.500v-4.300a4 4 0 0 1 4-4z" fill="#fff" stroke="#F0B27A" strokeWidth="0.700" strokeLinejoin="round" />
+    <ellipse cx="8.600" cy="9.400" rx="1.250" ry="1.650" fill="#4A2A12" /><ellipse cx="14.600" cy="9.400" rx="1.250" ry="1.650" fill="#4A2A12" />
+    <path d="M7.800 13.300q3.400 3.600 6.600 0.300" stroke="#4A2A12" strokeWidth="1.500" fill="none" strokeLinecap="round" />
+    <circle cx="6.300" cy="12.300" r="1.100" fill="#FF7A59" opacity="0.550" />
+  </svg>;
+}
 function HellooKullu({ size = 96, mood = "smile", prop = "", cup = "#C97B4A", words = "", tilt = -4 }) {
   const eye = (x) => mood === "sleep" ? <path d={`M${x - 6} 52 q6 5 12 0`} stroke="#3B1F12" strokeWidth="3.2" fill="none" strokeLinecap="round" />
     : mood === "love" ? <path d={`M${x} 58 c-9 -6 -8 -13 -3.5 -13 c2 0 3.5 2 3.5 3.5 c0 -1.500 1.500 -3.500 3.500 -3.500 c4.500 0 5.500 7 -3.500 13 z`} fill="#E11D48" />

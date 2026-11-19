@@ -511,7 +511,7 @@ import { Heart as SxHeart, MessageCircle as SxComment, Coins as SxCoins, Grid3x3
 import { useState as useStateH43, useEffect as useEffectH43, useRef as useRefH43, useCallback as useCallbackH43 } from "react";
 import { Coins as AxCoins, ThumbsUp as AxYes, ThumbsDown as AxNo, Megaphone as AxHorn, Pause as AxPause, CircleStop as AxStop } from "lucide-react";
 import { useState as useStateH44 } from "react";
-import { Sticker as SkIcon, Coins as SkCoins, Clock as SkClock } from "lucide-react";
+import { Coins as SkCoins, Clock as SkClock } from "lucide-react";
 import { useState as useStateH45, useEffect as useEffectH45, useRef as useRefH45 } from "react";
 import { Zap as SnFlash, RefreshCcw as SnFlip, Eye as SnOnce, Timer as SnDay, Bookmark as SnKeep, EyeOff as SnGone, Images as SnGallery } from "lucide-react";
 import { useState as useStateH11, useEffect as useEffectH11, useRef as useRefH11 } from "react";
@@ -77898,7 +77898,7 @@ function HellooThreadScreen({ onSnap, onSticker, onPaySticker, me, chat, onBack,
     return <div data-testid="helloo-message-bar" style={{ display: "flex", alignItems: "flex-end", gap: 2, background: HT.cardBg || T.surface, boxShadow: HT.cardShadow ?? T.shadowCard, borderRadius: 26, padding: 5, minWidth: 0 }}>
       {recording ? <div role="status" style={{ flex: 1, minWidth: 0, minHeight: 38, display: "flex", alignItems: "center", gap: 10, padding: "0 4px 0 12px" }}><span aria-hidden="true" style={{ width: 10, height: 10, borderRadius: "50%", background: T.negative, animation: "hlPulse 1s ease-in-out infinite", flexShrink: 0 }} /><span style={{ flex: 1, minWidth: 0, fontSize: 14, fontWeight: 700, color: T.ink, fontVariantNumeric: "tabular-nums", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>Recording {hellooDuration(Math.floor(recording ? recording.seconds : 0))}</span><button onClick={onCancelRecording} className="v2-tap" style={{ border: "none", background: "none", color: T.negative, fontSize: 13, fontWeight: 800, cursor: "pointer", fontFamily: T.fontBody, padding: "4px 8px" }}>Cancel</button><style>{"@keyframes hlPulse{0%,100%{opacity:1}50%{opacity:.25}}"}</style></div> : <>
         <textarea value={draft} rows={1} onFocus={() => setStickersOpen(false)} onChange={(e) => onDraft && onDraft(e.target.value)} onKeyDown={(e) => { if (e.key === "Enter" && !e.shiftKey && onSend) { e.preventDefault(); onSend(); } }} placeholder="Message" aria-label="Message" className="helloo-bar-text" style={{ flex: 1, minWidth: 0, alignSelf: "center", resize: "none", border: "none", outline: "none", background: "none", fontSize: 15, lineHeight: "20px", color: T.ink, fontFamily: T.fontBody, maxHeight: 100, padding: "8px 4px 8px 12px", margin: 0, scrollbarWidth: "none" }} /><style>{".helloo-bar-text::-webkit-scrollbar{display:none}.helloo-bar-text::placeholder{white-space:nowrap}"}</style>
-        {onSticker && !typing ? ib(SkIcon, "Stickers", () => setStickersOpen((v) => !v), stickersOpen ? T.accent : T.inkSoft, { "aria-pressed": stickersOpen, "data-testid": "helloo-sticker-button" }) : null}
+        {onSticker && !typing ? <button type="button" onClick={() => setStickersOpen((v) => !v)} aria-label="Stickers" title="Stickers" aria-pressed={stickersOpen} data-testid="helloo-sticker-button" className="v2-tap" style={{ width: 36, height: 36, borderRadius: "50%", border: "none", background: stickersOpen ? T.accentSoft : "none", display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer", flexShrink: 0, padding: 0 }}><HellooStickerIcon size={25} on={stickersOpen} /></button> : null}
         {onAttach ? ib(HlPlus, "Attach", onAttach) : null}
         {onPay ? <button type="button" onClick={onPay} aria-label="Pay or request" title="Pay or request" className="v2-tap" style={{ width: 36, height: 36, border: "none", background: "none", display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer", flexShrink: 0, padding: 0 }}><span style={{ width: 28, height: 28, borderRadius: "50%", background: HT.freeSoft, display: "flex", alignItems: "center", justifyContent: "center" }}><HlRupee size={15} color={HT.free} /></span></button> : null}
         {onSnap && !typing ? ib(HlCamera, "Camera: send a photo or a clip", onSnap, T.accent) : null}
@@ -79680,6 +79680,18 @@ function hellooStickerAmountSave(id, amount) {
 }
 
 // Kullu: drawn here, cut out with a white edge like a real sticker.
+// The button that opens the stickers: a small sticker of a happy face, in
+// colour, with one corner peeling up — it looks like what it opens.
+function HellooStickerIcon({ size = 24, on = false }) {
+  return <svg width={size} height={size} viewBox="0 0 24 24" aria-hidden="true" style={{ display: "block", transform: on ? "rotate(-8deg) scale(1.08)" : "none", transition: "transform 0.18s ease" }}>
+    <defs><linearGradient id="hlStickerFace" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stopColor="#FFD86B" /><stop offset="1" stopColor="#FF9F43" /></linearGradient></defs>
+    <path d="M7 2.5h10A4.5 4.5 0 0 1 21.500 7v6.200L13.200 21.500H7A4.500 4.500 0 0 1 2.500 17V7A4.500 4.500 0 0 1 7 2.500z" fill="url(#hlStickerFace)" stroke="#fff" strokeWidth="1" />
+    <path d="M21.500 13.200L13.200 21.500v-4.300a4 4 0 0 1 4-4z" fill="#fff" stroke="#F0B27A" strokeWidth="0.700" strokeLinejoin="round" />
+    <ellipse cx="8.600" cy="9.400" rx="1.250" ry="1.650" fill="#4A2A12" /><ellipse cx="14.600" cy="9.400" rx="1.250" ry="1.650" fill="#4A2A12" />
+    <path d="M7.800 13.300q3.400 3.600 6.600 0.300" stroke="#4A2A12" strokeWidth="1.500" fill="none" strokeLinecap="round" />
+    <circle cx="6.300" cy="12.300" r="1.100" fill="#FF7A59" opacity="0.550" />
+  </svg>;
+}
 function HellooKullu({ size = 96, mood = "smile", prop = "", cup = "#C97B4A", words = "", tilt = -4 }) {
   const eye = (x) => mood === "sleep" ? <path d={`M${x - 6} 52 q6 5 12 0`} stroke="#3B1F12" strokeWidth="3.2" fill="none" strokeLinecap="round" />
     : mood === "love" ? <path d={`M${x} 58 c-9 -6 -8 -13 -3.5 -13 c2 0 3.5 2 3.5 3.5 c0 -1.500 1.500 -3.500 3.500 -3.500 c4.500 0 5.500 7 -3.500 13 z`} fill="#E11D48" />
