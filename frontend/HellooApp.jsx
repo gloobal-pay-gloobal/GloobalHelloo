@@ -386,6 +386,9 @@ function HellooRoot() {
   const [photoMeta, setPhotoMeta] = useStateH9(null); // { id, kind, fx, canSave, mine, once } of what is open
   const [snapCam, setSnapCam] = useStateH9(false);
   const [snapBusy, setSnapBusy] = useStateH9(null);
+  // The media of the chat whose profile is open: { chatId, loading, list, counts }.
+  const [profileMedia, setProfileMedia] = useStateH9(null);
+  const [mediaFilter, setMediaFilter] = useStateH9("all");
   const [watchAsk, setWatchAsk] = useStateH9(null); // { go } while the first-open warning is up
   // A GLOOBAL code found in the open photo: { status: "looking" | "found" |
   // "none", gloobalId, person }. Read the moment a photo opens, so a code
@@ -1081,6 +1084,15 @@ function HellooRoot() {
       } }));
     });
   };
+  // Opening a person's profile reads the media the two of you share.
+  useEffectH9(() => {
+    if (screen !== "contact" || !openId) { setProfileMedia(null); return undefined; }
+    let gone = false;
+    setMediaFilter("all");
+    setProfileMedia({ chatId: openId, loading: true, list: [], counts: {} });
+    hellooApi.chatMedia(openId).then((r) => { if (!gone) setProfileMedia({ chatId: openId, loading: false, list: (r.media || []).filter((m) => m.kind !== "deleted"), counts: r.counts || {} }); }).catch(() => { if (!gone) setProfileMedia({ chatId: openId, loading: false, list: [], counts: {} }); });
+    return () => { gone = true; };
+  }, [screen, openId]);
   // Opening a business's profile reads its shop.
   useEffectH9(() => {
     if (screen !== "contact" || !openId) return;
@@ -1698,10 +1710,26 @@ function HellooRoot() {
     const pres = presence[person.accountId];
     const iBlocked = isBlocked(person.accountId);
     const firstName = (person.name || "").split(" ")[0];
+    // The profile's Media: pictures load as they are listed; a clip or a
+    // voice note is asked for when it is tapped.
+    const mediaList = profileMedia && profileMedia.chatId === openId ? profileMedia.list : [];
+    mediaList.forEach((m) => { if (m.kind === "photo" && m.id && !mediaUrls[m.id]) loadMedia(m.id); });
+    const mediaState = profileMedia && profileMedia.chatId === openId ? { loading: profileMedia.loading, counts: profileMedia.counts, items: mediaList.map((m) => {
+      const mineMsg = m.from === meId;
+      const legacy = !(m.view && m.view.mode);
+      const meta = { id: m.id, kind: m.kind, fx: m.fx || "", canSave: legacy || mineMsg || Boolean(m.view && m.view.save), mine: mineMsg, once: false };
+      const src = mediaUrls[m.id] || null;
+      const guard = (fn) => () => { if (mineMsg || legacy || hellooWatchWarned(meId)) { fn(); return; } setWatchAsk({ go: fn }); };
+      const base = { id: m.id, kind: m.kind, at: m.at, mine: mineMsg, fx: m.fx || "" };
+      if (m.kind === "voice") return Object.assign(base, { seconds: (m.voice && m.voice.seconds) || 0, playing: voicePlay.id === m.id, onOpen: () => playVoice(m.id) });
+      if (m.kind === "video") return Object.assign(base, { seconds: (m.video && m.video.seconds) || 0, busy: snapBusy === m.id, onOpen: guard(() => openSnap(m, meta, src)) });
+      return Object.assign(base, { src, onOpen: src ? guard(() => { setPhotoMeta(meta); setPhotoView(src); }) : undefined });
+    }) } : null;
     const status = !iBlocked && pres ? (pres.online ? "" : hellooLastSeenText(pres.lastSeenAt)) : "";
     const tog = together[person.accountId] || null;
     const allowed = allowedIds.has(person.accountId);
-    return shell(<HellooContactScreen shop={person.handle ? (shopCards[person.gloobalId] || null) : null} onMenu={person.handle && !iBlocked ? () => { setScreen(null); openMenu(person); } : undefined} person={Object.assign({}, person, { id: person.gloobalId, online: Boolean(!iBlocked && pres && pres.online) })} status={status} together={tog} currency={me.currency} shops={hellooIsBusiness(person) ? null : (personShops[person.accountId] || []).map((c) => { const sp = hellooPersonFrom(c, photos); return { person: Object.assign({}, sp, { handle: c.handle }), shop: shopCards[c.gloobalId] || null }; })} onShop={(sp) => openChatWith(sp.accountId, true)} reach={tog && tog.reachMode ? tog : null} reachBusy={reachBusy} onReach={hellooIsBusiness(person) || iBlocked ? undefined : (mode, price) => setPersonReach(person.accountId, mode, price)} onSaveReview={person.handle ? (stars, text) => GloobalApi.saveCreatorReview(person.gloobalId, { stars, text }).then(() => { loadShopCard(person); setToast("Thanks — your feedback is in"); }) : undefined} onBack={closeProfile} onMessage={() => setScreen(null)} onCall={!iBlocked ? () => startCall(person, false) : undefined} onVideo={!iBlocked ? () => startCall(person, true) : undefined} onPay={person.gloobalId ? () => { setScreen(null); setPay({ amount: "", note: "", busy: false, error: "" }); setSheet("pay"); } : undefined} groups={[
+    if (watchAsk) return shell(<><HellooScreen style={{ background: HT.chatBg || HT.wash }} /><HellooWatchWarning me={me} onClose={() => setWatchAsk(null)} onAgree={() => { const go = watchAsk.go; hellooWatchAgree(meId); setWatchAsk(null); go(); }} /></>);
+    return shell(<HellooContactScreen media={person.handle ? null : mediaState} mediaFilter={mediaFilter} onMediaFilter={setMediaFilter} shop={person.handle ? (shopCards[person.gloobalId] || null) : null} onMenu={person.handle && !iBlocked ? () => { setScreen(null); openMenu(person); } : undefined} person={Object.assign({}, person, { id: person.gloobalId, online: Boolean(!iBlocked && pres && pres.online) })} status={status} together={tog} currency={me.currency} shops={hellooIsBusiness(person) ? null : (personShops[person.accountId] || []).map((c) => { const sp = hellooPersonFrom(c, photos); return { person: Object.assign({}, sp, { handle: c.handle }), shop: shopCards[c.gloobalId] || null }; })} onShop={(sp) => openChatWith(sp.accountId, true)} reach={tog && tog.reachMode ? tog : null} reachBusy={reachBusy} onReach={hellooIsBusiness(person) || iBlocked ? undefined : (mode, price) => setPersonReach(person.accountId, mode, price)} onSaveReview={person.handle ? (stars, text) => GloobalApi.saveCreatorReview(person.gloobalId, { stars, text }).then(() => { loadShopCard(person); setToast("Thanks — your feedback is in"); }) : undefined} onBack={closeProfile} onMessage={() => setScreen(null)} onCall={!iBlocked ? () => startCall(person, false) : undefined} onVideo={!iBlocked ? () => startCall(person, true) : undefined} onPay={person.gloobalId ? () => { setScreen(null); setPay({ amount: "", note: "", busy: false, error: "" }); setSheet("pay"); } : undefined} groups={[
       [[HlRupee, allowed ? "Reaches you free" : "Pays your price to reach you", allowed ? "Allowed" : (myReach && myReach.people.price ? hellooMoneyText(myReach.people.price, myReach.currency) : "Free"), () => hellooApi.allow(person.accountId, !allowed).then(() => { refreshMyReach(); setToast(allowed ? `${firstName} pays your price again` : `${firstName} reaches you free`); }).catch((err) => setToast(err.message)), false, HT.free], [HlBellOff, muted ? "Unmute notifications" : "Mute notifications", muted ? "Muted" : "Off", () => setPrefs(openId, { muted: !muted }), false, T.inkSoft], [HlWallet, "Payments between you", tog ? String(tog.money.toThem.n + tog.money.toMe.n) : "", () => window.open(HELLOO_GLOOBAL_SITE, "_blank", "noopener"), false, "#0B7A57"]],
       [[HlTrash, "Clear chat", "", () => { setScreen(null); setSheet("confirm-clear"); }, false, T.inkSoft], [HlBan, iBlocked ? `Unblock ${firstName}` : `Block ${firstName}`, "", () => setBlock(person, !iBlocked), !iBlocked]]
     ].map((rows, g) => (g === 0 && !hellooIsBusiness(person) ? rows.slice(1) : rows))} />);

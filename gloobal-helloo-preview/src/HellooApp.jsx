@@ -78170,7 +78170,7 @@ function HellooShopCard({ person, shop, onMenu }) {
   return <HellooSection title="Shop"><HellooCard style={{ padding: "12px 14px" }}><div data-testid="helloo-shop-card"><div style={{ display: "flex", alignItems: "center", gap: 10, paddingBottom: 10 }}><span style={{ width: 38, height: 38, borderRadius: 12, background: T.accentSoft, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}><HlStore size={19} color={T.accent} /></span><span style={{ minWidth: 0 }}><span style={{ display: "block", fontSize: 15, fontWeight: 800, color: T.ink }}><CreatorHandleText handle={person.handle} icon={false} /></span><span style={{ display: "block", fontSize: 12, color: T.inkSoft, marginTop: 1 }}>{shop ? (shop.kind || "On GLOOBAL") : "Loading the shop…"}</span></span></div>{shop ? <>{line("Where", shop.where)}{line("Now", shop.open)}{line("On its list", shop.count)}{line("Rated", shop.rating)}</> : null}{person.calls && person.calls.mode !== "always" ? line("Calls", person.calls.mode === "off" ? "Not taken · message instead" : `${person.calls.from}–${person.calls.to}`) : null}{onMenu ? <div style={{ marginTop: 10 }}><HellooSecondary onClick={onMenu} Icon={HlStore}>See the menu</HellooSecondary></div> : null}</div></HellooCard></HellooSection>;
 }
 
-function HellooContactScreen({ shop = null, onMenu, person, onBack, onMessage, onCall, onVideo, onPay, onGroup, groups = null, status = "", together = null, currency = "INR", onSaveReview, shops = null, onShop, reach = null, reachBusy = false, onReach }) {
+function HellooContactScreen({ media = null, mediaFilter = "all", onMediaFilter, shop = null, onMenu, person, onBack, onMessage, onCall, onVideo, onPay, onGroup, groups = null, status = "", together = null, currency = "INR", onSaveReview, shops = null, onShop, reach = null, reachBusy = false, onReach }) {
   const action = (Icon, label, fn, color) => <button onClick={fn} disabled={!fn} className="v2-tap" style={{ flex: 1, display: "flex", flexDirection: "column", alignItems: "center", gap: 6, border: "none", background: "none", padding: 0, cursor: fn ? "pointer" : "default", fontFamily: T.fontBody, opacity: fn ? 1 : 0.4 }}><span style={{ width: 54, height: 54, borderRadius: "50%", background: color, display: "flex", alignItems: "center", justifyContent: "center", boxShadow: `0 10px 22px -10px ${color}` }}><Icon size={23} color="#fff" /></span><span style={{ fontSize: 11.5, fontWeight: 800, color: T.ink }}>{label}</span></button>;
   const money = (v, c) => typeof fmtMoney === "function" ? hellooMoneyText(v, c || currency) : `${v} ${c || currency}`;
   const mins = (sec) => { const m = Math.round((sec || 0) / 60); return m >= 60 ? `${Math.floor(m / 60)}h ${String(m % 60).padStart(2, "0")}m` : `${m} min`; };
@@ -78181,7 +78181,7 @@ function HellooContactScreen({ shop = null, onMenu, person, onBack, onMessage, o
   // when the shop is not taking calls.
   const biz = hellooIsBusiness(person);
   const callsShut = Boolean(biz && person.calls && !person.calls.open);
-  if (!biz) return <HellooFriendProfile person={person} status={status} onBack={onBack} onMessage={onMessage} onCall={onCall} onVideo={onVideo} onPay={onPay} together={together} groups={groups} shops={shops} onShop={onShop} reach={reach} reachBusy={reachBusy} onReach={onReach} />;
+  if (!biz) return <HellooFriendProfile media={media} mediaFilter={mediaFilter} onMediaFilter={onMediaFilter} person={person} status={status} onBack={onBack} onMessage={onMessage} onCall={onCall} onVideo={onVideo} onPay={onPay} together={together} groups={groups} shops={shops} onShop={onShop} reach={reach} reachBusy={reachBusy} onReach={onReach} />;
   if (biz) return <HellooShopProfile shop={shop} person={person} onBack={onBack} onMessage={onMessage} onCall={onCall} onPay={onPay} onMenu={onMenu} together={together} groups={groups} onSaveReview={onSaveReview} />;
   return <HellooScreen><HellooTop left={<NavBackButton onClick={onBack} />} title="" right={null} /><div style={{ flex: 1, minHeight: 0, overflowY: "auto", padding: "0 16px 30px", display: "flex", flexDirection: "column", gap: 14 }}><div style={{ display: "flex", flexDirection: "column", alignItems: "center", textAlign: "center" }}><HellooAvatar person={person} size={92} online={person.online} /><div style={{ marginTop: 12 }}><HellooVerifiedName person={person} size={22} /></div><div style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 12.5, color: T.inkSoft, marginTop: 4 }}><FlagEmoji flag={person.flag} size={15} shape="circle" border="1px solid rgba(0,0,0,0.14)" />{person.city ? `${person.city}, ` : ""}{person.country}{person.online ? <span style={{ color: HT.free, fontWeight: 700 }}> · Online</span> : status ? <span> · {status}</span> : null}</div><div style={{ fontSize: 14, fontWeight: 800, marginTop: 8 }}><ColoredGloobalId id={person.id} /></div>{person.about && <div style={{ fontSize: 12.5, color: T.inkSoft, marginTop: 6 }}>{person.about}</div>}</div><div style={{ display: "flex", gap: 8, padding: "4px 6px 2px" }}>{biz ? <>{action(HlPhone, callsShut ? (person.calls.mode === "off" ? "Calls off" : `Calls ${person.calls.from}–${person.calls.to}`) : "Call", callsShut ? undefined : onCall, callsShut ? T.inkFaint : HT.free)}{action(HlRupee, "Pay", onPay, "#0B7A57")}</> : <>{action(HlChat, "Message", onMessage, T.accent)}{action(HlPhone, "Call", onCall, HT.free)}{action(HlVideo, "Video", onVideo, "#DB2777")}{action(HlRupee, "Pay", onPay, "#0B7A57")}</>}</div><HellooShopCard person={person} shop={shop} onMenu={onMenu} /><HellooSection title="Together" hint={t && t.since ? `since ${hellooWhen(t.since)}` : ""}><HellooCard style={{ padding: "12px 12px" }}>{t ? <><div style={{ display: "flex", gap: 8 }}>{stat(mins(t.calls.seconds), "on calls together", HT.free)}{stat(String(t.calls.connected), t.calls.connected === 1 ? "call connected" : "calls connected")}{stat(String(t.messages.fromMe + t.messages.fromThem), "messages")}</div><div style={{ display: "flex", gap: 8, marginTop: 8 }}>{stat(t.money.toThem.n ? money(t.money.toThem.amount, t.money.toThem.currency) : "—", `you paid ${hellooName(person).split(" ")[0]}`, "#0B7A57")}{stat(t.money.toMe.n ? money(t.money.toMe.amount, t.money.toMe.currency) : "—", `${hellooName(person).split(" ")[0]} paid you`, "#0B7A57")}</div><div style={{ display: "flex", justifyContent: "space-between", fontSize: 11.5, color: T.inkFaint, marginTop: 10, padding: "0 2px" }}><span>{t.messages.fromMe} from you · {t.messages.fromThem} from them</span><span>{t.calls.video ? `${t.calls.video} video` : ""}{t.calls.video && t.calls.missed ? " · " : ""}{t.calls.missed ? `${t.calls.missed} not answered` : ""}</span></div></> : <div style={{ fontSize: 12.5, color: T.inkFaint, textAlign: "center", padding: "6px 0" }}>Loading…</div>}</HellooCard></HellooSection>{groups && groups.map((rows, g) => <HellooCard key={g}>{rows.map(([Icon, title, value, onPress, danger, color], k) => <HellooRow key={typeof title === "string" ? title : k} Icon={Icon} color={color} title={title} value={value} onPress={onPress} danger={danger} first={k === 0} />)}</HellooCard>)}</div></HellooScreen>;
 }
@@ -78318,7 +78318,7 @@ function HellooReachChoice({ who, reach, busy = false, onChange }) {
 // ID, their country's flag once in the top corner; Message, Call, Video and
 // Pay in a card over the cover's edge; who can reach you, just for them;
 // the shops they chose to show; and the call time you have spent together.
-function HellooFriendProfile({ person, status, onBack, onMessage, onCall, onVideo, onPay, together, groups, shops, onShop, reach, reachBusy, onReach }) {
+function HellooFriendProfile({ media = null, mediaFilter = "all", onMediaFilter, person, status, onBack, onMessage, onCall, onVideo, onPay, together, groups, shops, onShop, reach, reachBusy, onReach }) {
   const t = together;
   const first = hellooName(person).split(" ")[0];
   const code = (typeof COUNTRY_CURRENCY === "object" && COUNTRY_CURRENCY[person.iso]) || "INR";
@@ -78339,6 +78339,7 @@ function HellooFriendProfile({ person, status, onBack, onMessage, onCall, onVide
       {onReach ? <div>{head("WHO CAN REACH ME", <span style={{ fontSize: 12, color: T.inkSoft }}>just for {first}</span>)}<HellooReachChoice who={first} reach={reach} busy={reachBusy} onChange={onReach} /></div> : null}
       {shops && shops.length ? <div>{head(`${first.toUpperCase()}'S SHOPS`, <span style={{ fontSize: 12, color: T.inkSoft }}>{shops.length}</span>)}<div style={{ display: "flex", gap: 10, overflowX: "auto", paddingBottom: 2 }}>{shops.map(shopCard)}</div></div> : null}
       {t ? <div>{head("TOGETHER", t.since ? <span style={{ fontSize: 12.5, color: T.inkSoft }}>since {hellooWhen(t.since)}</span> : null)}<HellooCard style={{ padding: 14 }}><div style={{ display: "flex", alignItems: "center", gap: 12, padding: "2px 2px 12px" }}><span style={{ width: 44, height: 44, borderRadius: 14, background: HT.free + "1A", display: "flex", alignItems: "center", justifyContent: "center" }}><HlPhone size={20} color={HT.free} /></span><span><span style={{ display: "block", fontSize: 22, fontWeight: 800, fontFamily: T.fontDisplay, color: T.ink, lineHeight: 1.1 }}>{mins(t.calls.seconds)}</span><span style={{ display: "block", fontSize: 12, color: T.inkSoft, fontWeight: 700 }}>on calls together</span></span></div><div style={{ borderRadius: 14, background: T.surfaceAlt, padding: "2px 12px" }}>{[[`You paid ${first}`, t.money.toThem], [`${first} paid you`, t.money.toMe]].map(([k, m], i) => <div key={i} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 10, padding: "10px 0", borderTop: i ? `1px solid ${T.line}` : "none" }}><span style={{ fontSize: 13, fontWeight: 700, color: T.inkSoft }}>{k}</span>{m.n ? <HellooCel amount={m.amount} currency={m.currency} /> : <b style={{ color: T.inkFaint }}>—</b>}</div>)}</div></HellooCard></div> : null}
+      {media ? <HellooProfileMedia state={media} filter={mediaFilter} onFilter={onMediaFilter} /> : null}
       {groups && groups.map((rows, g) => <HellooCard key={g}>{rows.map(([Icon, title, value, onPress, danger, color], k) => <HellooRow key={typeof title === "string" ? title : k} Icon={Icon} color={color} title={title} value={value} onPress={onPress} danger={danger} first={k === 0} />)}</HellooCard>)}
     </div>
   </div></HellooScreen>;
@@ -79807,6 +79808,25 @@ function HellooWatchWarning({ me, onAgree, onClose }) {
 }
 
 
+// ── Media, on a person's profile ────────────────────────────────────────
+// Everything the two of you sent each other that can still be opened, with
+// a filter by kind. Nothing sent to be seen once is ever listed.
+function HellooProfileMedia({ state, filter = "all", onFilter }) {
+  const items = (state && state.items) || [];
+  const counts = (state && state.counts) || {};
+  const kinds = [["all", "All", items.length], ["photo", "Photos", counts.photo || 0], ["video", "Videos", counts.video || 0], ["voice", "Voice", counts.voice || 0]];
+  const shown = items.filter((m) => filter === "all" || m.kind === filter);
+  const head = <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", margin: "0 2px 8px" }}><span style={{ fontSize: 12, fontWeight: 800, letterSpacing: 1, color: T.inkSoft }}>MEDIA</span><span style={{ fontSize: 12.5, color: T.inkSoft }}>{state && !state.loading ? items.length : ""}</span></div>;
+  return <div data-testid="helloo-profile-media">{head}<HellooCard style={{ padding: 12 }}>
+    <div style={{ display: "flex", gap: 6, overflowX: "auto", scrollbarWidth: "none", marginBottom: 10 }}>{kinds.map(([k, label, n]) => <button key={k} onClick={() => onFilter && onFilter(k)} aria-pressed={filter === k} data-testid={`helloo-media-filter-${k}`} className="v2-tap" style={{ flexShrink: 0, height: 32, padding: "0 12px", borderRadius: 999, border: "none", background: filter === k ? T.accent : T.surfaceAlt, color: filter === k ? (HT.onAccent || "#fff") : T.inkSoft, fontSize: 12.5, fontWeight: 800, cursor: "pointer", fontFamily: T.fontBody, whiteSpace: "nowrap" }}>{label}{n ? ` · ${n}` : ""}</button>)}</div>
+    {!state || state.loading ? <div style={{ padding: "18px 0", textAlign: "center", fontSize: 13, color: T.inkFaint, fontWeight: 700 }}>Loading…</div>
+      : shown.length === 0 ? <div style={{ padding: "18px 8px", textAlign: "center", fontSize: 13, color: T.inkSoft, lineHeight: 1.45 }}>{items.length ? "Nothing of this kind yet." : "Photos, videos and voice notes you send each other show here."}</div>
+      : filter === "voice" || shown.every((m) => m.kind === "voice") ? <div>{shown.map((m, i) => <button key={m.id} onClick={m.onOpen} className="v2-tap" style={{ width: "100%", display: "flex", alignItems: "center", gap: 12, padding: "9px 2px", border: "none", borderTop: i ? `1px solid ${T.line}` : "none", background: "none", cursor: "pointer", textAlign: "left", fontFamily: T.fontBody }}><span style={{ width: 38, height: 38, borderRadius: "50%", background: T.accentSoft, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>{m.playing ? <HlPause size={17} color={T.accent} /> : <HlPlay size={17} color={T.accent} />}</span><span style={{ flex: 1, minWidth: 0 }}><span style={{ display: "block", fontSize: 14, fontWeight: 800, color: T.ink }}>Voice note · {hellooClipTime(m.seconds)}</span><span style={{ display: "block", fontSize: 12, color: T.inkSoft }}>{m.mine ? "You" : "Them"} · {hellooWhen(m.at)}</span></span></button>)}</div>
+      : <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 4 }}>{shown.map((m) => <button key={m.id} onClick={m.onOpen} aria-label={m.kind === "photo" ? "Open photo" : m.kind === "video" ? "Play video" : "Play voice note"} data-testid="helloo-media-tile" data-kind={m.kind} className="v2-tap" style={{ position: "relative", aspectRatio: "1 / 1", border: "none", padding: 0, borderRadius: 12, overflow: "hidden", background: m.kind === "photo" ? T.surfaceAlt : m.kind === "video" ? "#111827" : T.accentSoft, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center" }}>{m.kind === "photo" ? (m.src ? <img src={m.src} alt="" loading="lazy" style={{ width: "100%", height: "100%", objectFit: "cover", filter: hellooFx(m.fx) }} /> : <HlImage size={22} color={T.inkFaint} />) : m.kind === "video" ? <><HlPlay size={24} color="#fff" /><span style={{ position: "absolute", left: 6, bottom: 5, fontSize: 10.5, fontWeight: 800, color: "#fff" }}>{hellooClipTime(m.seconds)}</span></> : <><HlMic size={22} color={T.accent} /><span style={{ position: "absolute", left: 6, bottom: 5, fontSize: 10.5, fontWeight: 800, color: T.accent }}>{hellooClipTime(m.seconds)}</span></>}{m.busy ? <span style={{ position: "absolute", inset: 0, background: "rgba(0,0,0,0.35)", display: "flex", alignItems: "center", justifyContent: "center" }}><HlRetry size={20} color="#fff" /></span> : null}</button>)}</div>}
+  </HellooCard></div>;
+}
+
+
 // ───── helloo: hellooClient.jsx ─────
 // frontend/hellooClient.jsx
 //
@@ -79871,6 +79891,7 @@ var hellooApi = {
   read: (chatId) => hellooHttp.post(`/api/helloo/chats/${encodeURIComponent(chatId)}/read`, {}),
   voice: (messageId) => hellooHttp.get(`/api/helloo/voice/${encodeURIComponent(messageId)}`),
   media: (messageId) => hellooHttp.get(`/api/helloo/media/${encodeURIComponent(messageId)}`, { timeoutMs: 120e3 }),
+  chatMedia: (chatId) => hellooHttp.get(`/api/helloo/chats/${encodeURIComponent(chatId)}/media`),
   takeBack: (messageId) => hellooHttp.post(`/api/helloo/messages/${encodeURIComponent(messageId)}/takeback`, {}),
   saved: (messageId) => hellooHttp.post(`/api/helloo/messages/${encodeURIComponent(messageId)}/saved`, {}),
   prefs: (chatId, prefs) => hellooHttp.post(`/api/helloo/chats/${encodeURIComponent(chatId)}/prefs`, prefs),
@@ -80896,6 +80917,9 @@ function HellooRoot() {
   const [photoMeta, setPhotoMeta] = useStateH9(null); // { id, kind, fx, canSave, mine, once } of what is open
   const [snapCam, setSnapCam] = useStateH9(false);
   const [snapBusy, setSnapBusy] = useStateH9(null);
+  // The media of the chat whose profile is open: { chatId, loading, list, counts }.
+  const [profileMedia, setProfileMedia] = useStateH9(null);
+  const [mediaFilter, setMediaFilter] = useStateH9("all");
   const [watchAsk, setWatchAsk] = useStateH9(null); // { go } while the first-open warning is up
   // A GLOOBAL code found in the open photo: { status: "looking" | "found" |
   // "none", gloobalId, person }. Read the moment a photo opens, so a code
@@ -81591,6 +81615,15 @@ function HellooRoot() {
       } }));
     });
   };
+  // Opening a person's profile reads the media the two of you share.
+  useEffectH9(() => {
+    if (screen !== "contact" || !openId) { setProfileMedia(null); return undefined; }
+    let gone = false;
+    setMediaFilter("all");
+    setProfileMedia({ chatId: openId, loading: true, list: [], counts: {} });
+    hellooApi.chatMedia(openId).then((r) => { if (!gone) setProfileMedia({ chatId: openId, loading: false, list: (r.media || []).filter((m) => m.kind !== "deleted"), counts: r.counts || {} }); }).catch(() => { if (!gone) setProfileMedia({ chatId: openId, loading: false, list: [], counts: {} }); });
+    return () => { gone = true; };
+  }, [screen, openId]);
   // Opening a business's profile reads its shop.
   useEffectH9(() => {
     if (screen !== "contact" || !openId) return;
@@ -82208,10 +82241,26 @@ function HellooRoot() {
     const pres = presence[person.accountId];
     const iBlocked = isBlocked(person.accountId);
     const firstName = (person.name || "").split(" ")[0];
+    // The profile's Media: pictures load as they are listed; a clip or a
+    // voice note is asked for when it is tapped.
+    const mediaList = profileMedia && profileMedia.chatId === openId ? profileMedia.list : [];
+    mediaList.forEach((m) => { if (m.kind === "photo" && m.id && !mediaUrls[m.id]) loadMedia(m.id); });
+    const mediaState = profileMedia && profileMedia.chatId === openId ? { loading: profileMedia.loading, counts: profileMedia.counts, items: mediaList.map((m) => {
+      const mineMsg = m.from === meId;
+      const legacy = !(m.view && m.view.mode);
+      const meta = { id: m.id, kind: m.kind, fx: m.fx || "", canSave: legacy || mineMsg || Boolean(m.view && m.view.save), mine: mineMsg, once: false };
+      const src = mediaUrls[m.id] || null;
+      const guard = (fn) => () => { if (mineMsg || legacy || hellooWatchWarned(meId)) { fn(); return; } setWatchAsk({ go: fn }); };
+      const base = { id: m.id, kind: m.kind, at: m.at, mine: mineMsg, fx: m.fx || "" };
+      if (m.kind === "voice") return Object.assign(base, { seconds: (m.voice && m.voice.seconds) || 0, playing: voicePlay.id === m.id, onOpen: () => playVoice(m.id) });
+      if (m.kind === "video") return Object.assign(base, { seconds: (m.video && m.video.seconds) || 0, busy: snapBusy === m.id, onOpen: guard(() => openSnap(m, meta, src)) });
+      return Object.assign(base, { src, onOpen: src ? guard(() => { setPhotoMeta(meta); setPhotoView(src); }) : undefined });
+    }) } : null;
     const status = !iBlocked && pres ? (pres.online ? "" : hellooLastSeenText(pres.lastSeenAt)) : "";
     const tog = together[person.accountId] || null;
     const allowed = allowedIds.has(person.accountId);
-    return shell(<HellooContactScreen shop={person.handle ? (shopCards[person.gloobalId] || null) : null} onMenu={person.handle && !iBlocked ? () => { setScreen(null); openMenu(person); } : undefined} person={Object.assign({}, person, { id: person.gloobalId, online: Boolean(!iBlocked && pres && pres.online) })} status={status} together={tog} currency={me.currency} shops={hellooIsBusiness(person) ? null : (personShops[person.accountId] || []).map((c) => { const sp = hellooPersonFrom(c, photos); return { person: Object.assign({}, sp, { handle: c.handle }), shop: shopCards[c.gloobalId] || null }; })} onShop={(sp) => openChatWith(sp.accountId, true)} reach={tog && tog.reachMode ? tog : null} reachBusy={reachBusy} onReach={hellooIsBusiness(person) || iBlocked ? undefined : (mode, price) => setPersonReach(person.accountId, mode, price)} onSaveReview={person.handle ? (stars, text) => GloobalApi.saveCreatorReview(person.gloobalId, { stars, text }).then(() => { loadShopCard(person); setToast("Thanks — your feedback is in"); }) : undefined} onBack={closeProfile} onMessage={() => setScreen(null)} onCall={!iBlocked ? () => startCall(person, false) : undefined} onVideo={!iBlocked ? () => startCall(person, true) : undefined} onPay={person.gloobalId ? () => { setScreen(null); setPay({ amount: "", note: "", busy: false, error: "" }); setSheet("pay"); } : undefined} groups={[
+    if (watchAsk) return shell(<><HellooScreen style={{ background: HT.chatBg || HT.wash }} /><HellooWatchWarning me={me} onClose={() => setWatchAsk(null)} onAgree={() => { const go = watchAsk.go; hellooWatchAgree(meId); setWatchAsk(null); go(); }} /></>);
+    return shell(<HellooContactScreen media={person.handle ? null : mediaState} mediaFilter={mediaFilter} onMediaFilter={setMediaFilter} shop={person.handle ? (shopCards[person.gloobalId] || null) : null} onMenu={person.handle && !iBlocked ? () => { setScreen(null); openMenu(person); } : undefined} person={Object.assign({}, person, { id: person.gloobalId, online: Boolean(!iBlocked && pres && pres.online) })} status={status} together={tog} currency={me.currency} shops={hellooIsBusiness(person) ? null : (personShops[person.accountId] || []).map((c) => { const sp = hellooPersonFrom(c, photos); return { person: Object.assign({}, sp, { handle: c.handle }), shop: shopCards[c.gloobalId] || null }; })} onShop={(sp) => openChatWith(sp.accountId, true)} reach={tog && tog.reachMode ? tog : null} reachBusy={reachBusy} onReach={hellooIsBusiness(person) || iBlocked ? undefined : (mode, price) => setPersonReach(person.accountId, mode, price)} onSaveReview={person.handle ? (stars, text) => GloobalApi.saveCreatorReview(person.gloobalId, { stars, text }).then(() => { loadShopCard(person); setToast("Thanks — your feedback is in"); }) : undefined} onBack={closeProfile} onMessage={() => setScreen(null)} onCall={!iBlocked ? () => startCall(person, false) : undefined} onVideo={!iBlocked ? () => startCall(person, true) : undefined} onPay={person.gloobalId ? () => { setScreen(null); setPay({ amount: "", note: "", busy: false, error: "" }); setSheet("pay"); } : undefined} groups={[
       [[HlRupee, allowed ? "Reaches you free" : "Pays your price to reach you", allowed ? "Allowed" : (myReach && myReach.people.price ? hellooMoneyText(myReach.people.price, myReach.currency) : "Free"), () => hellooApi.allow(person.accountId, !allowed).then(() => { refreshMyReach(); setToast(allowed ? `${firstName} pays your price again` : `${firstName} reaches you free`); }).catch((err) => setToast(err.message)), false, HT.free], [HlBellOff, muted ? "Unmute notifications" : "Mute notifications", muted ? "Muted" : "Off", () => setPrefs(openId, { muted: !muted }), false, T.inkSoft], [HlWallet, "Payments between you", tog ? String(tog.money.toThem.n + tog.money.toMe.n) : "", () => window.open(HELLOO_GLOOBAL_SITE, "_blank", "noopener"), false, "#0B7A57"]],
       [[HlTrash, "Clear chat", "", () => { setScreen(null); setSheet("confirm-clear"); }, false, T.inkSoft], [HlBan, iBlocked ? `Unblock ${firstName}` : `Block ${firstName}`, "", () => setBlock(person, !iBlocked), !iBlocked]]
     ].map((rows, g) => (g === 0 && !hellooIsBusiness(person) ? rows.slice(1) : rows))} />);

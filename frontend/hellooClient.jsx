@@ -62,6 +62,7 @@ var hellooApi = {
   read: (chatId) => hellooHttp.post(`/api/helloo/chats/${encodeURIComponent(chatId)}/read`, {}),
   voice: (messageId) => hellooHttp.get(`/api/helloo/voice/${encodeURIComponent(messageId)}`),
   media: (messageId) => hellooHttp.get(`/api/helloo/media/${encodeURIComponent(messageId)}`, { timeoutMs: 120e3 }),
+  chatMedia: (chatId) => hellooHttp.get(`/api/helloo/chats/${encodeURIComponent(chatId)}/media`),
   takeBack: (messageId) => hellooHttp.post(`/api/helloo/messages/${encodeURIComponent(messageId)}/takeback`, {}),
   saved: (messageId) => hellooHttp.post(`/api/helloo/messages/${encodeURIComponent(messageId)}/saved`, {}),
   prefs: (chatId, prefs) => hellooHttp.post(`/api/helloo/chats/${encodeURIComponent(chatId)}/prefs`, prefs),
