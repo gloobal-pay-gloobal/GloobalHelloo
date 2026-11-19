@@ -272,9 +272,12 @@ function HellooRoot() {
   // ── Navigation ───────────────────────────────────────────────────────
   const [tab, setTab] = useStateH9("chats");
   const [socialCompose, setSocialCompose] = useStateH9(0);
+  const [dialSaving, setDialSaving] = useStateH9(false);
   const [openId, setOpenId] = useStateH9(null);
   const [screen, setScreen] = useStateH9(null);
   const [sheet, setSheet] = useStateH9(null);
+  // The dial pad looks through the people you already have.
+  useEffectH9(() => { if (sheet === "dial") refreshContacts(); }, [sheet === "dial"]);
   const [filter, setFilter] = useStateH9("all");
   const [query, setQuery] = useStateH9("");
   // GLOOBAL बाज़ार, a screen of its own (the bazaar button over New chat).
@@ -1725,7 +1728,7 @@ function HellooRoot() {
       onShop={(card) => Promise.resolve(openChatWith(card.gloobalId)).then(() => openMenu({ gloobalId: card.gloobalId })).catch(() => {})}
       onShopItem={(tag) => { if (user && tag.shop === user.symbolId) { setToast("That is your own shop"); return; } Promise.resolve(openChatWith(tag.shop)).then(() => openMenu({ gloobalId: tag.shop }, tag.itemId)).catch(() => {}); }} />}
     {tab === "calls" && <HellooCallsHome me={me} calls={callsAll} filter={callFilter} onFilter={setCallFilter} when={callWhen} onWhen={setCallWhen} onCallBack={(c) => startCall(c.person, c.video)} onInfo={(c) => openChatWith(c.person.accountId, true)} onOpenDial={() => { setDial({ value: "", status: "", match: null }); setSheet("dial"); }} onAdd={() => setSheet("add")} onSearch={() => { setContactQuery(""); refreshContacts(); setScreen("contacts"); }} onScan={() => setScreen("scan")} onMe={() => setScreen("me")} />}
-    {sheet === "dial" && <HellooDialSheet dial={dial.value} onDial={(v) => setDial((d) => Object.assign({}, d, { value: v }))} match={dial.match} status={dial.status} onMessage={() => dial.match && openChatWith(dial.match.gloobalId, false, false, dial.match.handle ? "" : "self")} onCall={() => { if (dial.match) { setSheet(null); startCall(dial.match, false); } }} onVideo={() => { if (dial.match) { setSheet(null); startCall(dial.match, true); } }} onClose={() => setSheet(null)} />}
+    {sheet === "dial" && <HellooDialSheet contacts={contacts} saved={Boolean(dial.match && contacts.some((c) => c.accountId === dial.match.accountId))} saving={dialSaving} onSave={() => { const m = dial.match; if (!m || dialSaving) return; setDialSaving(true); hellooApi.open(m.gloobalId).then(() => { refreshContacts(); setToast(`${m.handle || (m.name || "").split(" ")[0]} saved`); }).catch((err) => setToast((err && err.message) || "Couldn't save them right now.")).then(() => setDialSaving(false)); }} dial={dial.value} onDial={(v) => setDial((d) => Object.assign({}, d, { value: v }))} match={dial.match} status={dial.status} onMessage={() => dial.match && openChatWith(dial.match.gloobalId, false, false, dial.match.handle ? "" : "self")} onCall={() => { if (dial.match) { setSheet(null); startCall(dial.match, false); } }} onVideo={() => { if (dial.match) { setSheet(null); startCall(dial.match, true); } }} onClose={() => setSheet(null)} />}
     {sheet === "add" && addSheet}
     {sheet === "release" && release && releaseSheet}
     {sheet === "savename" && nameSheet}
