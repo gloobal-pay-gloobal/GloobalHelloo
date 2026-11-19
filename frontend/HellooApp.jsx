@@ -1906,7 +1906,7 @@ function HellooRoot() {
       [HlBan, "Blocked people", () => { setSheet(null); refreshBlocked(); setScreen("blocked"); }],
       [HlPalette, "Colours", () => { setSheet(null); setScreen("theme"); }]
     ].filter(Boolean).map(([Icon, title, onPress], i) => <HellooRow key={title} Icon={Icon} title={title} first={i === 0} onPress={onPress} />)}</HellooCard></HellooSheet>}
-    {tab === "social" && <HellooSocialHome me={me} photos={photos} composeTick={socialCompose} onCards={askPhotos} onToast={setToast}
+    {tab === "social" && <HellooSocialHome me={me} faces={faces} photos={photos} composeTick={socialCompose} onCards={askPhotos} onToast={setToast}
       onOpenChat={(card) => openChatWith(card.gloobalId)}
       onTip={(card) => payGloobalId(card.gloobalId)}
       onShop={(card) => Promise.resolve(openChatWith(card.gloobalId)).then(() => openMenu({ gloobalId: card.gloobalId })).catch(() => {})}

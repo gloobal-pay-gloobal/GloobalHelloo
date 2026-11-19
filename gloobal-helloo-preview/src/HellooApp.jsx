@@ -78892,23 +78892,42 @@ function HellooActivityScreen({ me, face = "time", onFace, month, onPrevMonth, o
 // button that opens that shop's menu in a chat — the same order flow as
 // everywhere else in Helloo.
 
+// Who you are on Social — yourself or a shop you run — is chosen here, apart
+// from who you are in chats. It starts as yourself and is kept on the phone.
+var SOCIAL_AS_KEY = "helloo.social.as";
+var socialFaceNow = { account: "", as: "self" };
+function socialFaceLoad(accountId) {
+  let saved = null;
+  try { saved = JSON.parse(localStorage.getItem(SOCIAL_AS_KEY) || "null"); } catch (e) { /* private window */ }
+  socialFaceNow = saved && accountId && saved.account === accountId && typeof saved.as === "string" && saved.as ? { account: accountId, as: saved.as } : { account: accountId || "", as: "self" };
+  return socialFaceNow.as;
+}
+function socialFaceSave(accountId, as) {
+  socialFaceNow = { account: accountId || "", as: as || "self" };
+  try { localStorage.setItem(SOCIAL_AS_KEY, JSON.stringify(socialFaceNow)); } catch (e) { /* private window */ }
+}
+function socialAs(path) { return `${path}${path.indexOf("?") === -1 ? "?" : "&"}as=${encodeURIComponent(socialFaceNow.as || "self")}`; }
+var socialHttp = {
+  get: (path, options) => gloobalApiClient.get(socialAs(path), options),
+  post: (path, body, options) => gloobalApiClient.post(socialAs(path), body, options)
+};
 var socialApi = {
-  feed: (q) => hellooHttp.get(`/api/social/feed${q || ""}`),
-  explore: (topics, tag) => hellooHttp.get(`/api/social/explore?plain=1&topics=${encodeURIComponent((topics || []).join(","))}${tag ? `&tag=${encodeURIComponent(tag)}` : ""}`),
-  stories: () => hellooHttp.get("/api/social/stories"),
-  hashtags: (q) => hellooHttp.get(`/api/social/hashtags?q=${encodeURIComponent(q || "")}`),
-  search: (q) => hellooHttp.get(`/api/social/search?q=${encodeURIComponent(q)}`),
-  profile: (gloobalId, side) => hellooHttp.get(`/api/social/profile/${encodeURIComponent(gloobalId)}${side ? `?side=${side}` : ""}`),
-  follow: (to, on) => hellooHttp.post("/api/social/follow", { to, on }),
-  like: (id, on) => hellooHttp.post(`/api/social/posts/${encodeURIComponent(id)}/like`, { on }),
-  comments: (id) => hellooHttp.get(`/api/social/posts/${encodeURIComponent(id)}/comments`),
-  comment: (id, text) => hellooHttp.post(`/api/social/posts/${encodeURIComponent(id)}/comments`, { text }),
-  uncomment: (id) => gloobalApiClient.delete(hellooAs(`/api/social/comments/${encodeURIComponent(id)}`)),
-  report: (id, reason) => hellooHttp.post(`/api/social/posts/${encodeURIComponent(id)}/report`, { reason }),
-  remove: (id) => gloobalApiClient.delete(hellooAs(`/api/social/posts/${encodeURIComponent(id)}`)),
-  upload: (data) => hellooHttp.post("/api/social/media", { data }, { timeoutMs: 120e3 }),
-  post: (body) => hellooHttp.post("/api/social/posts", body, { timeoutMs: GLOOBAL_API_COLD_START_TIMEOUT_MS }),
-  myItems: () => hellooHttp.get("/api/social/my-items")
+  feed: (q) => socialHttp.get(`/api/social/feed${q || ""}`),
+  explore: (topics, tag) => socialHttp.get(`/api/social/explore?plain=1&topics=${encodeURIComponent((topics || []).join(","))}${tag ? `&tag=${encodeURIComponent(tag)}` : ""}`),
+  stories: () => socialHttp.get("/api/social/stories"),
+  hashtags: (q) => socialHttp.get(`/api/social/hashtags?q=${encodeURIComponent(q || "")}`),
+  search: (q) => socialHttp.get(`/api/social/search?q=${encodeURIComponent(q)}`),
+  profile: (gloobalId, side) => socialHttp.get(`/api/social/profile/${encodeURIComponent(gloobalId)}${side ? `?side=${side}` : ""}`),
+  follow: (to, on) => socialHttp.post("/api/social/follow", { to, on }),
+  like: (id, on) => socialHttp.post(`/api/social/posts/${encodeURIComponent(id)}/like`, { on }),
+  comments: (id) => socialHttp.get(`/api/social/posts/${encodeURIComponent(id)}/comments`),
+  comment: (id, text) => socialHttp.post(`/api/social/posts/${encodeURIComponent(id)}/comments`, { text }),
+  uncomment: (id) => gloobalApiClient.delete(socialAs(`/api/social/comments/${encodeURIComponent(id)}`)),
+  report: (id, reason) => socialHttp.post(`/api/social/posts/${encodeURIComponent(id)}/report`, { reason }),
+  remove: (id) => gloobalApiClient.delete(socialAs(`/api/social/posts/${encodeURIComponent(id)}`)),
+  upload: (data) => socialHttp.post("/api/social/media", { data }, { timeoutMs: 120e3 }),
+  post: (body) => socialHttp.post("/api/social/posts", body, { timeoutMs: GLOOBAL_API_COLD_START_TIMEOUT_MS }),
+  myItems: () => socialHttp.get("/api/social/my-items")
 };
 var SOCIAL_TOPICS = [["food", "🍛", "Food", "#FFEDD5"], ["learn", "📚", "Learn", "#DCFCE7"], ["shops", "🛍️", "Shops", "#FCE7F3"], ["sports", "🏏", "Sports", "#DBEAFE"], ["music", "🎵", "Music", "#E0E7FF"], ["travel", "✈️", "Travel", "#CCFBF1"], ["fun", "😂", "Fun", "#FEF3C7"], ["work", "💼", "Work", "#F3E8FF"]];
 // Hashtags to start from, by topic. Anybody can write their own.
@@ -79040,7 +79059,14 @@ function SocialPostCard({ post, photos, act, muted, onMuted }) {
 }
 
 // ── The whole Social tab ────────────────────────────────────────────────
-function HellooSocialHome({ me, photos, onCards, onOpenChat, onTip, onShopItem, onShop, onToast, composeTick }) {
+function HellooSocialHome({ me, faces, photos, onCards, onOpenChat, onTip, onShopItem, onShop, onToast, composeTick }) {
+  const myId = me.accountId || me.id || "";
+  const [as, setAs] = useStateH40(() => socialFaceLoad(myId));
+  const [who, setWho] = useStateH40(false);
+  const list = (faces || []).length ? faces : [{ as: "self", kind: "self", accountId: myId, gloobalId: me.gloobalId, name: me.name }];
+  const face = list.find((f) => f.as === as) || list[0];
+  // A shop that is no longer yours: back to yourself.
+  useEffectH40(() => { if (faces && faces.length && !faces.some((f) => f.as === as)) { socialFaceSave(myId, "self"); setAs("self"); } }, [faces, as]);
   const [view, setView] = useStateH40("feed");
   const [feed, setFeed] = useStateH40(null);
   const [feedErr, setFeedErr] = useStateH40("");
@@ -79071,9 +79097,9 @@ function HellooSocialHome({ me, photos, onCards, onOpenChat, onTip, onShopItem, 
   const loadStories = useCallbackH40(() => {
     socialApi.stories().then((r) => { setStories(r.people || []); seen((r.people || []).map((g) => g.author)); }).catch(() => {});
   }, []);
-  useEffectH40(() => { loadStories(); }, [loadStories]);
-  useEffectH40(() => { loadFeed(); }, [loadFeed]);
-  useEffectH40(() => { if (view === "explore") { setEx(null); loadExplore(see, tag); } }, [view, see, tag, loadExplore]);
+  useEffectH40(() => { loadStories(); }, [loadStories, as]);
+  useEffectH40(() => { loadFeed(); }, [loadFeed, as]);
+  useEffectH40(() => { if (view === "explore") { setEx(null); loadExplore(see, tag); } }, [view, see, tag, loadExplore, as]);
   useEffectH40(() => { if (composeTick) setCompose("post"); }, [composeTick]);
   useEffectH40(() => {
     const term = q.trim();
@@ -79098,6 +79124,8 @@ function HellooSocialHome({ me, photos, onCards, onOpenChat, onTip, onShopItem, 
     setProfile({ card, loading: true });
     socialApi.profile(card.gloobalId, card.side === "self" ? "self" : "").then((r) => { setProfile({ card: r.profile, profile: r.profile, grid: r.grid || [] }); setFollows((f) => Object.assign({}, f, { [r.profile.accountId]: r.profile.isFollowing })); seen([r.profile]); }).catch((err) => setProfile({ card, error: (err && err.message) || "Couldn't open that profile." }));
   };
+  const openMine = () => openProfile({ gloobalId: face.gloobalId || me.gloobalId, accountId: face.accountId || myId, name: face.name || me.name, side: face.kind === "shop" ? "shop" : "self" });
+  const useAs = (f) => { setWho(false); if (f.as === as) return; socialFaceSave(myId, f.as); setFeed(null); setEx(null); setStories([]); setProfile(null); setOpen(null); setFollows({}); setAs(f.as); onToast(f.kind === "shop" ? `Social as ${f.name || "your shop"}` : "Social as yourself"); };
   const act = {
     like: (post, on) => { patch(post.id, (p) => Object.assign({}, p, { liked: on, likes: Math.max(0, p.likes + (on ? 1 : -1)) })); socialApi.like(post.id, on).then((r) => patch(post.id, (p) => Object.assign({}, p, { liked: r.liked, likes: r.likes }))).catch(() => patch(post.id, (p) => Object.assign({}, p, { liked: !on, likes: Math.max(0, p.likes + (on ? -1 : 1)) }))); },
     follow: (card, on) => { setFollows((f) => Object.assign({}, f, { [card.accountId]: on })); socialApi.follow(card.accountId, on).then((r) => setProfile((pr) => (pr && pr.profile && pr.profile.accountId === card.accountId ? Object.assign({}, pr, { profile: Object.assign({}, pr.profile, { isFollowing: r.following, followers: r.followers }) }) : pr))).catch(() => { setFollows((f) => Object.assign({}, f, { [card.accountId]: !on })); onToast("Couldn't follow right now."); }); },
@@ -79119,7 +79147,7 @@ function HellooSocialHome({ me, photos, onCards, onOpenChat, onTip, onShopItem, 
     setFeed((f) => [post, ...(f || [])]); onToast("Posted");
   };
 
-  const head = <div style={{ position: "sticky", top: 0, zIndex: 5, background: `${HT.screenBg && HT.screenBg.startsWith("#") ? HT.screenBg : T.bg}F2`, backdropFilter: "blur(14px)", WebkitBackdropFilter: "blur(14px)", padding: "calc(10px + env(safe-area-inset-top, 0px)) 16px 8px" }}><div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 10 }}><span style={{ display: "flex", alignItems: "baseline", gap: 14, minWidth: 0 }}>{[["feed", "For you"], ["explore", "Explore"]].map(([k, l]) => <button key={k} onClick={() => setView(k)} data-testid={`social-view-${k}`} aria-current={view === k ? "page" : undefined} className="v2-tap" style={{ border: "none", background: "none", padding: 0, cursor: "pointer", fontSize: view === k ? 22 : 17, fontWeight: 800, fontFamily: T.fontDisplay, color: view === k ? T.ink : T.inkFaint, letterSpacing: -0.4, whiteSpace: "nowrap" }}>{l}</button>)}</span><span style={{ display: "flex", gap: 8, alignItems: "center", flexShrink: 0 }}><button onClick={() => openProfile({ gloobalId: me.gloobalId, accountId: me.accountId || me.id, name: me.name })} aria-label="My posts" className="v2-tap" style={{ border: "none", background: "none", padding: 0, cursor: "pointer", display: "flex" }}><HellooMeAvatar me={me} size={36} /></button></span></div></div>;
+  const head = <div style={{ position: "sticky", top: 0, zIndex: 5, background: `${HT.screenBg && HT.screenBg.startsWith("#") ? HT.screenBg : T.bg}F2`, backdropFilter: "blur(14px)", WebkitBackdropFilter: "blur(14px)", padding: "calc(10px + env(safe-area-inset-top, 0px)) 16px 8px" }}><div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 10 }}><span style={{ display: "flex", alignItems: "baseline", gap: 14, minWidth: 0 }}>{[["feed", "For you"], ["explore", "Explore"]].map(([k, l]) => <button key={k} onClick={() => setView(k)} data-testid={`social-view-${k}`} aria-current={view === k ? "page" : undefined} className="v2-tap" style={{ border: "none", background: "none", padding: 0, cursor: "pointer", fontSize: view === k ? 22 : 17, fontWeight: 800, fontFamily: T.fontDisplay, color: view === k ? T.ink : T.inkFaint, letterSpacing: -0.4, whiteSpace: "nowrap" }}>{l}</button>)}</span><span style={{ display: "flex", gap: 8, alignItems: "center", flexShrink: 0 }}><button onClick={() => (list.length > 1 ? setWho(true) : openMine())} aria-label={list.length > 1 ? "Social account" : "My posts"} data-testid="social-me" className="v2-tap" style={{ border: "none", background: list.length > 1 ? (HT.cardBg || T.surface) : "none", boxShadow: list.length > 1 ? (HT.cardShadow ?? T.shadowCard) : "none", borderRadius: 999, padding: list.length > 1 ? "3px 10px 3px 3px" : 0, cursor: "pointer", display: "flex", alignItems: "center", gap: 7, maxWidth: 150, fontFamily: T.fontBody }}>{face.kind === "shop" ? <span style={{ width: 32, height: 32, borderRadius: 11, background: T.accentSoft, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}><HlStore size={17} color={T.accent} /></span> : <HellooMeAvatar me={me} size={list.length > 1 ? 32 : 36} />}{list.length > 1 ? <><span style={{ minWidth: 0, fontSize: 12.5, fontWeight: 800, color: T.ink, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{face.kind === "shop" ? (face.handle || face.name) : "Personal"}</span><HlChevron size={14} color={T.inkFaint} style={{ transform: "rotate(90deg)", flexShrink: 0 }} /></> : null}</button></span></div></div>;
 
   const statusRow = <SocialStatusRow people={stories} photos={photos} onAdd={() => setCompose("pick")} onOpen={(i) => setStory(i)} />;
   let body;
@@ -79142,9 +79170,10 @@ function HellooSocialHome({ me, photos, onCards, onOpenChat, onTip, onShopItem, 
       : [[HlUser, "View profile", () => { const a = more.author; setMore(null); openProfile(a); }], [HlChat, "Message", () => { const a = more.author; setMore(null); onOpenChat(a); }], [HlFlag, "Report", () => { const id = more.id; setMore(null); socialApi.report(id, "").then(() => onToast("Reported · thank you")).catch(() => onToast("Couldn't report right now.")); }, true]]
     ).map(([Icon, title, fn, danger], i) => <HellooRow key={title} Icon={Icon} title={title} first={i === 0} onPress={fn} danger={danger} color={danger ? T.negative : T.accent} />)}</HellooCard></HellooSheet> : null}
     {story !== null && stories[story] ? <SocialStatusViewer people={stories} start={story} photos={photos} muted={muted} onMuted={setMuted} onClose={() => setStory(null)} onProfile={(c) => { setStory(null); openProfile(c); }} onDelete={(id) => { setStory(null); socialApi.remove(id).then(() => { loadStories(); onToast("Status removed"); }).catch(() => onToast("Couldn't remove it.")); }} /> : null}
+    {who ? <HellooSheet title="Social account" onClose={() => setWho(false)}><div style={{ fontSize: 12.5, color: T.inkSoft, lineHeight: 1.5, margin: "0 2px 12px" }}>Each one has its own posts, status and profile. Choosing here does not change who you are in chats.</div><HellooCard>{list.map((f, i) => { const on = f.as === face.as; const shop = f.kind === "shop"; return <button key={f.as} data-testid={`social-as-${shop ? f.handle : "self"}`} aria-pressed={on} onClick={() => useAs(f)} className="v2-tap" style={{ width: "100%", display: "flex", alignItems: "center", gap: 12, padding: "12px 14px", border: "none", borderTop: i ? `1px solid ${T.line}` : "none", background: "none", cursor: "pointer", textAlign: "left", fontFamily: T.fontBody }}><span style={{ width: 40, height: 40, borderRadius: shop ? 13 : "50%", background: shop ? T.accentSoft : T.surfaceAlt, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>{shop ? <HlStore size={19} color={T.accent} /> : <HlUser size={19} color={T.inkSoft} />}</span><span style={{ flex: 1, minWidth: 0 }}><span style={{ display: "block", fontSize: 14.5, fontWeight: 800, color: T.ink, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{shop ? (f.handle || f.name) : (f.name || me.name)}</span><span style={{ display: "block", fontSize: 12, color: T.inkSoft, marginTop: 1 }}>{shop ? "Shop" : "Personal"}</span></span><span aria-hidden="true" style={{ width: 22, height: 22, borderRadius: "50%", border: on ? "none" : `2px solid ${T.line}`, background: on ? T.accent : "transparent", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>{on && <HlCheck size={13} color="#fff" strokeWidth={3} />}</span></button>; })}</HellooCard><div style={{ height: 12 }} /><span data-testid="social-my-profile" style={{ display: "flex" }}><HellooSecondary onClick={() => { setWho(false); openMine(); }}>Open my profile</HellooSecondary></span></HellooSheet> : null}
     {filter ? <SocialFilter see={see} tag={tag} tags={(ex && ex.tags) || []} onClose={() => setFilter(false)} onSave={(nextSee, nextTag) => { socialSeeWrite(nextSee); setSee(nextSee); setTag(nextTag); setFilter(false); onToast(nextSee.length ? "Saved · Explore shows what you picked" : "Explore shows everything"); }} /> : null}
     {compose === "pick" ? <HellooSheet label="Add" onClose={() => setCompose("")}><HellooCard><span data-testid="social-add-status"><HellooRow Icon={SxClock} title="Status" value="Gone after 24 hours" first onPress={() => setCompose("status")} color={T.accent} /></span><span data-testid="social-add-post"><HellooRow Icon={SxAddPic} title="Post" value="Stays on your profile" onPress={() => setCompose("post")} color={T.accent} /></span></HellooCard></HellooSheet> : null}
-    {compose === "post" || compose === "status" ? <SocialComposer me={me} status={compose === "status"} onClose={() => setCompose("")} onPosted={posted} onToast={onToast} /> : null}
+    {compose === "post" || compose === "status" ? <SocialComposer me={me} asName={face.kind === "shop" ? (face.handle || face.name) : (face.name || me.name)} status={compose === "status"} onClose={() => setCompose("")} onPosted={posted} onToast={onToast} /> : null}
   </HellooScreen>;
 }
 
@@ -79289,7 +79318,7 @@ function SocialComments({ post, photos, onCards, onCount, onClose, onToast }) {
 }
 
 // ── A new post ──────────────────────────────────────────────────────────
-function SocialComposer({ me, status, onClose, onPosted, onToast }) {
+function SocialComposer({ me, asName, status, onClose, onPosted, onToast }) {
   const [files, setFiles] = useStateH40([]);
   const [caption, setCaption] = useStateH40("");
   const [topic, setTopic] = useStateH40("");
@@ -79347,7 +79376,7 @@ function SocialComposer({ me, status, onClose, onPosted, onToast }) {
     }
   };
   return <div data-testid="social-composer" style={{ position: "absolute", inset: 0, zIndex: 80, background: HT.screenBg || T.bg, display: "flex", flexDirection: "column", fontFamily: T.fontBody }}>
-    <HellooTop left={<HellooRoundButton Icon={HlX} label="Close" onClick={onClose} size={38} />} title={status ? "New status" : "New post"} subtitle={status ? "Gone after 24 hours" : me.name} />
+    <HellooTop left={<HellooRoundButton Icon={HlX} label="Close" onClick={onClose} size={38} />} title={status ? "New status" : "New post"} subtitle={status ? `${asName || me.name} · gone after 24 hours` : (asName || me.name)} />
     <div style={{ flex: 1, minHeight: 0, overflowY: "auto", padding: "0 16px 20px", display: "flex", flexDirection: "column", gap: 14 }}>
       <input ref={pick} type="file" accept="image/jpeg,image/png,image/webp,video/mp4,video/webm,video/quicktime" multiple={!status} onChange={(e) => { onFiles(e.target.files); e.target.value = ""; }} style={{ display: "none" }} data-testid="social-file" />
       {files.length === 0 ? <button onClick={() => pick.current && pick.current.click()} className="v2-tap" style={{ height: 240, borderRadius: 24, border: `2px dashed ${T.line}`, background: HT.cardBg || T.surface, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: 10, cursor: "pointer", fontFamily: T.fontBody, flexShrink: 0 }}><span style={{ width: 64, height: 64, borderRadius: 22, background: T.accentSoft, display: "flex", alignItems: "center", justifyContent: "center" }}><SxAddPic size={30} color={T.accent} /></span><span style={{ fontSize: 15, fontWeight: 800, color: T.ink }}>{status ? "A picture or a short video" : "Pictures or a short video"}</span><span style={{ fontSize: 12.5, color: T.inkSoft }}>{status ? "One picture · or one video up to 8 MB" : "Up to 10 pictures · or one video up to 8 MB"}</span></button>
@@ -82566,7 +82595,7 @@ function HellooRoot() {
       [HlBan, "Blocked people", () => { setSheet(null); refreshBlocked(); setScreen("blocked"); }],
       [HlPalette, "Colours", () => { setSheet(null); setScreen("theme"); }]
     ].filter(Boolean).map(([Icon, title, onPress], i) => <HellooRow key={title} Icon={Icon} title={title} first={i === 0} onPress={onPress} />)}</HellooCard></HellooSheet>}
-    {tab === "social" && <HellooSocialHome me={me} photos={photos} composeTick={socialCompose} onCards={askPhotos} onToast={setToast}
+    {tab === "social" && <HellooSocialHome me={me} faces={faces} photos={photos} composeTick={socialCompose} onCards={askPhotos} onToast={setToast}
       onOpenChat={(card) => openChatWith(card.gloobalId)}
       onTip={(card) => payGloobalId(card.gloobalId)}
       onShop={(card) => Promise.resolve(openChatWith(card.gloobalId)).then(() => openMenu({ gloobalId: card.gloobalId })).catch(() => {})}
