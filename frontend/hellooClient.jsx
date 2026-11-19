@@ -115,6 +115,7 @@ function hellooPreviewOf(m) {
   if (m.kind === "deleted") return "This message was deleted";
   if (m.kind === "voice") return `Voice note · ${Math.round((m.voice && m.voice.seconds) || m.seconds || 0)}s`;
   if (m.kind === "photo") return m.text ? `Photo · ${m.text}` : "Photo";
+  if (m.kind === "sticker") return "Sticker";
   if (m.kind === "payment") return "Payment on GLOOBAL";
   if (m.kind === "order") { const n = ((m.order && m.order.items) || []).reduce((t, l) => t + (Number(l.qty) || 0), 0); return `Order · ${n} ${n === 1 ? "thing" : "things"}`; }
   return String(m.text || "").replace(/\s+/g, " ").trim().slice(0, 120);
@@ -279,6 +280,7 @@ function hellooBubbleFrom(m, meAccountId, theyReadAt, voiceState, names) {
   base.source = m;
   if (m.paid && m.paid.amount) { base.paidText = hellooMoneyText(m.paid.amount, m.paid.currency); base.earnedText = hellooEarnedText(m.paid.amount, m.paid.currency); }
   if (m.kind === "deleted") return Object.assign(base, { kind: "deleted" });
+  if (m.kind === "sticker") return Object.assign(base, { kind: "sticker", stickerId: (m.sticker && m.sticker.id) || "" });
   if (m.kind === "call") {
     const c = m.call || {};
     const v = voiceState || {};
