@@ -62,6 +62,7 @@ var hellooApi = {
   read: (chatId) => hellooHttp.post(`/api/helloo/chats/${encodeURIComponent(chatId)}/read`, {}),
   voice: (messageId) => hellooHttp.get(`/api/helloo/voice/${encodeURIComponent(messageId)}`),
   media: (messageId) => hellooHttp.get(`/api/helloo/media/${encodeURIComponent(messageId)}`, { timeoutMs: 120e3 }),
+  takeBack: (messageId) => hellooHttp.post(`/api/helloo/messages/${encodeURIComponent(messageId)}/takeback`, {}),
   saved: (messageId) => hellooHttp.post(`/api/helloo/messages/${encodeURIComponent(messageId)}/saved`, {}),
   prefs: (chatId, prefs) => hellooHttp.post(`/api/helloo/chats/${encodeURIComponent(chatId)}/prefs`, prefs),
   clear: (chatId) => hellooHttp.post(`/api/helloo/chats/${encodeURIComponent(chatId)}/clear`, {}),
@@ -204,8 +205,8 @@ function hellooShortDate(at) {
 function hellooSnapFields(m) {
   const view = m.view || {};
   const mode = view.mode || "keep";
-  const gone = (mode === "once" && Boolean(view.opened)) || (mode === "day" && view.expiresAt && new Date(view.expiresAt).getTime() < Date.now());
-  return { viewMode: mode, opened: Boolean(view.opened), gone: Boolean(gone), fx: m.fx || "", saved: Boolean(m.saved) };
+  const gone = Boolean(m.takenBack) || (mode === "once" && Boolean(view.opened)) || (mode === "day" && view.expiresAt && new Date(view.expiresAt).getTime() < Date.now());
+  return { viewMode: mode, opened: Boolean(view.opened), gone: Boolean(gone), takenBack: Boolean(m.takenBack), fx: m.fx || "", saved: Boolean(m.saved), canSave: mode === "keep" && view.save !== false && !(m.view && m.view.mode && view.save !== true), opens: Number(m.opens) || 0, lastOpenAt: m.lastOpenAt || null };
 }
 function hellooPersonFrom(card, photos) {
   if (!card) return null;
@@ -298,7 +299,7 @@ function hellooBubbleFrom(m, meAccountId, theyReadAt, voiceState, names) {
   }
   if (m.kind === "photo") {
     const v = voiceState || {};
-    return Object.assign(base, hellooSnapFields(m), { kind: "photo", text: m.text || "", width: (m.photo && m.photo.width) || 0, height: (m.photo && m.photo.height) || 0, src: v.src || m.localSrc || null, onOpen: v.onOpen, busy: Boolean(v.busy) });
+    return Object.assign(base, hellooSnapFields(m), { kind: "photo", text: m.text || "", width: (m.photo && m.photo.width) || 0, height: (m.photo && m.photo.height) || 0, src: v.src || m.localSrc || null, onOpen: v.onOpen, busy: Boolean(v.busy), watchId: v.watchId || "" });
   }
   if (m.kind === "video") {
     const v = voiceState || {};
