@@ -1,0 +1,391 @@
+// frontend/screens/Social.jsx
+//
+// GLOOBAL Social inside Helloo: For you, Explore, profiles, posting, and
+// comments. Every face here is a GLOOBAL account, so every like and every
+// comment is from a real person (or a shop speaking as itself). A post can
+// carry things from the poster's own shop, each with its own CEL | currency
+// button that opens that shop's menu in a chat — the same order flow as
+// everywhere else in Helloo.
+import { useState as useStateH40, useEffect as useEffectH40, useRef as useRefH40, useCallback as useCallbackH40 } from "react";
+import { Heart as SxHeart, MessageCircle as SxComment, Coins as SxCoins, Grid3x3 as SxGrid, Clapperboard as SxReels, MoreHorizontal as SxMore, Volume2 as SxSound, VolumeX as SxMute, ImagePlus as SxAddPic, Tag as SxTag, TrendingUp as SxTrend } from "lucide-react";
+
+var socialApi = {
+  feed: (q) => hellooHttp.get(`/api/social/feed${q || ""}`),
+  explore: (topic, before) => hellooHttp.get(`/api/social/explore?topic=${encodeURIComponent(topic || "")}${before ? `&before=${encodeURIComponent(before)}` : ""}`),
+  search: (q) => hellooHttp.get(`/api/social/search?q=${encodeURIComponent(q)}`),
+  profile: (gloobalId, side) => hellooHttp.get(`/api/social/profile/${encodeURIComponent(gloobalId)}${side ? `?side=${side}` : ""}`),
+  follow: (to, on) => hellooHttp.post("/api/social/follow", { to, on }),
+  like: (id, on) => hellooHttp.post(`/api/social/posts/${encodeURIComponent(id)}/like`, { on }),
+  comments: (id) => hellooHttp.get(`/api/social/posts/${encodeURIComponent(id)}/comments`),
+  comment: (id, text) => hellooHttp.post(`/api/social/posts/${encodeURIComponent(id)}/comments`, { text }),
+  uncomment: (id) => gloobalApiClient.delete(hellooAs(`/api/social/comments/${encodeURIComponent(id)}`)),
+  report: (id, reason) => hellooHttp.post(`/api/social/posts/${encodeURIComponent(id)}/report`, { reason }),
+  remove: (id) => gloobalApiClient.delete(hellooAs(`/api/social/posts/${encodeURIComponent(id)}`)),
+  upload: (data) => hellooHttp.post("/api/social/media", { data }, { timeoutMs: 120e3 }),
+  post: (body) => hellooHttp.post("/api/social/posts", body, { timeoutMs: GLOOBAL_API_COLD_START_TIMEOUT_MS }),
+  myItems: () => hellooHttp.get("/api/social/my-items")
+};
+var SOCIAL_TOPICS = [["food", "🍛", "Food", "#FFEDD5"], ["learn", "📚", "Learn", "#DCFCE7"], ["shops", "🛍️", "Shops", "#FCE7F3"], ["sports", "🏏", "Sports", "#DBEAFE"], ["music", "🎵", "Music", "#E0E7FF"], ["travel", "✈️", "Travel", "#CCFBF1"], ["fun", "😂", "Fun", "#FEF3C7"], ["work", "💼", "Work", "#F3E8FF"]];
+var SOCIAL_VIDEO_MAX = 8 * 1024 * 1024;
+var SOCIAL_PHOTO_MAX = 700 * 1024;
+function socialMediaSrc(m) { return m && m.url ? (/^https?:/i.test(m.url) ? m.url : `${GLOOBAL_API_BASE}${m.url}`) : ""; }
+function socialCount(n) {
+  const v = Number(n) || 0;
+  if (v >= 1e6) return `${(v / 1e6).toFixed(v >= 1e7 ? 0 : 1).replace(/\.0$/, "")}M`;
+  if (v >= 1e3) return `${(v / 1e3).toFixed(v >= 1e4 ? 0 : 1).replace(/\.0$/, "")}K`;
+  return String(v);
+}
+// A picture from the phone, made small enough to send: longest side 1440,
+// JPEG, quality stepping down until it fits.
+function socialShrinkPhoto(file) {
+  return new Promise((resolve, reject) => {
+    const url = URL.createObjectURL(file);
+    const img = new Image();
+    img.onload = () => {
+      URL.revokeObjectURL(url);
+      const scale = Math.min(1, 1440 / Math.max(img.width, img.height));
+      const c = document.createElement("canvas");
+      c.width = Math.round(img.width * scale); c.height = Math.round(img.height * scale);
+      c.getContext("2d").drawImage(img, 0, 0, c.width, c.height);
+      for (const q of [0.85, 0.75, 0.65, 0.55, 0.45]) {
+        const data = c.toDataURL("image/jpeg", q);
+        if (data.length * 0.75 < SOCIAL_PHOTO_MAX) return resolve(data);
+      }
+      reject(new Error("That picture is too big."));
+    };
+    img.onerror = () => { URL.revokeObjectURL(url); reject(new Error("That file is not a picture we can read.")); };
+    img.src = url;
+  });
+}
+function socialReadFile(file) {
+  return new Promise((resolve, reject) => { const r = new FileReader(); r.onload = () => resolve(String(r.result)); r.onerror = () => reject(new Error("Couldn't read that file.")); r.readAsDataURL(file); });
+}
+
+// ── Small pieces ────────────────────────────────────────────────────────
+function SocialFace({ card, photos, size = 38 }) {
+  return <HellooAvatar person={hellooPersonFrom(card, photos)} size={size} flag={false} />;
+}
+function SocialName({ card, size = 14, color }) {
+  const label = card.handle ? card.handle : card.name;
+  return <span style={{ display: "inline-flex", alignItems: "center", gap: 4, minWidth: 0, maxWidth: "100%" }}><span style={{ fontSize: size, fontWeight: 800, color: color || T.ink, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{label}</span><HlVerified size={size + 1} color={color || HT.free} style={{ flexShrink: 0 }} /></span>;
+}
+function SocialTile({ post, onOpen, tall }) {
+  const m = (post.media || [])[0];
+  const src = socialMediaSrc(m);
+  return <button onClick={() => onOpen(post)} className="v2-tap" aria-label={post.caption || "Post"} style={{ position: "relative", display: "block", width: "100%", height: "100%", border: "none", padding: 0, margin: 0, borderRadius: 10, overflow: "hidden", background: T.surfaceAlt, cursor: "pointer", gridRow: tall ? "span 2" : undefined }}>
+    {m && m.kind === "video" ? <video src={src + "#t=0.1"} muted playsInline preload="metadata" style={{ width: "100%", height: "100%", objectFit: "cover", display: "block" }} /> : <img src={src} alt="" loading="lazy" style={{ width: "100%", height: "100%", objectFit: "cover", display: "block" }} />}
+    <span style={{ position: "absolute", left: 7, bottom: 6, display: "inline-flex", alignItems: "center", gap: 3, fontSize: 11.5, fontWeight: 800, color: "#fff", textShadow: "0 1px 4px rgba(0,0,0,0.6)" }}>{m && m.kind === "video" ? <HlPlay size={11} color="#fff" /> : <SxHeart size={11} color="#fff" />}{socialCount(post.likes)}</span>
+    {(post.media || []).length > 1 ? <span style={{ position: "absolute", right: 6, top: 6, fontSize: 10.5, fontWeight: 800, color: "#fff", background: "rgba(0,0,0,0.4)", borderRadius: 999, padding: "2px 6px" }}>{post.media.length}</span> : null}
+  </button>;
+}
+function SocialGrid({ posts, onOpen, masonry }) {
+  return <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gridAutoRows: masonry ? 124 : 150, gap: 3, padding: "0 3px" }}>{posts.map((p, i) => <div key={p.id} style={{ gridRow: masonry && i % 5 === 0 ? "span 2" : undefined }}><SocialTile post={p} onOpen={onOpen} /></div>)}</div>;
+}
+// A video that plays while it is on screen, muted until tapped.
+function SocialVideo({ src, fill, muted, onMuted }) {
+  const ref = useRefH40(null);
+  useEffectH40(() => {
+    const v = ref.current;
+    if (!v || typeof IntersectionObserver === "undefined") return undefined;
+    const io = new IntersectionObserver(([e]) => { if (e.isIntersecting && e.intersectionRatio > 0.6) v.play().catch(() => {}); else v.pause(); }, { threshold: [0, 0.6, 1] });
+    io.observe(v);
+    return () => io.disconnect();
+  }, [src]);
+  return <div style={{ position: "relative", width: "100%", height: "100%", background: "#000" }}><video ref={ref} src={src} muted={muted} loop playsInline preload="metadata" onClick={() => onMuted(!muted)} style={{ width: "100%", height: "100%", objectFit: fill ? "cover" : "contain", display: "block" }} /><button onClick={() => onMuted(!muted)} aria-label={muted ? "Sound on" : "Sound off"} className="v2-tap" style={{ position: "absolute", right: 12, bottom: 12, width: 34, height: 34, borderRadius: "50%", border: "none", background: "rgba(0,0,0,0.45)", display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer" }}>{muted ? <SxMute size={16} color="#fff" /> : <SxSound size={16} color="#fff" />}</button></div>;
+}
+function SocialTagCard({ tag, onShopItem }) {
+  return <span style={{ display: "flex", alignItems: "center", gap: 10, padding: "8px 8px 8px 12px", borderRadius: 18, background: "rgba(255,255,255,0.94)", backdropFilter: "blur(10px)", WebkitBackdropFilter: "blur(10px)", boxShadow: "0 10px 26px -14px rgba(0,0,0,0.5)", minWidth: 0 }}><HlStore size={18} color={T.accent} style={{ flexShrink: 0 }} /><span style={{ flex: 1, minWidth: 0 }}><span style={{ display: "block", fontSize: 13, fontWeight: 800, color: "#111", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{tag.title}</span><span style={{ display: "block", fontSize: 12, fontWeight: 800, color: T.accent, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{hellooMoneyText(tag.price, tag.currency)}</span></span><button onClick={(e) => { e.stopPropagation(); onShopItem(tag); }} data-testid="social-tag-pay" className="v2-tap" style={{ height: 36, padding: "0 14px", borderRadius: 999, border: "none", background: T.gradButton, color: HT.onAccent || "#fff", display: "flex", alignItems: "center", fontSize: 13, fontWeight: 800, cursor: "pointer", flexShrink: 0, fontFamily: T.fontBody, whiteSpace: "nowrap" }}>CEL | {hellooCelSign(tag.currency)}</button></span>;
+}
+
+// ── One post in the feed ────────────────────────────────────────────────
+function SocialPostCard({ post, photos, act, muted, onMuted }) {
+  const [at, setAt] = useStateH40(0);
+  const [burst, setBurst] = useStateH40(false);
+  const lastTap = useRefH40(0);
+  const media = post.media || [];
+  const video = media[0] && media[0].kind === "video";
+  const tag = (post.tags || [])[0];
+  const onTap = () => {
+    const now = Date.now();
+    if (now - lastTap.current < 320) { if (!post.liked) act.like(post, true); setBurst(true); setTimeout(() => setBurst(false), 650); }
+    lastTap.current = now;
+  };
+  const a = post.author;
+  return <div data-testid="social-post" style={{ paddingBottom: 18 }}>
+    <div style={{ display: "flex", alignItems: "center", gap: 10, padding: "4px 16px 10px" }}>
+      <button onClick={() => act.profile(a)} className="v2-tap" style={{ display: "flex", alignItems: "center", gap: 10, flex: 1, minWidth: 0, border: "none", background: "none", padding: 0, cursor: "pointer", textAlign: "left", fontFamily: T.fontBody }}><SocialFace card={a} photos={photos} size={38} /><span style={{ flex: 1, minWidth: 0 }}><SocialName card={a} /><span style={{ display: "block", fontSize: 11.5, color: T.inkFaint, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{post.suggested ? "Suggested · " : ""}{hellooWhen(post.at)}</span></span></button>
+      {post.suggested && !post.mine && !act.isFollowing(a) ? <button onClick={() => act.follow(a, true)} className="v2-tap" style={{ border: "none", background: "none", color: T.accent, fontSize: 13, fontWeight: 800, cursor: "pointer", fontFamily: T.fontBody }}>Follow</button> : null}
+      <button onClick={() => act.more(post)} aria-label="More" className="v2-tap" style={{ border: "none", background: "none", padding: 4, cursor: "pointer" }}><SxMore size={20} color={T.inkSoft} /></button>
+    </div>
+    <div onClick={onTap} style={{ position: "relative", width: "100%", aspectRatio: video ? "4 / 5" : "1 / 1", background: T.surfaceAlt, overflow: "hidden" }}>
+      {video ? <SocialVideo src={socialMediaSrc(media[0])} fill muted={muted} onMuted={onMuted} /> : <div onScroll={(e) => setAt(Math.round(e.currentTarget.scrollLeft / Math.max(1, e.currentTarget.clientWidth)))} style={{ display: "flex", width: "100%", height: "100%", overflowX: media.length > 1 ? "auto" : "hidden", scrollSnapType: "x mandatory", scrollbarWidth: "none" }}>{media.map((m) => <img key={m.id} src={socialMediaSrc(m)} alt="" loading="lazy" style={{ flex: "0 0 100%", width: "100%", height: "100%", objectFit: "cover", scrollSnapAlign: "start", display: "block" }} />)}</div>}
+      {media.length > 1 ? <span style={{ position: "absolute", right: 14, top: 14, fontSize: 11.5, fontWeight: 800, color: "#fff", background: "rgba(0,0,0,0.35)", borderRadius: 999, padding: "4px 9px" }}>{at + 1} / {media.length}</span> : null}
+      {tag ? <span style={{ position: "absolute", left: 14, right: video ? 56 : 14, bottom: 14 }}><SocialTagCard tag={tag} onShopItem={act.shopItem} /></span> : null}
+      {burst ? <span style={{ position: "absolute", inset: 0, display: "flex", alignItems: "center", justifyContent: "center", pointerEvents: "none" }}><SxHeart size={96} color="#fff" fill="#fff" style={{ filter: "drop-shadow(0 8px 24px rgba(0,0,0,0.35))" }} /></span> : null}
+    </div>
+    <div style={{ display: "flex", alignItems: "center", gap: 18, padding: "12px 16px 6px" }}>
+      <button onClick={() => act.like(post, !post.liked)} data-testid="social-like" aria-label={post.liked ? "Unlike" : "Like"} aria-pressed={post.liked} className="v2-tap" style={{ border: "none", background: "none", padding: 0, cursor: "pointer", display: "flex" }}><SxHeart size={25} color={post.liked ? "#E11D48" : T.ink} fill={post.liked ? "#E11D48" : "none"} /></button>
+      <button onClick={() => act.comments(post)} aria-label="Comments" className="v2-tap" style={{ border: "none", background: "none", padding: 0, cursor: "pointer", display: "flex" }}><SxComment size={24} color={T.ink} /></button>
+      <button onClick={() => act.share(post)} aria-label="Share" className="v2-tap" style={{ border: "none", background: "none", padding: 0, cursor: "pointer", display: "flex" }}><HlSend size={23} color={T.ink} /></button>
+      <span style={{ flex: 1 }} />
+      {!post.mine ? <button onClick={() => act.tip(a)} aria-label="Tip" data-testid="social-tip" className="v2-tap" style={{ height: 34, padding: "0 12px", borderRadius: 999, border: "none", background: T.accentSoft, color: T.accent, display: "flex", alignItems: "center", gap: 6, fontSize: 13, fontWeight: 800, cursor: "pointer", fontFamily: T.fontBody }}><SxCoins size={16} color={T.accent} />Tip</button> : null}
+    </div>
+    <div style={{ padding: "0 16px", fontSize: 13.5, color: T.ink, lineHeight: 1.45 }}>
+      <span style={{ display: "flex", alignItems: "center", gap: 6, flexWrap: "wrap" }}><b>{post.likes === 1 ? "1 like" : `${socialCount(post.likes)} likes`}</b>{post.likes > 0 ? <span style={{ display: "inline-flex", alignItems: "center", gap: 3, fontSize: 11.5, fontWeight: 800, color: HT.free, background: HT.freeSoft, borderRadius: 999, padding: "2px 8px" }}><HlShield size={11} color={HT.free} />all real people</span> : null}</span>
+      {post.caption ? <div style={{ marginTop: 4, whiteSpace: "pre-wrap", overflowWrap: "anywhere" }}><b>{a.handle || a.name}</b> {post.caption}</div> : null}
+      {post.comments > 0 ? <button onClick={() => act.comments(post)} className="v2-tap" style={{ display: "block", marginTop: 6, border: "none", background: "none", padding: 0, color: T.inkSoft, fontSize: 13, fontWeight: 700, cursor: "pointer", fontFamily: T.fontBody }}>View {post.comments === 1 ? "1 comment" : `all ${post.comments} comments`}</button> : null}
+    </div>
+  </div>;
+}
+
+// ── The whole Social tab ────────────────────────────────────────────────
+function HellooSocialHome({ me, photos, onCards, onOpenChat, onTip, onShopItem, onShop, onToast, composeTick }) {
+  const [view, setView] = useStateH40("feed");
+  const [feed, setFeed] = useStateH40(null);
+  const [feedErr, setFeedErr] = useStateH40("");
+  const [ex, setEx] = useStateH40(null);
+  const [topic, setTopic] = useStateH40("");
+  const [q, setQ] = useStateH40("");
+  const [found, setFound] = useStateH40(null);
+  const [follows, setFollows] = useStateH40({});
+  const [profile, setProfile] = useStateH40(null);
+  const [open, setOpen] = useStateH40(null);
+  const [talk, setTalk] = useStateH40(null);
+  const [more, setMore] = useStateH40(null);
+  const [compose, setCompose] = useStateH40(false);
+  const [muted, setMuted] = useStateH40(true);
+  const seen = (cards) => { if (onCards) onCards(cards.filter(Boolean)); };
+
+  const loadFeed = useCallbackH40(() => {
+    setFeedErr("");
+    socialApi.feed().then((r) => { setFeed(r.posts || []); seen((r.posts || []).map((p) => p.author)); }).catch((err) => setFeedErr((err && err.message) || "Couldn't load posts."));
+  }, []);
+  const loadExplore = useCallbackH40((t) => {
+    socialApi.explore(t).then((r) => { setEx(r); seen([...(r.creators || []), ...(r.shops || []), ...(r.trending || []).map((p) => p.author)]); }).catch(() => setEx({ error: true, grid: [], trending: [], creators: [], shops: [], learn: [] }));
+  }, []);
+  useEffectH40(() => { loadFeed(); }, [loadFeed]);
+  useEffectH40(() => { if (view === "explore") loadExplore(topic); }, [view, topic, loadExplore]);
+  useEffectH40(() => { if (composeTick) setCompose(true); }, [composeTick]);
+  useEffectH40(() => {
+    const term = q.trim();
+    if (term.length < 2) { setFound(null); return undefined; }
+    const t = setTimeout(() => socialApi.search(term).then((r) => { setFound(r); seen(r.people || []); }).catch(() => setFound({ people: [], posts: [] })), 300);
+    return () => clearTimeout(t);
+  }, [q]);
+
+  // One post changed (a like, a new comment count) — everywhere it shows.
+  const patch = (id, fn) => {
+    const up = (list) => (list ? list.map((p) => (p.id === id ? fn(p) : p)) : list);
+    setFeed(up);
+    setEx((e) => (e && !e.error ? Object.assign({}, e, { grid: up(e.grid), trending: up(e.trending), learn: up(e.learn) }) : e));
+    setProfile((pr) => (pr && pr.grid ? Object.assign({}, pr, { grid: up(pr.grid) }) : pr));
+    setOpen((o) => (o && o.id === id ? fn(o) : o));
+  };
+  const drop = (id) => {
+    const out = (list) => (list ? list.filter((p) => p.id !== id) : list);
+    setFeed(out); setEx((e) => (e && !e.error ? Object.assign({}, e, { grid: out(e.grid), trending: out(e.trending), learn: out(e.learn) }) : e)); setProfile((pr) => (pr && pr.grid ? Object.assign({}, pr, { grid: out(pr.grid) }) : pr)); setOpen(null);
+  };
+  const openProfile = (card) => {
+    setProfile({ card, loading: true });
+    socialApi.profile(card.gloobalId, card.side === "self" ? "self" : "").then((r) => { setProfile({ card: r.profile, profile: r.profile, grid: r.grid || [] }); setFollows((f) => Object.assign({}, f, { [r.profile.accountId]: r.profile.isFollowing })); seen([r.profile]); }).catch((err) => setProfile({ card, error: (err && err.message) || "Couldn't open that profile." }));
+  };
+  const act = {
+    like: (post, on) => { patch(post.id, (p) => Object.assign({}, p, { liked: on, likes: Math.max(0, p.likes + (on ? 1 : -1)) })); socialApi.like(post.id, on).then((r) => patch(post.id, (p) => Object.assign({}, p, { liked: r.liked, likes: r.likes }))).catch(() => patch(post.id, (p) => Object.assign({}, p, { liked: !on, likes: Math.max(0, p.likes + (on ? -1 : 1)) }))); },
+    follow: (card, on) => { setFollows((f) => Object.assign({}, f, { [card.accountId]: on })); socialApi.follow(card.accountId, on).then((r) => setProfile((pr) => (pr && pr.profile && pr.profile.accountId === card.accountId ? Object.assign({}, pr, { profile: Object.assign({}, pr.profile, { isFollowing: r.following, followers: r.followers }) }) : pr))).catch(() => { setFollows((f) => Object.assign({}, f, { [card.accountId]: !on })); onToast("Couldn't follow right now."); }); },
+    isFollowing: (card) => Boolean(follows[card.accountId]),
+    profile: openProfile,
+    comments: (post) => setTalk(post),
+    more: (post) => setMore(post),
+    tip: (card) => onTip(card),
+    shopItem: (tag) => onShopItem(tag),
+    share: async (post) => {
+      const text = `${post.author.handle || post.author.name} on GLOOBAL${post.caption ? `: ${post.caption.slice(0, 80)}` : ""}`;
+      try { if (navigator.share) await navigator.share({ title: "GLOOBAL", text, url: HELLOO_SITE }); else { await navigator.clipboard.writeText(`${text} ${HELLOO_SITE}`); onToast("Copied to share"); } } catch (e) { /* closed */ }
+    }
+  };
+  const posted = (post) => { setCompose(false); setFeed((f) => [post, ...(f || [])]); setView("feed"); onToast("Posted"); };
+
+  const head = <div style={{ position: "sticky", top: 0, zIndex: 5, background: `${HT.screenBg && HT.screenBg.startsWith("#") ? HT.screenBg : T.bg}F2`, backdropFilter: "blur(14px)", WebkitBackdropFilter: "blur(14px)", padding: "calc(10px + env(safe-area-inset-top, 0px)) 16px 8px" }}><div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 10 }}><span style={{ display: "flex", alignItems: "baseline", gap: 14, minWidth: 0 }}>{[["feed", "For you"], ["explore", "Explore"]].map(([k, l]) => <button key={k} onClick={() => setView(k)} data-testid={`social-view-${k}`} aria-current={view === k ? "page" : undefined} className="v2-tap" style={{ border: "none", background: "none", padding: 0, cursor: "pointer", fontSize: view === k ? 22 : 17, fontWeight: 800, fontFamily: T.fontDisplay, color: view === k ? T.ink : T.inkFaint, letterSpacing: -0.4, whiteSpace: "nowrap" }}>{l}</button>)}</span><span style={{ display: "flex", gap: 8, alignItems: "center", flexShrink: 0 }}><HellooRoundButton Icon={SxAddPic} label="New post" onClick={() => setCompose(true)} size={38} /><button onClick={() => openProfile({ gloobalId: me.gloobalId, accountId: me.accountId || me.id, name: me.name })} aria-label="My posts" className="v2-tap" style={{ border: "none", background: "none", padding: 0, cursor: "pointer", display: "flex" }}><HellooMeAvatar me={me} size={36} /></button></span></div></div>;
+
+  let body;
+  if (view === "feed") {
+    body = feed === null
+      ? (feedErr ? <SocialNote title="Couldn't load posts" text={feedErr} action="Try again" onAction={loadFeed} /> : <SocialNote title="Loading…" />)
+      : feed.length === 0
+        ? <SocialNote title="Nothing here yet" text="Follow people and shops in Explore, or share the first picture." action="Explore" onAction={() => setView("explore")} second="New post" onSecond={() => setCompose(true)} />
+        : <>{feed.map((p) => <SocialPostCard key={p.id} post={p} photos={photos} act={act} muted={muted} onMuted={setMuted} />)}<div style={{ height: 120 }} /></>;
+  } else {
+    body = <SocialExplore ex={ex} topic={topic} onTopic={(t) => { setEx(null); setTopic((cur) => (cur === t ? "" : t)); }} q={q} onQ={setQ} found={found} photos={photos} act={act} follows={follows} onOpen={setOpen} onShop={onShop} />;
+  }
+
+  return <HellooScreen><div data-testid="social-home" style={{ flex: 1, minHeight: 0, overflowY: "auto", display: "block" }}>{head}{body}</div>
+    {profile ? <SocialProfile state={profile} me={me} photos={photos} act={act} onBack={() => setProfile(null)} onOpen={setOpen} onMessage={onOpenChat} onShop={onShop} onCompose={() => setCompose(true)} /> : null}
+    {open ? <SocialViewer post={open} photos={photos} act={act} muted={muted} onMuted={setMuted} onBack={() => setOpen(null)} /> : null}
+    {talk ? <SocialComments post={talk} photos={photos} onCards={seen} onCount={(n) => patch(talk.id, (p) => Object.assign({}, p, { comments: n }))} onClose={() => setTalk(null)} onToast={onToast} /> : null}
+    {more ? <HellooSheet label="Post" onClose={() => setMore(null)}><HellooCard>{(more.mine
+      ? [[HlTrash, "Delete post", () => { const id = more.id; setMore(null); socialApi.remove(id).then(() => { drop(id); onToast("Post deleted"); }).catch((err) => onToast((err && err.message) || "Couldn't delete it.")); }, true]]
+      : [[HlUser, "View profile", () => { const a = more.author; setMore(null); openProfile(a); }], [HlChat, "Message", () => { const a = more.author; setMore(null); onOpenChat(a); }], [HlFlag, "Report", () => { const id = more.id; setMore(null); socialApi.report(id, "").then(() => onToast("Reported · thank you")).catch(() => onToast("Couldn't report right now.")); }, true]]
+    ).map(([Icon, title, fn, danger], i) => <HellooRow key={title} Icon={Icon} title={title} first={i === 0} onPress={fn} danger={danger} color={danger ? T.negative : T.accent} />)}</HellooCard></HellooSheet> : null}
+    {compose ? <SocialComposer me={me} onClose={() => setCompose(false)} onPosted={posted} onToast={onToast} /> : null}
+  </HellooScreen>;
+}
+
+function SocialNote({ title, text, action, onAction, second, onSecond }) {
+  return <div style={{ padding: "40px 24px", textAlign: "center" }}><div style={{ fontSize: 17, fontWeight: 800, color: T.ink, fontFamily: T.fontDisplay }}>{title}</div>{text ? <div style={{ fontSize: 13.5, color: T.inkSoft, marginTop: 6, lineHeight: 1.45 }}>{text}</div> : null}{action ? <div style={{ display: "flex", gap: 10, marginTop: 18 }}><HellooPrimary onClick={onAction}>{action}</HellooPrimary>{second ? <HellooSecondary onClick={onSecond}>{second}</HellooSecondary> : null}</div> : null}</div>;
+}
+
+// ── Explore ─────────────────────────────────────────────────────────────
+function SocialExplore({ ex, topic, onTopic, q, onQ, found, photos, act, follows, onOpen, onShop }) {
+  const row = (title, sub) => <div style={{ padding: "20px 16px 10px" }}><span style={{ display: "block", fontSize: 17, fontWeight: 800, fontFamily: T.fontDisplay, color: T.ink }}>{title}</span>{sub ? <span style={{ display: "block", fontSize: 12, color: T.inkSoft, marginTop: 1 }}>{sub}</span> : null}</div>;
+  const search = <div style={{ padding: "2px 16px 6px" }}><label style={{ display: "flex", alignItems: "center", gap: 10, height: 48, borderRadius: 16, background: HT.cardBg || T.surface, boxShadow: HT.cardShadow ?? T.shadowCard, padding: "0 16px" }}><HlSearch size={18} color={T.inkFaint} /><input value={q} onChange={(e) => onQ(e.target.value)} placeholder="People, shops, posts" data-testid="social-search" style={{ flex: 1, minWidth: 0, border: "none", outline: "none", background: "transparent", fontSize: 15, color: T.ink, fontFamily: T.fontBody }} />{q ? <button onClick={() => onQ("")} aria-label="Clear" style={{ border: "none", background: "none", padding: 0, cursor: "pointer", display: "flex" }}><HlX size={17} color={T.inkFaint} /></button> : null}</label></div>;
+  if (q.trim().length >= 2) {
+    return <>{search}{!found ? <SocialNote title="Looking…" /> : (found.people || []).length + (found.posts || []).length === 0 ? <SocialNote title="Nobody by that name yet" text="Try a shop's handle or part of a name." /> : <>
+      {(found.people || []).length ? <div style={{ padding: "8px 16px" }}><HellooCard>{found.people.map((c, i) => <SocialPersonRow key={c.accountId + c.side} card={c} photos={photos} first={i === 0} act={act} following={follows[c.accountId]} />)}</HellooCard></div> : null}
+      {(found.posts || []).length ? <>{row("Posts")}<SocialGrid posts={found.posts} onOpen={onOpen} /></> : null}
+      <div style={{ height: 120 }} /></>}</>;
+  }
+  const loading = !ex;
+  const tr = (ex && ex.trending) || [];
+  const hero = tr[0];
+  return <>{search}
+    <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 10, padding: "12px 16px 4px" }}>{SOCIAL_TOPICS.map(([k, e, l, b]) => <button key={k} onClick={() => onTopic(k)} data-testid={`social-topic-${k}`} aria-pressed={topic === k} className="v2-tap" style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 6, border: "none", background: "none", padding: 0, cursor: "pointer", fontFamily: T.fontBody }}><span style={{ width: 58, height: 58, borderRadius: 20, background: b, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 28, boxShadow: topic === k ? `0 0 0 2.5px ${T.accent}` : "none" }}>{e}</span><span style={{ fontSize: 12, fontWeight: 800, color: topic === k ? T.accent : T.ink }}>{l}</span></button>)}</div>
+    {loading ? <SocialNote title="Loading…" /> : <>
+      {hero ? <>{row(topic ? "Trending" : "Trending this week", "What people like most right now")}
+        <button onClick={() => onOpen(hero)} className="v2-tap" style={{ display: "block", width: "calc(100% - 32px)", margin: "0 16px", height: 240, borderRadius: 24, overflow: "hidden", position: "relative", border: "none", padding: 0, cursor: "pointer", background: T.surfaceAlt }}>
+          {hero.media[0] && hero.media[0].kind === "video" ? <video src={socialMediaSrc(hero.media[0]) + "#t=0.1"} muted playsInline preload="metadata" style={{ width: "100%", height: "100%", objectFit: "cover", display: "block" }} /> : <img src={socialMediaSrc(hero.media[0])} alt="" style={{ width: "100%", height: "100%", objectFit: "cover", display: "block" }} />}
+          <span style={{ position: "absolute", inset: 0, background: "linear-gradient(180deg, transparent 40%, rgba(0,0,0,0.7))" }} />
+          <span style={{ position: "absolute", left: 14, top: 14, fontSize: 11.5, fontWeight: 800, color: "#fff", background: "rgba(0,0,0,0.35)", borderRadius: 999, padding: "5px 10px", display: "inline-flex", gap: 5, alignItems: "center" }}><SxTrend size={13} color="#fff" />#1 · {socialCount(hero.likes)} likes</span>
+          <span style={{ position: "absolute", left: 14, right: 14, bottom: 14, display: "flex", alignItems: "center", gap: 10, color: "#fff", textAlign: "left" }}><SocialFace card={hero.author} photos={photos} size={34} /><span style={{ flex: 1, minWidth: 0 }}><SocialName card={hero.author} color="#fff" /><span style={{ display: "block", fontSize: 12.5, opacity: 0.9, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{hero.caption}</span></span></span>
+        </button>
+        {tr.length > 1 ? <div style={{ display: "flex", gap: 8, overflowX: "auto", padding: "10px 16px 0", scrollbarWidth: "none" }}>{tr.slice(1).map((p) => <div key={p.id} style={{ flex: "0 0 104px", height: 132 }}><SocialTile post={p} onOpen={onOpen} /></div>)}</div> : null}
+      </> : null}
+      {(ex.shops || []).length ? <>{row("Shops near you", "Buy straight from them")}
+        <div style={{ display: "flex", gap: 12, overflowX: "auto", padding: "0 16px 4px", scrollbarWidth: "none" }}>{ex.shops.map((s) => <button key={s.accountId} onClick={() => onShop(s)} className="v2-tap" style={{ flexShrink: 0, width: 210, borderRadius: 20, background: HT.cardBg || T.surface, boxShadow: HT.cardShadow ?? T.shadowCard, border: "none", padding: 0, cursor: "pointer", textAlign: "left", fontFamily: T.fontBody, overflow: "hidden" }}><span style={{ display: "flex", alignItems: "center", gap: 8, padding: "12px 12px 8px" }}><SocialFace card={s} photos={photos} size={34} /><span style={{ flex: 1, minWidth: 0 }}><SocialName card={s} size={13} /></span></span>{(s.items || []).map((it, i) => <span key={i} style={{ display: "flex", justifyContent: "space-between", gap: 8, padding: "6px 12px", borderTop: `1px solid ${T.line}`, fontSize: 12.5 }}><span style={{ color: T.ink, fontWeight: 700, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis", minWidth: 0 }}>{it.title}</span><span style={{ color: T.accent, fontWeight: 800, whiteSpace: "nowrap" }}>{hellooMoneyText(it.price, it.currency)}</span></span>)}<span style={{ display: "block", padding: "8px 12px 12px", fontSize: 12.5, fontWeight: 800, color: T.accent }}>Open menu ›</span></button>)}</div></> : null}
+      {(ex.creators || []).length ? <>{row("People to follow", "Posting lately")}
+        <div style={{ display: "flex", gap: 12, overflowX: "auto", padding: "0 16px 4px", scrollbarWidth: "none" }}>{ex.creators.map((c) => { const on = follows[c.accountId]; return <span key={c.accountId} style={{ flexShrink: 0, width: 132, borderRadius: 20, background: HT.cardBg || T.surface, boxShadow: HT.cardShadow ?? T.shadowCard, padding: "14px 10px 12px", display: "flex", flexDirection: "column", alignItems: "center", gap: 6 }}><button onClick={() => act.profile(c)} className="v2-tap" style={{ border: "none", background: "none", padding: 0, cursor: "pointer", display: "flex", flexDirection: "column", alignItems: "center", gap: 6, width: "100%" }}><SocialFace card={c} photos={photos} size={58} /><SocialName card={c} size={12.5} /><span style={{ fontSize: 11, color: T.inkSoft }}>{socialCount(c.followers)} followers</span></button><button onClick={() => act.follow(c, !on)} className="v2-tap" style={{ width: "100%", height: 32, borderRadius: 12, border: on ? `1px solid ${T.line}` : "none", background: on ? "transparent" : T.gradButton, color: on ? T.ink : (HT.onAccent || "#fff"), fontSize: 12.5, fontWeight: 800, cursor: "pointer", fontFamily: T.fontBody }}>{on ? "Following" : "Follow"}</button></span>; })}</div></> : null}
+      {(ex.learn || []).length ? <>{row("Watch & learn", "Short videos and lessons")}
+        <div style={{ display: "flex", gap: 12, overflowX: "auto", padding: "0 16px 4px", scrollbarWidth: "none" }}>{ex.learn.map((p) => <span key={p.id} style={{ flexShrink: 0, width: 140 }}><span style={{ display: "block", height: 196 }}><SocialTile post={p} onOpen={onOpen} /></span><span style={{ display: "block", fontSize: 12.5, fontWeight: 800, color: T.ink, marginTop: 6, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{p.caption || (p.author.handle || p.author.name)}</span><span style={{ display: "block", fontSize: 11.5, color: T.inkSoft, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{p.author.handle || p.author.name}</span></span>)}</div></> : null}
+      {row(topic ? (SOCIAL_TOPICS.find((t) => t[0] === topic) || [])[2] : "More for you")}
+      {(ex.grid || []).length ? <SocialGrid posts={ex.grid} onOpen={onOpen} masonry /> : <SocialNote title={ex.error ? "Couldn't load Explore" : "No posts here yet"} text={ex.error ? "Check your connection and try again." : "Be the first to post in this topic."} />}
+      <div style={{ height: 120 }} /></>}
+  </>;
+}
+function SocialPersonRow({ card, photos, first, act, following }) {
+  return <div style={{ display: "flex", alignItems: "center", gap: 12, padding: "10px 14px", borderTop: first ? "none" : `1px solid ${T.line}` }}><button onClick={() => act.profile(card)} className="v2-tap" style={{ display: "flex", alignItems: "center", gap: 12, flex: 1, minWidth: 0, border: "none", background: "none", padding: 0, cursor: "pointer", textAlign: "left", fontFamily: T.fontBody }}><SocialFace card={card} photos={photos} size={42} /><span style={{ flex: 1, minWidth: 0 }}><SocialName card={card} /><span style={{ display: "block", fontSize: 12, color: T.inkSoft }}>{card.side === "shop" ? "Shop" : "Person"}</span></span></button><button onClick={() => act.follow(card, !following)} className="v2-tap" style={{ border: "none", borderRadius: 999, background: following ? T.surfaceAlt : T.accentSoft, color: following ? T.inkSoft : T.accent, fontWeight: 800, fontSize: 12.5, padding: "7px 13px", cursor: "pointer", fontFamily: T.fontBody }}>{following ? "Following" : "Follow"}</button></div>;
+}
+
+// ── A profile ───────────────────────────────────────────────────────────
+function SocialProfile({ state, me, photos, act, onBack, onOpen, onMessage, onShop, onCompose }) {
+  const [tab, setTab] = useStateH40("posts");
+  const p = state.profile;
+  const card = p || state.card;
+  const hue = hellooHue(card.accountId || card.name || "");
+  const stat = (n, l) => <span style={{ flex: 1, textAlign: "center", minWidth: 0 }}><span style={{ display: "block", fontSize: 18, fontWeight: 800, color: T.ink }}>{socialCount(n)}</span><span style={{ display: "block", fontSize: 11.5, color: T.inkSoft }}>{l}</span></span>;
+  const grid = (state.grid || []).filter((x) => tab !== "reels" || (x.media[0] && x.media[0].kind === "video"));
+  const btn = (Icon, label, fn, primary) => <button onClick={fn} className="v2-tap" style={{ flex: primary ? 1.4 : 1, minWidth: 0, height: 44, borderRadius: 14, border: "none", background: primary ? T.gradButton : (HT.cardBg || T.surface), boxShadow: primary ? "none" : (HT.cardShadow ?? T.shadowCard), color: primary ? (HT.onAccent || "#fff") : T.ink, display: "flex", alignItems: "center", justifyContent: "center", gap: 6, fontSize: 13.5, fontWeight: 800, cursor: "pointer", fontFamily: T.fontBody, whiteSpace: "nowrap" }}>{Icon ? <Icon size={16} color={primary ? (HT.onAccent || "#fff") : T.accent} /> : null}{label}</button>;
+  return <div data-testid="social-profile" style={{ position: "absolute", inset: 0, zIndex: 40, background: HT.screenBg || T.bg, overflowY: "auto", fontFamily: T.fontBody }}>
+    <div style={{ position: "relative", height: 150, background: `radial-gradient(120% 120% at 0% 0%, ${hue}AA 0%, ${hue} 55%, #0B0B1A 120%)`, borderRadius: "0 0 30px 30px" }}><div style={{ position: "absolute", left: 14, top: "calc(14px + env(safe-area-inset-top, 0px))" }}><button onClick={onBack} aria-label="Back" className="v2-tap" style={{ width: 40, height: 40, borderRadius: "50%", border: "none", background: "rgba(255,255,255,0.22)", display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer" }}><HlBack size={19} color="#fff" /></button></div></div>
+    <div style={{ position: "relative", zIndex: 2, display: "flex", alignItems: "flex-end", gap: 12, padding: "0 18px", marginTop: -46 }}><span style={{ padding: 4, borderRadius: "50%", background: HT.screenBg && HT.screenBg.startsWith("#") ? HT.screenBg : T.bg, display: "flex" }}><SocialFace card={card} photos={photos} size={88} /></span><span style={{ display: "flex", flex: 1, paddingBottom: 6, minWidth: 0 }}>{p ? <>{stat(p.posts, "posts")}{stat(p.followers, "followers")}{stat(p.following, "following")}</> : null}</span></div>
+    <div style={{ padding: "10px 18px 0" }}><SocialName card={card} size={19} />{card.handle && card.name && card.name !== card.handle ? <div style={{ fontSize: 13.5, color: T.inkSoft, marginTop: 3 }}>{card.name}</div> : null}<div style={{ fontSize: 11.5, color: T.inkFaint, marginTop: 4 }}>{card.gloobalId ? `GLOOBAL ID ${card.gloobalId}` : ""}</div></div>
+    {state.error ? <SocialNote title="Couldn't open this profile" text={state.error} /> : !p ? <SocialNote title="Loading…" /> : <>
+      <div style={{ display: "flex", gap: 8, padding: "14px 18px 4px" }}>{p.isMe ? btn(SxAddPic, "New post", onCompose, true) : <>{btn(null, p.isFollowing ? "Following" : "Follow", () => act.follow(p, !p.isFollowing), !p.isFollowing)}{btn(HlChat, "Message", () => onMessage(p))}{btn(SxCoins, "Tip", () => act.tip(p))}</>}</div>
+      <div style={{ display: "flex", margin: "12px 18px 0", padding: 4, borderRadius: 14, background: T.surfaceAlt }}>{[["posts", SxGrid, "Posts"], ["reels", SxReels, "Videos"], p.side === "shop" ? ["shop", HlStore, "Shop"] : null].filter(Boolean).map(([k, I, l]) => { const on = tab === k; return <button key={k} onClick={() => (k === "shop" ? onShop(p) : setTab(k))} className="v2-tap" style={{ flex: 1, height: 36, borderRadius: 10, border: "none", background: on ? (HT.cardBg || T.surface) : "transparent", boxShadow: on ? T.shadowCard : "none", display: "flex", alignItems: "center", justifyContent: "center", gap: 5, fontSize: 12.5, fontWeight: 800, color: on ? T.ink : T.inkSoft, cursor: "pointer", fontFamily: T.fontBody }}><I size={15} color={on ? T.ink : T.inkSoft} />{l}</button>; })}</div>
+      <div style={{ paddingTop: 10 }}>{grid.length ? <SocialGrid posts={grid} onOpen={onOpen} /> : <SocialNote title={p.isMe ? "Share your first post" : "No posts yet"} text={p.isMe ? "Pictures and short videos show here." : ""} />}</div>
+      <div style={{ height: 120 }} /></>}
+  </div>;
+}
+
+// ── One post, full screen ───────────────────────────────────────────────
+function SocialViewer({ post, photos, act, muted, onMuted, onBack }) {
+  const m = post.media || [];
+  const video = m[0] && m[0].kind === "video";
+  const tag = (post.tags || [])[0];
+  const side = (I, n, fn, fill, label) => <button onClick={fn} aria-label={label} className="v2-tap" style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 4, color: "#fff", fontSize: 12, fontWeight: 800, textShadow: "0 1px 6px rgba(0,0,0,0.4)", border: "none", background: "none", padding: 0, cursor: "pointer", fontFamily: T.fontBody }}><I size={30} color={fill || "#fff"} fill={fill || "none"} />{n}</button>;
+  return <div data-testid="social-viewer" style={{ position: "absolute", inset: 0, zIndex: 50, background: "#000", overflow: "hidden", fontFamily: T.fontBody }}>
+    {video ? <SocialVideo src={socialMediaSrc(m[0])} muted={muted} onMuted={onMuted} /> : <div style={{ display: "flex", width: "100%", height: "100%", overflowX: "auto", scrollSnapType: "x mandatory", scrollbarWidth: "none" }}>{m.map((x) => <img key={x.id} src={socialMediaSrc(x)} alt="" style={{ flex: "0 0 100%", width: "100%", height: "100%", objectFit: "contain", scrollSnapAlign: "start" }} />)}</div>}
+    <div style={{ position: "absolute", inset: 0, background: "linear-gradient(180deg, rgba(0,0,0,0.4) 0%, transparent 20%, transparent 55%, rgba(0,0,0,0.75) 100%)", pointerEvents: "none" }} />
+    <button onClick={onBack} aria-label="Back" className="v2-tap" style={{ position: "absolute", left: 12, top: "calc(12px + env(safe-area-inset-top, 0px))", width: 40, height: 40, borderRadius: "50%", border: "none", background: "rgba(0,0,0,0.35)", display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer" }}><HlBack size={21} color="#fff" /></button>
+    <div style={{ position: "absolute", right: 12, bottom: tag ? 190 : 120, display: "flex", flexDirection: "column", gap: 22, alignItems: "center" }}>{side(SxHeart, socialCount(post.likes), () => act.like(post, !post.liked), post.liked ? "#E11D48" : null, post.liked ? "Unlike" : "Like")}{side(SxComment, socialCount(post.comments), () => act.comments(post), null, "Comments")}{side(HlSend, "Share", () => act.share(post), null, "Share")}{!post.mine ? side(SxCoins, "Tip", () => act.tip(post.author), null, "Tip") : null}</div>
+    <div style={{ position: "absolute", left: 16, right: 76, bottom: tag ? 100 : 30, color: "#fff" }}><button onClick={() => { onBack(); act.profile(post.author); }} className="v2-tap" style={{ display: "flex", alignItems: "center", gap: 8, border: "none", background: "none", padding: 0, cursor: "pointer", maxWidth: "100%" }}><SocialFace card={post.author} photos={photos} size={34} /><SocialName card={post.author} size={14.5} color="#fff" /></button>{post.caption ? <div style={{ fontSize: 14, marginTop: 9, lineHeight: 1.4, maxHeight: 80, overflowY: "auto", whiteSpace: "pre-wrap", overflowWrap: "anywhere" }}>{post.caption}</div> : null}</div>
+    {tag ? <div style={{ position: "absolute", left: 12, right: 12, bottom: "calc(22px + env(safe-area-inset-bottom, 0px))" }}><SocialTagCard tag={tag} onShopItem={act.shopItem} /></div> : null}
+  </div>;
+}
+
+// ── Comments ────────────────────────────────────────────────────────────
+function SocialComments({ post, photos, onCards, onCount, onClose, onToast }) {
+  const [list, setList] = useStateH40(null);
+  const [text, setText] = useStateH40("");
+  const [busy, setBusy] = useStateH40(false);
+  useEffectH40(() => { socialApi.comments(post.id).then((r) => { setList(r.comments || []); onCards((r.comments || []).map((c) => c.author)); }).catch(() => setList([])); }, [post.id]);
+  const send = () => {
+    const t = text.trim(); if (!t || busy) return;
+    setBusy(true);
+    socialApi.comment(post.id, t).then((r) => { setText(""); setList((l) => { const next = [r.comment, ...(l || [])]; onCount(next.length); return next; }); }).catch((err) => onToast((err && err.message) || "Couldn't post that.")).then(() => setBusy(false));
+  };
+  const remove = (c) => socialApi.uncomment(c.id).then(() => setList((l) => { const next = (l || []).filter((x) => x.id !== c.id); onCount(next.length); return next; })).catch(() => onToast("Couldn't remove it."));
+  return <HellooSheet title={list && list.length ? `${list.length} ${list.length === 1 ? "comment" : "comments"}` : "Comments"} onClose={onClose} zIndex={70}>
+    <div style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 12, color: HT.free, fontWeight: 800, marginBottom: 10 }}><HlShield size={13} color={HT.free} />Every comment is from a GLOOBAL ID</div>
+    {list === null ? <div style={{ padding: 18, textAlign: "center", color: T.inkFaint, fontSize: 13 }}>Loading…</div> : list.length === 0 ? <div style={{ padding: 18, textAlign: "center", color: T.inkSoft, fontSize: 13 }}>No comments yet. Say something kind.</div> : list.map((c) => <div key={c.id} data-testid="social-comment" style={{ display: "flex", gap: 10, padding: "8px 0" }}><SocialFace card={c.author} photos={photos} size={32} /><span style={{ flex: 1, minWidth: 0 }}><span style={{ display: "flex", alignItems: "center", gap: 6 }}><SocialName card={c.author} size={13} /><span style={{ fontSize: 11.5, color: T.inkFaint, flexShrink: 0 }}>{hellooWhen(c.at)}</span></span><span style={{ display: "block", fontSize: 13.5, color: T.ink, lineHeight: 1.4, marginTop: 2, whiteSpace: "pre-wrap", overflowWrap: "anywhere" }}>{c.text}</span></span>{c.canDelete ? <button onClick={() => remove(c)} aria-label="Remove comment" className="v2-tap" style={{ border: "none", background: "none", padding: 4, cursor: "pointer", alignSelf: "flex-start" }}><HlTrash size={15} color={T.inkFaint} /></button> : null}</div>)}
+    <div style={{ position: "sticky", bottom: 0, display: "flex", gap: 8, alignItems: "center", paddingTop: 10, background: T.bg }}><input value={text} onChange={(e) => setText(e.target.value.slice(0, 500))} onKeyDown={(e) => { if (e.key === "Enter") send(); }} placeholder="Add a comment" data-testid="social-comment-input" style={{ flex: 1, minWidth: 0, height: 46, borderRadius: 16, border: `1px solid ${T.line}`, background: T.surface, padding: "0 14px", fontSize: 14.5, color: T.ink, outline: "none", fontFamily: T.fontBody }} /><button onClick={send} disabled={!text.trim() || busy} aria-label="Post comment" className="v2-tap" style={{ width: 46, height: 46, borderRadius: "50%", border: "none", background: text.trim() ? T.gradButton : T.gradButtonDisabled, display: "flex", alignItems: "center", justifyContent: "center", cursor: text.trim() ? "pointer" : "default", flexShrink: 0 }}><HlSend size={19} color="#fff" /></button></div>
+  </HellooSheet>;
+}
+
+// ── A new post ──────────────────────────────────────────────────────────
+function SocialComposer({ me, onClose, onPosted, onToast }) {
+  const [files, setFiles] = useStateH40([]);
+  const [caption, setCaption] = useStateH40("");
+  const [topic, setTopic] = useStateH40("");
+  const [items, setItems] = useStateH40(null);
+  const [tags, setTags] = useStateH40([]);
+  const [busy, setBusy] = useStateH40("");
+  const [err, setErr] = useStateH40("");
+  const pick = useRefH40(null);
+  useEffectH40(() => { socialApi.myItems().then((r) => setItems(r.items || [])).catch(() => setItems([])); }, []);
+  useEffectH40(() => () => files.forEach((f) => URL.revokeObjectURL(f.preview)), []);
+  const onFiles = (list) => {
+    setErr("");
+    const chosen = Array.from(list || []);
+    const video = chosen.find((f) => /^video\//.test(f.type));
+    if (video) {
+      if (video.size > SOCIAL_VIDEO_MAX) { setErr("Videos can be up to 8 MB for now. Trim it and try again."); return; }
+      setFiles([{ file: video, kind: "video", preview: URL.createObjectURL(video) }]);
+      return;
+    }
+    const pics = chosen.filter((f) => /^image\//.test(f.type) && !/svg/.test(f.type));
+    if (!pics.length) { setErr("Pick pictures or one video."); return; }
+    setFiles((cur) => [...cur.filter((f) => f.kind === "photo"), ...pics.map((f) => ({ file: f, kind: "photo", preview: URL.createObjectURL(f) }))].slice(0, 10));
+  };
+  const share = async () => {
+    if (!files.length || busy) return;
+    setErr("");
+    try {
+      const ids = [];
+      for (let i = 0; i < files.length; i += 1) {
+        setBusy(files.length > 1 ? `Sending ${i + 1} of ${files.length}…` : "Sending…");
+        const f = files[i];
+        const data = f.kind === "video" ? await socialReadFile(f.file) : await socialShrinkPhoto(f.file);
+        const r = await socialApi.upload(data);
+        ids.push(r.id);
+      }
+      setBusy("Posting…");
+      const r = await socialApi.post({ media: ids, caption: caption.trim(), topic, tags });
+      onPosted(r.post);
+    } catch (e) {
+      setErr((e && e.message) || "Couldn't post that. Try again.");
+      setBusy("");
+    }
+  };
+  return <div data-testid="social-composer" style={{ position: "absolute", inset: 0, zIndex: 80, background: HT.screenBg || T.bg, display: "flex", flexDirection: "column", fontFamily: T.fontBody }}>
+    <HellooTop left={<HellooRoundButton Icon={HlX} label="Close" onClick={onClose} size={38} />} title="New post" subtitle={me.name} />
+    <div style={{ flex: 1, minHeight: 0, overflowY: "auto", padding: "0 16px 20px", display: "flex", flexDirection: "column", gap: 14 }}>
+      <input ref={pick} type="file" accept="image/jpeg,image/png,image/webp,video/mp4,video/webm,video/quicktime" multiple onChange={(e) => { onFiles(e.target.files); e.target.value = ""; }} style={{ display: "none" }} data-testid="social-file" />
+      {files.length === 0 ? <button onClick={() => pick.current && pick.current.click()} className="v2-tap" style={{ height: 240, borderRadius: 24, border: `2px dashed ${T.line}`, background: HT.cardBg || T.surface, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: 10, cursor: "pointer", fontFamily: T.fontBody, flexShrink: 0 }}><span style={{ width: 64, height: 64, borderRadius: 22, background: T.accentSoft, display: "flex", alignItems: "center", justifyContent: "center" }}><SxAddPic size={30} color={T.accent} /></span><span style={{ fontSize: 15, fontWeight: 800, color: T.ink }}>Pictures or a short video</span><span style={{ fontSize: 12.5, color: T.inkSoft }}>Up to 10 pictures · or one video up to 8 MB</span></button>
+        : <div style={{ display: "flex", gap: 8, overflowX: "auto", scrollbarWidth: "none", flexShrink: 0 }}>{files.map((f, i) => <span key={f.preview} style={{ position: "relative", flex: files.length === 1 ? "1 0 100%" : "0 0 150px", height: files.length === 1 ? 300 : 190, borderRadius: 18, overflow: "hidden", background: "#000" }}>{f.kind === "video" ? <video src={f.preview} muted playsInline autoPlay loop style={{ width: "100%", height: "100%", objectFit: "cover" }} /> : <img src={f.preview} alt="" style={{ width: "100%", height: "100%", objectFit: "cover" }} />}<button onClick={() => setFiles((cur) => cur.filter((_, j) => j !== i))} aria-label="Remove" className="v2-tap" style={{ position: "absolute", right: 8, top: 8, width: 30, height: 30, borderRadius: "50%", border: "none", background: "rgba(0,0,0,0.5)", display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer" }}><HlX size={15} color="#fff" /></button></span>)}{files[0].kind === "photo" && files.length < 10 ? <button onClick={() => pick.current && pick.current.click()} aria-label="Add pictures" className="v2-tap" style={{ flex: "0 0 90px", height: files.length === 1 ? 300 : 190, borderRadius: 18, border: `2px dashed ${T.line}`, background: "transparent", display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer" }}><HlPlus size={24} color={T.inkSoft} /></button> : null}</div>}
+      <HellooCard style={{ padding: 14 }}><textarea value={caption} onChange={(e) => setCaption(e.target.value.slice(0, 2200))} placeholder="Say something about it" rows={3} data-testid="social-caption" style={{ width: "100%", boxSizing: "border-box", border: "none", outline: "none", resize: "none", background: "transparent", fontSize: 15, color: T.ink, fontFamily: T.fontBody, lineHeight: 1.45 }} /></HellooCard>
+      <div><div style={{ fontSize: 13, fontWeight: 800, color: T.inkSoft, marginBottom: 8 }}>Topic</div><div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>{SOCIAL_TOPICS.map(([k, e, l]) => <button key={k} onClick={() => setTopic((t) => (t === k ? "" : k))} aria-pressed={topic === k} className="v2-tap" style={{ padding: "8px 12px", borderRadius: 14, border: "none", background: topic === k ? T.accentSoft : T.surfaceAlt, color: topic === k ? T.accent : T.inkSoft, boxShadow: topic === k ? `inset 0 0 0 1.5px ${T.accent}` : "none", fontSize: 13, fontWeight: 800, cursor: "pointer", fontFamily: T.fontBody }}>{e} {l}</button>)}</div></div>
+      {items && items.length ? <div><div style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 13, fontWeight: 800, color: T.inkSoft, marginBottom: 8 }}><SxTag size={14} color={T.inkSoft} />Sell from this post</div><div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>{items.map((it) => { const on = tags.includes(it.id); return <button key={it.id} onClick={() => setTags((t) => (on ? t.filter((x) => x !== it.id) : [...t, it.id].slice(0, 5)))} aria-pressed={on} className="v2-tap" style={{ padding: "8px 12px", borderRadius: 14, border: "none", background: on ? T.accentSoft : T.surfaceAlt, color: on ? T.accent : T.ink, boxShadow: on ? `inset 0 0 0 1.5px ${T.accent}` : "none", fontSize: 13, fontWeight: 800, cursor: "pointer", fontFamily: T.fontBody, maxWidth: "100%", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{it.title} · {hellooMoneyText(it.price, it.currency)}</button>; })}</div></div> : null}
+      {err ? <div role="alert" style={{ fontSize: 13, color: T.negative, fontWeight: 700 }}>{err}</div> : null}
+    </div>
+    <div style={{ padding: "10px 16px calc(14px + env(safe-area-inset-bottom, 0px))" }}><HellooPrimary onClick={share} disabled={!files.length || Boolean(busy)}>{busy || "Share"}</HellooPrimary></div>
+  </div>;
+}

@@ -271,6 +271,7 @@ function HellooRoot() {
 
   // ── Navigation ───────────────────────────────────────────────────────
   const [tab, setTab] = useStateH9("chats");
+  const [socialCompose, setSocialCompose] = useStateH9(0);
   const [openId, setOpenId] = useStateH9(null);
   const [screen, setScreen] = useStateH9(null);
   const [sheet, setSheet] = useStateH9(null);
@@ -980,8 +981,8 @@ function HellooRoot() {
     const row = (chatRows || []).find((c) => c.id === openId);
     if (row && row.person && row.person.handle) loadShopCard({ handle: row.person.handle, gloobalId: row.person.gloobalId });
   }, [screen, openId]);
-  const openMenu = (person) => {
-    setMenu(MENU_EMPTY);
+  const openMenu = (person, pickId) => {
+    setMenu(pickId ? Object.assign({}, MENU_EMPTY, { basket: { [pickId]: 1 } }) : MENU_EMPTY);
     setSheet("shopmenu");
     GloobalApi.getCreatorItems(person.gloobalId)
       .then((list) => setMenu((m) => Object.assign({}, m, { items: (Array.isArray(list) ? list : []).map((it) => ({ id: it.id, name: it.title, price: Number(it.price) || 0, currency: it.currency, priceText: hellooMoneyText(it.price, it.currency), note: it.note || "", soldOut: Boolean(it.soldOut), special: Boolean(it.special), photo: it.photo || "" })) })))
@@ -1718,11 +1719,16 @@ function HellooRoot() {
       [HlBan, "Blocked people", () => { setSheet(null); refreshBlocked(); setScreen("blocked"); }],
       [HlPalette, "Colours", () => { setSheet(null); setScreen("theme"); }]
     ].filter(Boolean).map(([Icon, title, onPress], i) => <HellooRow key={title} Icon={Icon} title={title} first={i === 0} onPress={onPress} />)}</HellooCard></HellooSheet>}
+    {tab === "social" && <HellooSocialHome me={me} photos={photos} composeTick={socialCompose} onCards={askPhotos} onToast={setToast}
+      onOpenChat={(card) => openChatWith(card.gloobalId)}
+      onTip={(card) => payGloobalId(card.gloobalId)}
+      onShop={(card) => Promise.resolve(openChatWith(card.gloobalId)).then(() => openMenu({ gloobalId: card.gloobalId })).catch(() => {})}
+      onShopItem={(tag) => { if (user && tag.shop === user.symbolId) { setToast("That is your own shop"); return; } Promise.resolve(openChatWith(tag.shop)).then(() => openMenu({ gloobalId: tag.shop }, tag.itemId)).catch(() => {}); }} />}
     {tab === "calls" && <HellooCallsHome me={me} calls={callsAll} filter={callFilter} onFilter={setCallFilter} when={callWhen} onWhen={setCallWhen} onCallBack={(c) => startCall(c.person, c.video)} onInfo={(c) => openChatWith(c.person.accountId, true)} onOpenDial={() => { setDial({ value: "", status: "", match: null }); setSheet("dial"); }} onAdd={() => setSheet("add")} onSearch={() => { setContactQuery(""); refreshContacts(); setScreen("contacts"); }} onScan={() => setScreen("scan")} onMe={() => setScreen("me")} />}
     {sheet === "dial" && <HellooDialSheet dial={dial.value} onDial={(v) => setDial((d) => Object.assign({}, d, { value: v }))} match={dial.match} status={dial.status} onMessage={() => dial.match && openChatWith(dial.match.gloobalId, false, false, dial.match.handle ? "" : "self")} onCall={() => { if (dial.match) { setSheet(null); startCall(dial.match, false); } }} onVideo={() => { if (dial.match) { setSheet(null); startCall(dial.match, true); } }} onClose={() => setSheet(null)} />}
     {sheet === "add" && addSheet}
     {sheet === "release" && release && releaseSheet}
     {sheet === "savename" && nameSheet}
     {sheet === "start" && <HellooStartSheet suggested={contacts.slice(0, 8)} onPick={contactPick} onPad={() => { setDial({ value: "", status: "", match: null }); setSheet("dial"); }} onScan={() => { setSheet(null); setScreen("scan"); }} onContacts={() => { setSheet(null); setContactQuery(""); refreshContacts(); setScreen("contacts"); }} onClose={() => setSheet(null)} />}
-  <HellooSideRail active={tab} onChange={(t) => { setTab(t); setSheet(null); }} badges={{ chats: unread, callsDot: missedCount > 0 }} onBazaar={() => setScreen("bazaar")} onScan={() => setScreen("scan")} plusLabel={tab === "calls" ? "Dial a GLOOBAL ID" : "New chat or call"} onPlus={tab === "calls" ? () => { setDial({ value: "", status: "", match: null }); setSheet("dial"); } : () => setSheet("start")} /></div></div>);
+  <HellooSideRail social fold={tab === "social"} active={tab} onChange={(t) => { setTab(t); setSheet(null); }} badges={{ chats: unread, callsDot: missedCount > 0 }} onBazaar={() => setScreen("bazaar")} onScan={() => setScreen("scan")} plusLabel={tab === "social" ? "New post" : tab === "calls" ? "Dial a GLOOBAL ID" : "New chat or call"} onPlus={tab === "social" ? () => setSocialCompose((n) => n + 1) : tab === "calls" ? () => { setDial({ value: "", status: "", match: null }); setSheet("dial"); } : () => setSheet("start")} /></div></div>);
 }

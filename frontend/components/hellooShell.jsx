@@ -16,7 +16,7 @@ import {
   Forward as HlForward, ArrowRight as HlArrowRight, Star as HlStar, Trash2 as HlTrash, Pin as HlPinIcon, BellOff as HlBellOff,
   Archive as HlArchive, Timer as HlTimer, Flag as HlFlag, Download as HlDownload, Share2 as HlShare,
   Smartphone as HlMobile, Sparkles as HlSpark, Lock as HlLock, Wallet as HlWallet, IndianRupee as HlRupee,
-  Hash as HlHash, Keyboard as HlKeyboard, Fingerprint as HlFinger, ChevronDown as HlDown, Send as HlSend, UserPlus as HlUserPlus, Pencil as HlPencil, Globe2 as HlGlobe, Briefcase as HlBriefcase, Smile as HlSmile, FileText as HlFileText, Pause as HlPause, RefreshCw as HlRetry, Grip as HlGrip, Info as HlInfo, BadgeCheck as HlVerified
+  Hash as HlHash, Keyboard as HlKeyboard, Fingerprint as HlFinger, ChevronDown as HlDown, Send as HlSend, UserPlus as HlUserPlus, Pencil as HlPencil, Globe2 as HlGlobe, Briefcase as HlBriefcase, Smile as HlSmile, FileText as HlFileText, Pause as HlPause, RefreshCw as HlRetry, Grip as HlGrip, Info as HlInfo, BadgeCheck as HlVerified, Clapperboard as HlSocial
 } from "lucide-react";
 
 var HELLOO_TABS = [
@@ -54,18 +54,22 @@ function hellooSaveRailSide(side) {
 // The button column: Scan, Calls, Messages, GLOOBAL बाज़ार and +, icons only.
 // It sits on the right or the left, whichever thumb the person uses: slide
 // it across the screen and it moves to the other side and stays there.
-function HellooSideRail({ active, onChange, badges = {}, onBazaar, onScan, onPlus, plusLabel = "New chat or call", side: sideProp, onSide }) {
+function HellooSideRail({ active, onChange, badges = {}, onBazaar, onScan, social = false, fold = false, onPlus, plusLabel = "New chat or call", side: sideProp, onSide }) {
   const [sideOwn, setSideOwn] = useStateH1(hellooRailSide);
   const side = sideProp || sideOwn;
   const [dx, setDx] = useStateH1(0);
+  // Folded (over a feed, where the column would cover the posts): one
+  // button in the corner; a tap opens the column, a pick or a tap away
+  // folds it again.
+  const [unfolded, setUnfolded] = useStateH1(false);
   const drag = useRefH1(null);
   const moved = useRefH1(false);
   const setSide = (v) => { hellooSaveRailSide(v); setSideOwn(v); if (onSide) onSide(v); };
   const round = (size, filled) => ({ position: "relative", width: size, height: size, borderRadius: "50%", border: filled ? "none" : (HT.cardBorder || `1px solid ${T.line}`), background: filled ? T.gradButton : (HT.cardBg || T.surface), boxShadow: filled ? (HT.buttonGlow || "0 10px 24px rgba(76,29,149,0.32)") : (HT.cardShadow ?? T.shadowCard), display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer", padding: 0, flexShrink: 0 });
-  const guard = (fn) => (e) => { if (moved.current) { e.preventDefault(); moved.current = false; return; } if (fn) fn(e); };
+  const guard = (fn) => (e) => { if (moved.current) { e.preventDefault(); moved.current = false; return; } setUnfolded(false); if (fn) fn(e); };
   const tab = (key, label, Icon) => {
     const on = active === key; const n = badges[key] || 0; const dot = badges[key + "Dot"];
-    return <button key={key} onClick={guard(() => onChange && onChange(key))} aria-current={on ? "page" : undefined} aria-label={label} title={label} className="v2-tap" style={round(52, on)}><Icon size={22} strokeWidth={on ? 2.4 : 2} color={on ? (HT.onAccent || "#fff") : T.inkSoft} />{n > 0 ? <span data-testid={on ? "helloo-tab-count" : undefined} style={{ position: "absolute", top: -3, right: -3, minWidth: 19, height: 19, borderRadius: 10, background: T.negative, color: "#fff", fontSize: 10.5, fontWeight: 800, display: "flex", alignItems: "center", justifyContent: "center", padding: "0 5px", border: `2px solid ${T.bg}` }}>{n}</span> : dot ? <span style={{ position: "absolute", top: 2, right: 2, width: 11, height: 11, borderRadius: "50%", background: T.negative, border: `2px solid ${T.bg}` }} /> : null}</button>;
+    return <button key={key} onClick={guard(() => { setUnfolded(false); if (onChange) onChange(key); })} aria-current={on ? "page" : undefined} aria-label={label} title={label} className="v2-tap" style={round(52, on)}><Icon size={22} strokeWidth={on ? 2.4 : 2} color={on ? (HT.onAccent || "#fff") : T.inkSoft} />{n > 0 ? <span data-testid={on ? "helloo-tab-count" : undefined} style={{ position: "absolute", top: -3, right: -3, minWidth: 19, height: 19, borderRadius: 10, background: T.negative, color: "#fff", fontSize: 10.5, fontWeight: 800, display: "flex", alignItems: "center", justifyContent: "center", padding: "0 5px", border: `2px solid ${T.bg}` }}>{n}</span> : dot ? <span style={{ position: "absolute", top: 2, right: 2, width: 11, height: 11, borderRadius: "50%", background: T.negative, border: `2px solid ${T.bg}` }} /> : null}</button>;
   };
   // Sliding: the column follows the finger sideways; let go past a third of
   // the way across and it settles on the other side.
@@ -84,7 +88,8 @@ function HellooSideRail({ active, onChange, badges = {}, onBazaar, onScan, onPlu
     if (moved.current) setTimeout(() => { moved.current = false; }, 0);
   };
   const pos = side === "left" ? { left: 16 } : { right: 16 };
-  return <nav aria-label="Main" data-testid="helloo-rail" data-side={side} onPointerDown={down} onPointerMove={move} onPointerUp={up} onPointerCancel={up} style={{ position: "absolute", ...pos, bottom: "calc(18px + env(safe-area-inset-bottom, 0px))", zIndex: 30, display: "flex", flexDirection: "column", alignItems: "center", gap: 12, transform: dx ? `translateX(${dx}px)` : "none", transition: dx ? "none" : "transform 0.22s ease", touchAction: "pan-y", userSelect: "none" }}>{onScan ? <button onClick={guard(onScan)} data-testid="helloo-rail-scan" aria-label="Scan a GLOOBAL QR" title="Scan" className="v2-tap" style={round(52, false)}><HlScan size={22} color={T.inkSoft} /></button> : null}{tab("calls", "Calls", HlPhone)}{tab("chats", "Messages", HlChat)}{onBazaar ? <button onClick={guard(onBazaar)} data-testid="helloo-bazaar-button" aria-label="GLOOBAL बाज़ार: find a shop" title="GLOOBAL बाज़ार" className="v2-tap" style={round(52, false)}><HlStore size={22} color={T.accent} /></button> : null}<button onClick={guard(onPlus)} data-testid="helloo-new-chat" aria-label={plusLabel} title={plusLabel} className="v2-tap" style={round(60, true)}><HlPlus size={28} strokeWidth={2.6} color={HT.onAccent || "#fff"} /></button></nav>;
+  if (fold && !unfolded) return <button onClick={() => setUnfolded(true)} data-testid="helloo-rail-fold" aria-label="Calls, messages and more" title="Menu" className="v2-tap" style={{ ...round(56, true), position: "absolute", ...pos, bottom: "calc(18px + env(safe-area-inset-bottom, 0px))", zIndex: 30 }}><HlGrip size={24} color={HT.onAccent || "#fff"} /></button>;
+  return <>{fold ? <div onClick={() => setUnfolded(false)} style={{ position: "absolute", inset: 0, zIndex: 29, background: "rgba(15,12,35,0.25)" }} /> : null}<nav aria-label="Main" data-testid="helloo-rail" data-side={side} onPointerDown={down} onPointerMove={move} onPointerUp={up} onPointerCancel={up} style={{ position: "absolute", ...pos, bottom: "calc(18px + env(safe-area-inset-bottom, 0px))", zIndex: 30, display: "flex", flexDirection: "column", alignItems: "center", gap: 12, transform: dx ? `translateX(${dx}px)` : "none", transition: dx ? "none" : "transform 0.22s ease", touchAction: "pan-y", userSelect: "none" }}>{onScan ? <button onClick={guard(onScan)} data-testid="helloo-rail-scan" aria-label="Scan a GLOOBAL QR" title="Scan" className="v2-tap" style={round(52, false)}><HlScan size={22} color={T.inkSoft} /></button> : null}{tab("calls", "Calls", HlPhone)}{tab("chats", "Messages", HlChat)}{social ? tab("social", "GLOOBAL Social", HlSocial) : null}{onBazaar ? <button onClick={guard(onBazaar)} data-testid="helloo-bazaar-button" aria-label="GLOOBAL बाज़ार: find a shop" title="GLOOBAL बाज़ार" className="v2-tap" style={round(52, false)}><HlStore size={22} color={T.accent} /></button> : null}<button onClick={guard(onPlus)} data-testid="helloo-new-chat" aria-label={plusLabel} title={plusLabel} className="v2-tap" style={round(60, true)}><HlPlus size={28} strokeWidth={2.6} color={HT.onAccent || "#fff"} /></button></nav></>;
 }
 
 function HellooTabBar({ active, onChange, badges = {} }) {
