@@ -80,6 +80,20 @@ function HellooCallsHome({ me, calls = [], onCallBack, onInfo, onOpenDial, onAdd
 
 // The dial pad as a sheet: the symbols you have typed appear only once you
 // start; then who it found, and Message · Call · Video.
+// The ID being dialled: twelve places in three fours, the way an ID is
+// read out. Filled places hold their symbol, the next one waits with a
+// soft ring, the rest are quiet. Always there, so nothing jumps when the
+// first symbol lands.
+function HellooDialBox({ value = "", done = false, bad = false }) {
+  const tone = bad ? T.negative : done ? HT.free : T.accent;
+  const soft = bad ? `${T.negative}14` : done ? HT.freeSoft : T.accentSoft;
+  const slot = (i) => {
+    const ch = value[i]; const next = i === value.length;
+    return <span key={i} data-filled={ch ? "1" : undefined} style={{ flex: 1, minWidth: 0, height: 42, borderRadius: 13, display: "flex", alignItems: "center", justifyContent: "center", background: ch ? soft : next ? (HT.cardBg || T.surface) : T.surfaceSunk, boxShadow: next ? `inset 0 0 0 2px ${tone}` : ch ? `inset 0 0 0 1px ${tone}33` : "none", color: tone, fontSize: 19, fontWeight: 800, lineHeight: 1, transition: "background 0.15s ease, box-shadow 0.15s ease" }}>{ch || (next ? <span style={{ width: 2, height: 18, borderRadius: 1, background: tone, animation: "hellooCaret 1s steps(2) infinite" }} /> : <span style={{ width: 5, height: 5, borderRadius: "50%", background: T.line }} />)}</span>;
+  };
+  return <div data-testid="helloo-dial-box" aria-label={`${value.length} of 12 symbols dialled`} style={{ width: "100%", display: "flex", gap: 12, padding: "12px", borderRadius: HT.radius ?? 20, background: HT.cardBg || T.surface, boxShadow: HT.cardShadow ?? T.shadowCard, border: HT.cardBorder || "none", boxSizing: "border-box" }}><style>{"@keyframes hellooCaret{0%{opacity:1}50%{opacity:0}}"}</style>{[0, 4, 8].map((g) => <span key={g} style={{ flex: 1, minWidth: 0, display: "flex", gap: 4 }}>{[0, 1, 2, 3].map((k) => slot(g + k))}</span>)}</div>;
+}
+
 function HellooDialSheet({ dial = "", onDial, match, status, onMessage, onCall, onVideo, onClose, title = "Dial a GLOOBAL ID", contacts = [], saved = false, saving = false, onSave }) {
   const found = status === "found" && match;
   // People you already have whose GLOOBAL ID starts with what is dialled.
@@ -87,7 +101,7 @@ function HellooDialSheet({ dial = "", onDial, match, status, onMessage, onCall, 
   const idRest = (id) => <span style={{ fontSize: 12, letterSpacing: 1.5, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}><span style={{ color: T.accent, fontWeight: 800 }}>{id.slice(0, dial.length)}</span><span style={{ color: T.inkFaint }}>{id.slice(dial.length)}</span></span>;
   return <HellooSheet label={title} onClose={onClose}><div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 8 }}>
     <div style={{ width: "100%", display: "flex", alignItems: "center", justifyContent: "space-between" }}><span style={{ flex: 1, minWidth: 0, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis", fontSize: 16, fontWeight: 800, fontFamily: T.fontDisplay, color: T.ink }}>{title}</span><span style={{ fontSize: 11.5, fontWeight: 700, color: T.inkFaint }}>{dial.length}/12</span></div>
-    {dial.length > 0 && <HellooCard style={{ width: "100%", padding: "10px 12px" }}><SymbolChipRow length={12} value={dial} masked={false} boxSize={22} fitWidth /></HellooCard>}
+    <HellooDialBox value={dial} done={Boolean(found)} bad={status === "none"} />
     <div style={{ width: "100%", minHeight: 62 }}>{found
       ? <HellooCard style={{ display: "flex", alignItems: "center", gap: 12, padding: "10px 12px" }}><HellooAvatar person={match} size={44} /><span style={{ flex: 1, minWidth: 0 }}><HellooVerifiedName person={match} size={15.5} /><span style={{ display: "flex", alignItems: "center", gap: 5, fontSize: 12, color: T.inkSoft, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{match.country}{match.online && <span style={{ color: HT.free, fontWeight: 700 }}> · Online</span>}</span></span>{saved
           ? <span data-testid="helloo-dial-saved" style={{ display: "inline-flex", alignItems: "center", gap: 4, fontSize: 12, fontWeight: 800, color: HT.free, background: HT.freeSoft, borderRadius: 999, padding: "6px 10px", flexShrink: 0 }}><HlCheck size={13} color={HT.free} />Saved</span>
