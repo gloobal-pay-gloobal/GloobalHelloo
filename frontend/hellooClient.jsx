@@ -51,7 +51,7 @@ var hellooApi = {
   faces: () => gloobalApiClient.get("/api/helloo/faces"),
   saveCalls: (calls) => hellooHttp.put("/api/helloo/faces/calls", calls),
   contacts: () => hellooHttp.get("/api/helloo/contacts"),
-  lookup: (id) => hellooHttp.get(`/api/helloo/people/lookup?id=${encodeURIComponent(id)}`),
+  lookup: (id, face) => hellooHttp.get(`/api/helloo/people/lookup?id=${encodeURIComponent(id)}${face ? `&face=${face}` : ""}`),
   photos: (ids) => hellooHttp.post("/api/helloo/photos", { ids }),
   chats: () => hellooHttp.get("/api/helloo/chats"),
   open: (withId, face) => hellooHttp.post("/api/helloo/chats", face ? { with: withId, face } : { with: withId }),

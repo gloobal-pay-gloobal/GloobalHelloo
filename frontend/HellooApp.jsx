@@ -1446,15 +1446,32 @@ function HellooRoot() {
     if (!signedIn) return;
     hellooApi.activeCall().then((r) => { if (r.call) onIncomingCall(r.call); }).catch(() => {});
   }, [signedIn]);
+  // The country code a typed mobile number is read with: your own country's.
+  const dialCode = (typeof ALL_COUNTRIES === "object" && user && ((ALL_COUNTRIES.find((c) => c[1] === user.countryIso) || [])[2])) || "+91";
+  // By mobile number: looked up a moment after the typing stops.
   useEffectH9(() => {
+    if (dial.mode === "id") return undefined;
+    const digits = String(dial.phone || "").replace(/\D/g, "");
+    if (digits.length < 7) { if (dial.status) setDial((d) => Object.assign({}, d, { status: "", match: null })); return undefined; }
+    let gone = false;
+    const t = setTimeout(() => {
+      setDial((d) => Object.assign({}, d, { status: "looking" }));
+      hellooApi.lookup(`${dialCode}${digits}`, "self")
+        .then((r) => { if (!gone) setDial((d) => Object.assign({}, d, { status: "found", match: hellooPersonFrom(r.person, photos) })); askPhotos([r.person]); })
+        .catch((err) => { if (!gone) { setDial((d) => Object.assign({}, d, { status: "none", match: null })); if (err && err.body && err.body.code === "person_is_you") setToast("That is your own number"); } });
+    }, 550);
+    return () => { gone = true; clearTimeout(t); };
+  }, [dial.phone, dial.mode]);
+  useEffectH9(() => {
+    if (dial.mode !== "id") return undefined;
     if (dial.value.length !== 12) { if (dial.status) setDial((d) => Object.assign({}, d, { status: "", match: null })); return undefined; }
     let gone = false;
     setDial((d) => Object.assign({}, d, { status: "looking" }));
-    hellooApi.lookup(dial.value)
+    hellooApi.lookup(dial.value, "self")
       .then((r) => { if (!gone) setDial((d) => Object.assign({}, d, { status: "found", match: hellooPersonFrom(r.person, photos) })); askPhotos([r.person]); })
       .catch((err) => { if (!gone) { setDial((d) => Object.assign({}, d, { status: "none", match: null })); if (err && err.body && err.body.code === "person_is_you") setToast("That is your own GLOOBAL ID"); } });
     return () => { gone = true; };
-  }, [dial.value]);
+  }, [dial.value, dial.mode]);
 
   // ── Scan ─────────────────────────────────────────────────────────────
   // Pay somebody by their GLOOBAL ID: their chat, with Pay open in it.
@@ -1896,7 +1913,7 @@ function HellooRoot() {
       onShopItem={(tag) => { if (user && tag.shop === user.symbolId) { setToast("That is your own shop"); return; } Promise.resolve(openChatWith(tag.shop)).then(() => openMenu({ gloobalId: tag.shop }, tag.itemId)).catch(() => {}); }} />}
     {tab === "earn" && <HellooAdsHome me={me} photos={photos} onCards={askPhotos} onToast={setToast} onReceipt={openGloobalReceipt} />}
     {tab === "calls" && <HellooCallsHome me={me} calls={callsAll} filter={callFilter} onFilter={setCallFilter} when={callWhen} onWhen={setCallWhen} onCallBack={(c) => startCall(c.person, c.video)} onInfo={(c) => openChatWith(c.person.accountId, true)} onOpenDial={() => { setDial({ value: "", status: "", match: null }); setSheet("dial"); }} onAdd={() => setSheet("add")} onSearch={() => { setContactQuery(""); refreshContacts(); setScreen("contacts"); }} onScan={() => setScreen("scan")} onMe={() => setScreen("me")} />}
-    {sheet === "dial" && <HellooDialSheet contacts={contacts} saved={Boolean(dial.match && contacts.some((c) => c.accountId === dial.match.accountId))} saving={dialSaving} onSave={() => { const m = dial.match; if (!m || dialSaving) return; setDialSaving(true); hellooApi.open(m.gloobalId).then(() => { refreshContacts(); setToast(`${m.handle || (m.name || "").split(" ")[0]} saved`); }).catch((err) => setToast((err && err.message) || "Couldn't save them right now.")).then(() => setDialSaving(false)); }} dial={dial.value} onDial={(v) => setDial((d) => Object.assign({}, d, { value: v }))} match={dial.match} status={dial.status} onMessage={() => dial.match && openChatWith(dial.match.gloobalId, false, false, dial.match.handle ? "" : "self")} onCall={() => { if (dial.match) { setSheet(null); startCall(dial.match, false); } }} onVideo={() => { if (dial.match) { setSheet(null); startCall(dial.match, true); } }} onClose={() => setSheet(null)} />}
+    {sheet === "dial" && <HellooDialSheet contacts={contacts} saved={Boolean(dial.match && contacts.some((c) => c.accountId === dial.match.accountId))} saving={dialSaving} onSave={() => { const m = dial.match; if (!m || dialSaving) return; setDialSaving(true); hellooApi.open(m.gloobalId).then(() => { refreshContacts(); setToast(`${m.handle || (m.name || "").split(" ")[0]} saved`); }).catch((err) => setToast((err && err.message) || "Couldn't save them right now.")).then(() => setDialSaving(false)); }} dial={dial.value} onDial={(v) => setDial((d) => Object.assign({}, d, { value: v }))} match={dial.match} status={dial.status} mode={dial.mode === "id" ? "id" : "mobile"} onMode={(m) => setDial({ value: "", phone: "", status: "", match: null, mode: m })} phone={dial.phone || ""} onPhone={(v) => setDial((d) => Object.assign({}, d, { phone: v }))} dialCode={dialCode} onMessage={() => dial.match && openChatWith(dial.match.gloobalId, false, false, "self")} onCall={() => { if (dial.match) { setSheet(null); startCall(dial.match, false); } }} onVideo={() => { if (dial.match) { setSheet(null); startCall(dial.match, true); } }} onClose={() => setSheet(null)} />}
     {sheet === "add" && addSheet}
     {sheet === "release" && release && releaseSheet}
     {sheet === "savename" && nameSheet}
