@@ -534,7 +534,8 @@ function HellooRoot() {
       setRelease((now) => (now ? Object.assign({}, now, { busy: false, pin: "", error: (err && err.message) || "That didn't work. Try again." }) : now));
     }
   };
-  const openChatWith = useCallbackH9(async (who, profile, fromContacts, face) => {
+  // draft: a line put in the message box, for the person to send (Work: applying).
+  const openChatWith = useCallbackH9(async (who, profile, fromContacts, face, draft) => {
     try {
       const r = await hellooApi.open(who, face);
       const chat = r && r.chat;
@@ -544,6 +545,7 @@ function HellooRoot() {
       setScreen(profile ? "contact" : null);
       setSheet(null);
       openChat(chat.id);
+      if (draft) setDrafts((d) => Object.assign({}, d, { [chat.id]: String(draft).slice(0, 2000) }));
       if (keptPrivate) setFreshFrom((f) => Object.assign({}, f, { [chat.id]: Date.now() }));
       backToContactsRef.current = Boolean(fromContacts);
       refreshContacts();
@@ -1907,7 +1909,7 @@ function HellooRoot() {
       [HlPalette, "Colours", () => { setSheet(null); setScreen("theme"); }]
     ].filter(Boolean).map(([Icon, title, onPress], i) => <HellooRow key={title} Icon={Icon} title={title} first={i === 0} onPress={onPress} />)}</HellooCard></HellooSheet>}
     {tab === "social" && <HellooSocialHome me={me} faces={faces} photos={photos} composeTick={socialCompose} onCards={askPhotos} onToast={setToast}
-      onOpenChat={(card) => openChatWith(card.gloobalId, false, false, card.side === "self" ? "self" : undefined)}
+      onOpenChat={(card, draft) => openChatWith(card.gloobalId, false, false, card.side === "self" ? "self" : undefined, draft)}
       onTip={(card) => payGloobalId(card.gloobalId)}
       onShop={(card) => Promise.resolve(openChatWith(card.gloobalId)).then(() => openMenu({ gloobalId: card.gloobalId })).catch(() => {})}
       onShopItem={(tag) => { if (user && tag.shop === user.symbolId) { setToast("That is your own shop"); return; } Promise.resolve(openChatWith(tag.shop)).then(() => openMenu({ gloobalId: tag.shop }, tag.itemId)).catch(() => {}); }} />}
