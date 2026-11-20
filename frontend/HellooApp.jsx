@@ -1962,7 +1962,21 @@ function HellooRoot() {
   }
   if (screen === "contacts") {
     const withPresence = contacts.map((p) => { const pr = presence[p.accountId]; return pr ? Object.assign({}, p, { online: Boolean(pr.online) }) : p; });
-    return shell(<><HellooContactsScreen me={me} contacts={withPresence} query={contactQuery} onQuery={setContactQuery} onOpen={(p) => openChatWith(p.accountId, true, true)} onMessage={(p) => openChatWith(p.accountId, false, true)} onCall={(p) => startCall(p, false)} onVideo={(p) => startCall(p, true)} onRemove={(p) => { const name = p.handle || (p.name || "").split(" ")[0]; hellooApi.hideContact(p.accountId, true).then(() => { refreshContacts(); setToast(`${name} is out of your contacts · back if you pay or chat again`); }).catch((err) => setToast(err.message || "Couldn't remove them.")); }} onAdd={() => setSheet("add")} onBack={() => setScreen(null)} autoFocus />{sheet === "add" && addSheet}</>);
+    // Names you saved for people (a chat's saved name). A private chat's name
+    // is never shown here: it opens only when its whole name is typed.
+    const chatOf = (accountId) => (chatRows || []).find((c) => c.person && c.person.accountId === accountId && !c.group);
+    const savedNames = {};
+    for (const c of chatRows || []) if (c.person && c.person.accountId && c.savedName && !c.private) savedNames[c.person.accountId] = c.savedName;
+    const saveContactName = async (p) => {
+      let chat = chatOf(p.accountId);
+      if (chat && chat.private) { setToast("That chat is private · open it by its name to change it"); return; }
+      try {
+        if (!chat) { const r = await hellooApi.open(p.accountId); chat = r && r.chat; if (chat) setChatRows((rowsNow) => [chat, ...(rowsNow || []).filter((c) => c.id !== chat.id)]); }
+        if (!chat) { setToast("Couldn't open them right now"); return; }
+        openNameEdit(chat); setSheet("savename");
+      } catch (err) { setToast((err && err.message) || "Couldn't open them right now"); }
+    };
+    return shell(<><HellooContactsScreen me={me} contacts={withPresence} saved={savedNames} onSaveName={saveContactName} query={contactQuery} onQuery={setContactQuery} onOpen={(p) => openChatWith(p.accountId, true, true)} onMessage={(p) => openChatWith(p.accountId, false, true)} onCall={(p) => startCall(p, false)} onVideo={(p) => startCall(p, true)} onRemove={(p) => { const name = p.handle || (p.name || "").split(" ")[0]; hellooApi.hideContact(p.accountId, true).then(() => { refreshContacts(); setToast(`${name} is out of your contacts · back if you pay or chat again`); }).catch((err) => setToast(err.message || "Couldn't remove them.")); }} onAdd={() => setSheet("add")} onBack={() => setScreen(null)} autoFocus />{sheet === "add" && addSheet}{sheet === "savename" && nameSheet}</>);
   }
   if (screen === "blocked") {
     return shell(<HellooScreen><HellooTop left={<NavBackButton onClick={() => setScreen(null)} />} title="Blocked people" subtitle="They can't message you or see when you're online" /><div style={{ flex: 1, minHeight: 0, overflowY: "auto", padding: "0 16px 30px" }}>{blocked === null ? <HellooCard style={{ padding: 18, textAlign: "center", color: T.inkFaint, fontWeight: 700, fontSize: 13 }}>Loading…</HellooCard> : blocked.length === 0 ? <HellooCard style={{ padding: 18, textAlign: "center", color: T.inkSoft, fontSize: 13 }}>You haven't blocked anyone.</HellooCard> : <HellooCard>{blocked.map((card, i) => { const p = hellooPersonFrom(card, photos); return <div key={p.id} style={{ display: "flex", alignItems: "center", gap: 12, padding: "10px 14px", borderTop: i ? `1px solid ${T.line}` : "none" }}><HellooAvatar person={p} size={42} /><span style={{ flex: 1, minWidth: 0, fontSize: 14.5, fontWeight: 800, color: T.ink }}>{p.name}</span><button onClick={() => setBlock(p, false)} className="v2-tap" style={{ border: "none", borderRadius: 999, background: T.accentSoft, color: T.accent, fontWeight: 800, fontSize: 12.5, padding: "7px 13px", cursor: "pointer", fontFamily: T.fontBody }}>Unblock</button></div>; })}</HellooCard>}</div></HellooScreen>);
