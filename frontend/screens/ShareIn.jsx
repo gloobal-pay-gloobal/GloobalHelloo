@@ -78,7 +78,7 @@ function HellooShareInSheet({ share, chats, onSend, onClose }) {
     </div>
     <div style={{ maxHeight: "48vh", overflowY: "auto" }}>{shown.length ? <HellooCard>{shown.map((c, i) => <button key={c.id} data-testid="helloo-share-in-chat" onClick={() => send(c)} disabled={Boolean(busy)} className="v2-tap" style={{ width: "100%", display: "flex", alignItems: "center", gap: 12, padding: "10px 14px", border: "none", borderTop: i ? `1px solid ${T.line}` : "none", background: "none", cursor: "pointer", textAlign: "left", fontFamily: T.fontBody }}>
       <HellooAvatar person={c.person} size={42} />
-      <span style={{ flex: 1, minWidth: 0, fontSize: 14.5, fontWeight: 800, color: T.ink, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{c.person.handle || c.person.name}</span>
+      <span style={{ display: "inline-flex", alignItems: "center", gap: 4, flex: 1, minWidth: 0, maxWidth: "100%" }}><span style={{ minWidth: 0, fontSize: 14.5, fontWeight: 800, color: T.ink, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{c.person.handle || c.person.name}</span>{c.person && !c.person.group ? <HellooBadge tier={c.person.badge || 1} size={12.5} /> : null}</span>
       <span style={{ display: "flex", alignItems: "center", gap: 5, fontSize: 12, fontWeight: 800, color: T.accent, background: T.accentSoft, borderRadius: 999, padding: "6px 11px", flexShrink: 0 }}>{busy === c.id ? "Sending…" : <><HlSend size={13} />Send</>}</span>
     </button>)}</HellooCard> : <HellooCard style={{ padding: "16px", fontSize: 13, color: T.inkSoft, textAlign: "center" }}>{t ? "No chat by that name" : "No chats yet. Start one, then share again."}</HellooCard>}</div>
   </div></HellooSheet>;
