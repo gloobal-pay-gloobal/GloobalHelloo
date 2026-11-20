@@ -38,7 +38,8 @@ var adsApi = {
 };
 var ADS_TOPICS = { work: ["🛠️", "Work"], food: ["🍛", "Food"], travel: ["✈️", "Travel"], transport: ["🚌", "Transport"], phones: ["📱", "Phones"], classes: ["📚", "Classes"], fashion: ["👗", "Fashion"], sports: ["🏏", "Sports"], money: ["🏦", "Money"], games: ["🎮", "Games"], home: ["🏠", "Home"], health: ["💊", "Health"] };
 function adsTopic(k) { return ADS_TOPICS[k] || ["🏷️", k]; }
-function adsSrc(m) { return m && m.url ? `${GLOOBAL_API_BASE}${m.url}` : ""; }
+// Sealed like Social media: only with the viewer's pass.
+function adsSrc(m) { return m && m.url ? gloobalSealedSrc(m.url) : ""; }
 function adsCard(card, photos) { return card && card.accountId ? hellooPersonFrom(card, photos) : { name: "Advertiser" }; }
 
 function AdsChip({ on, children, onClick, testId }) {
@@ -51,6 +52,7 @@ function AdsPrice({ value, min = 0.1, max = 7, onChange, onDone, testId }) {
 
 // ── The Ads & Earn tab ──────────────────────────────────────────────────
 function HellooAdsHome({ me, photos, onCards, onToast, onReceipt }) {
+  useGloobalViewPass();
   const [my, setMy] = useStateH43(null);
   const [err, setErr] = useStateH43("");
   const [price, setPrice] = useStateH43(0.5);
@@ -171,6 +173,7 @@ function AdsWatch({ ad, where, photos, money, onClose, onNext, onToast }) {
 
 // ── The advertiser's side ───────────────────────────────────────────────
 function AdsAdvertiser({ me, onBack, onToast }) {
+  useGloobalViewPass();
   const [data, setData] = useStateH43(null);
   const [making, setMaking] = useStateH43(false);
   const load = useCallbackH43(() => adsApi.campaigns().then(setData).catch((e) => onToast((e && e.message) || "Couldn't load your ads.")), []);

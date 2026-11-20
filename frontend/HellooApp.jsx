@@ -575,6 +575,14 @@ function HellooRoot() {
     else if (link.gloobalId && link.gloobalId !== user.symbolId) openChatWith(link.gloobalId);
   }, [signedIn]);
 
+  // No open links: fetch the view pass for people's pictures as soon as
+  // Helloo is signed in (GLOOBAL features/viewpass), with Helloo's client.
+  useEffectH9(() => {
+    if (!signedIn) return;
+    gloobalViewPassUse(hellooHttp);
+    gloobalViewPassRefresh();
+  }, [signedIn]);
+
   // Shared in from another app: read it once, then "Send to…".
   useEffectH9(() => {
     if (!signedIn) return undefined;

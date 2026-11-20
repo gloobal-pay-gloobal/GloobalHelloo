@@ -58,7 +58,9 @@ function socialSeeWrite(v) { try { localStorage.setItem(SOCIAL_SEE_KEY, JSON.str
 async function socialCopy(text, onToast) { try { await navigator.clipboard.writeText(text); onToast("Copied"); } catch (e) { onToast("Couldn't copy that."); } }
 var SOCIAL_VIDEO_MAX = 8 * 1024 * 1024;
 var SOCIAL_PHOTO_MAX = 700 * 1024;
-function socialMediaSrc(m) { return m && m.url ? (/^https?:/i.test(m.url) ? m.url : `${GLOOBAL_API_BASE}${m.url}`) : ""; }
+// Sealed: post media opens only with the signed-in viewer's pass (GLOOBAL
+// features/viewpass). No pass yet → no address, nothing asked anonymously.
+function socialMediaSrc(m) { return m && m.url ? gloobalSealedSrc(m.url) : ""; }
 function socialCount(n) {
   const v = Number(n) || 0;
   if (v >= 1e6) return `${(v / 1e6).toFixed(v >= 1e7 ? 0 : 1).replace(/\.0$/, "")}M`;
@@ -177,6 +179,7 @@ function SocialPostCard({ post, photos, act, muted, onMuted }) {
 
 // ── The whole Social tab ────────────────────────────────────────────────
 function HellooSocialHome({ me, faces, photos, onCards, onOpenChat, onTip, onShopItem, onShop, onToast, composeTick }) {
+  useGloobalViewPass();
   const myId = me.accountId || me.id || "";
   const [as, setAs] = useStateH40(() => socialFaceLoad(myId));
   const [who, setWho] = useStateH40(false);
@@ -255,7 +258,10 @@ function HellooSocialHome({ me, faces, photos, onCards, onOpenChat, onTip, onSho
     shopItem: (item) => onShopItem(item),
     tag: (t) => { setProfile(null); setOpen(null); setQ(""); setTag(t); setView("explore"); },
     share: async (post) => {
-      const text = `${post.author.handle || post.author.name} on GLOOBAL${post.caption ? `: ${post.caption.slice(0, 80)}` : ""}`;
+      // Sealed: nothing of the post leaves — no picture, no caption, no
+      // link that opens it. Only a note to open it inside Helloo, where the
+      // viewer is a signed-in, real person (no open links on GLOOBAL).
+      const text = "Sealed on GLOOBAL · a post for you. Open Helloo to see it.";
       try { if (navigator.share) await navigator.share({ title: "GLOOBAL", text, url: HELLOO_SITE }); else { await navigator.clipboard.writeText(`${text} ${HELLOO_SITE}`); onToast("Copied to share"); } } catch (e) { /* closed */ }
     }
   };

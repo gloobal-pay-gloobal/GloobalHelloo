@@ -270,6 +270,7 @@ import { createPortal as gloobalMapPortal } from "react-dom";
 import { Plus as MapPlus, Minus as MapMinus, LocateFixed as MapLocate, Store as MapStore, Loader as MapLoader } from "lucide-react";
 import { useState as useState66, useEffect as useEffect63, useRef as useRef37 } from "react";
 import { Navigation as BmNav, Copy as BmCopy, MapPin as BmPin, Store as BmStore, MessageSquare as BmChat, Wallet as BmPay, Star as BmStar, Search as BmFind, X as BmX } from "lucide-react";
+import { useState as useStateVp, useEffect as useEffectVp } from "react";
 import { useState as useStateUm, useEffect as useEffectUm, useRef as useRefUm, useCallback as useCallbackUm } from "react";
 import {
   Tag as UmTag, MapPin as UmPin, ShieldCheck as UmSafe, BadgeCheck as UmReal, Camera as UmCam, Handshake as UmDeal,
@@ -52671,6 +52672,66 @@ function BazaarMap({ center, placeName = "", radiusKm, shops = [], query = "", o
 }
 
 
+// src/features/viewpass/viewPass.jsx
+//
+// No open links. People's pictures and videos (Social posts, ads, Used
+// listings) are served only with a view pass: 15 minutes long, given to a
+// signed-in account (server/lib/viewPass.js, GET /api/social/pass). Every
+// <img>/<video> of such content takes its address through gloobalSealedSrc,
+// which adds the pass — and gives no address at all while there is none,
+// so nothing is ever asked for anonymously. Shared by GLOOBAL and Helloo
+// (Helloo hands over its own HTTP client with gloobalViewPassUse).
+// Pay QRs are the exception and do not come through here.
+
+var gloobalViewPass = { pass: "", exp: 0, wait: null, http: null, subs: new Set() };
+
+// Which client asks for the pass (Helloo signs in with its own).
+function gloobalViewPassUse(http) { gloobalViewPass.http = http || null; gloobalViewPass.pass = ""; gloobalViewPass.exp = 0; }
+
+async function gloobalViewPassRefresh() {
+  if (gloobalViewPass.pass && gloobalViewPass.exp - Date.now() > 2 * 60 * 1000) return gloobalViewPass.pass;
+  if (!gloobalViewPass.wait) {
+    const http = gloobalViewPass.http || (typeof gloobalApiClient !== "undefined" ? gloobalApiClient : null);
+    gloobalViewPass.wait = (http ? http.get("/api/social/pass") : Promise.reject(new Error("no client")))
+      .then((r) => {
+        gloobalViewPass.pass = (r && r.pass) || "";
+        gloobalViewPass.exp = r && r.expiresAt ? new Date(r.expiresAt).getTime() : 0;
+        gloobalViewPass.subs.forEach((f) => { try { f(gloobalViewPass.pass); } catch (e) { /* a screen gone */ } });
+        return gloobalViewPass.pass;
+      })
+      .catch(() => "")
+      .finally(() => { gloobalViewPass.wait = null; });
+  }
+  return gloobalViewPass.wait;
+}
+
+// The address to draw: our own content address plus the pass; a phone's
+// own picture (blob:, data:) as it is; nothing while there is no pass.
+function gloobalSealedSrc(url, pass) {
+  if (!url) return "";
+  const u = String(url);
+  if (/^(blob:|data:)/i.test(u)) return u;
+  const p = pass === undefined ? gloobalViewPass.pass : pass;
+  if (!p) return "";
+  const full = /^https?:/i.test(u) ? u : `${typeof GLOOBAL_API_BASE !== "undefined" ? GLOOBAL_API_BASE : ""}${u}`;
+  return `${full}${full.includes("?") ? "&" : "?"}v=${encodeURIComponent(p)}`;
+}
+
+// For a screen that draws such content: the current pass, kept fresh, and
+// a redraw when it arrives or is renewed.
+function useGloobalViewPass() {
+  const [pass, setPass] = useStateVp(gloobalViewPass.pass);
+  useEffectVp(() => {
+    const sub = (p) => setPass(p);
+    gloobalViewPass.subs.add(sub);
+    gloobalViewPassRefresh();
+    const t = setInterval(() => { gloobalViewPassRefresh(); }, 60 * 1000);
+    return () => { gloobalViewPass.subs.delete(sub); clearInterval(t); };
+  }, []);
+  return pass;
+}
+
+
 // src/features/used/used.jsx
 //
 // GLOOBAL बाज़ार · USED: neighbours selling their own second-hand things.
@@ -52745,7 +52806,11 @@ function UsedFace({ person, size = 40 }) {
 }
 function UsedPhoto({ src, h = 104, r = 15, fit = "cover" }) {
   const [bad, setBad] = useStateUm(false);
-  return <span style={{ display: "flex", alignItems: "center", justifyContent: "center", width: "100%", height: h, borderRadius: r, background: T.surfaceAlt, overflow: "hidden", flexShrink: 0 }}>{src && !bad ? <img src={src} alt="" loading="lazy" onError={() => setBad(true)} style={{ width: "100%", height: "100%", objectFit: fit, display: "block" }} /> : <UmNoPhoto size={Math.min(34, h / 3)} color={T.inkFaint} />}</span>;
+  // Sealed: only with the signed-in viewer's pass (features/viewpass).
+  const pass = useGloobalViewPass();
+  const shown = gloobalSealedSrc(src, pass);
+  useEffectUm(() => { setBad(false); }, [shown]);
+  return <span style={{ display: "flex", alignItems: "center", justifyContent: "center", width: "100%", height: h, borderRadius: r, background: T.surfaceAlt, overflow: "hidden", flexShrink: 0 }}>{shown && !bad ? <img src={shown} alt="" loading="lazy" onError={() => setBad(true)} style={{ width: "100%", height: "100%", objectFit: fit, display: "block" }} /> : <UmNoPhoto size={Math.min(34, h / 3)} color={T.inkFaint} />}</span>;
 }
 function UsedChip({ on, onClick, children, testid, disabled }) {
   return <button onClick={onClick} disabled={disabled} aria-pressed={Boolean(on)} data-testid={testid} className="v2-tap" style={{ flexShrink: 0, padding: "8px 13px", borderRadius: 999, border: "none", background: on ? T.accentSoft : T.surface, color: on ? T.accent : T.inkSoft, boxShadow: on ? `inset 0 0 0 1.5px ${T.accent}` : T.shadowCard, fontSize: 13, fontWeight: 800, cursor: "pointer", fontFamily: T.fontBody, whiteSpace: "nowrap", opacity: disabled ? 0.6 : 1 }}>{children}</button>;
@@ -79485,7 +79550,9 @@ function socialSeeWrite(v) { try { localStorage.setItem(SOCIAL_SEE_KEY, JSON.str
 async function socialCopy(text, onToast) { try { await navigator.clipboard.writeText(text); onToast("Copied"); } catch (e) { onToast("Couldn't copy that."); } }
 var SOCIAL_VIDEO_MAX = 8 * 1024 * 1024;
 var SOCIAL_PHOTO_MAX = 700 * 1024;
-function socialMediaSrc(m) { return m && m.url ? (/^https?:/i.test(m.url) ? m.url : `${GLOOBAL_API_BASE}${m.url}`) : ""; }
+// Sealed: post media opens only with the signed-in viewer's pass (GLOOBAL
+// features/viewpass). No pass yet → no address, nothing asked anonymously.
+function socialMediaSrc(m) { return m && m.url ? gloobalSealedSrc(m.url) : ""; }
 function socialCount(n) {
   const v = Number(n) || 0;
   if (v >= 1e6) return `${(v / 1e6).toFixed(v >= 1e7 ? 0 : 1).replace(/\.0$/, "")}M`;
@@ -79604,6 +79671,7 @@ function SocialPostCard({ post, photos, act, muted, onMuted }) {
 
 // ── The whole Social tab ────────────────────────────────────────────────
 function HellooSocialHome({ me, faces, photos, onCards, onOpenChat, onTip, onShopItem, onShop, onToast, composeTick }) {
+  useGloobalViewPass();
   const myId = me.accountId || me.id || "";
   const [as, setAs] = useStateH40(() => socialFaceLoad(myId));
   const [who, setWho] = useStateH40(false);
@@ -79682,7 +79750,10 @@ function HellooSocialHome({ me, faces, photos, onCards, onOpenChat, onTip, onSho
     shopItem: (item) => onShopItem(item),
     tag: (t) => { setProfile(null); setOpen(null); setQ(""); setTag(t); setView("explore"); },
     share: async (post) => {
-      const text = `${post.author.handle || post.author.name} on GLOOBAL${post.caption ? `: ${post.caption.slice(0, 80)}` : ""}`;
+      // Sealed: nothing of the post leaves — no picture, no caption, no
+      // link that opens it. Only a note to open it inside Helloo, where the
+      // viewer is a signed-in, real person (no open links on GLOOBAL).
+      const text = "Sealed on GLOOBAL · a post for you. Open Helloo to see it.";
       try { if (navigator.share) await navigator.share({ title: "GLOOBAL", text, url: HELLOO_SITE }); else { await navigator.clipboard.writeText(`${text} ${HELLOO_SITE}`); onToast("Copied to share"); } } catch (e) { /* closed */ }
     }
   };
@@ -79983,7 +80054,8 @@ var adsApi = {
 };
 var ADS_TOPICS = { work: ["🛠️", "Work"], food: ["🍛", "Food"], travel: ["✈️", "Travel"], transport: ["🚌", "Transport"], phones: ["📱", "Phones"], classes: ["📚", "Classes"], fashion: ["👗", "Fashion"], sports: ["🏏", "Sports"], money: ["🏦", "Money"], games: ["🎮", "Games"], home: ["🏠", "Home"], health: ["💊", "Health"] };
 function adsTopic(k) { return ADS_TOPICS[k] || ["🏷️", k]; }
-function adsSrc(m) { return m && m.url ? `${GLOOBAL_API_BASE}${m.url}` : ""; }
+// Sealed like Social media: only with the viewer's pass.
+function adsSrc(m) { return m && m.url ? gloobalSealedSrc(m.url) : ""; }
 function adsCard(card, photos) { return card && card.accountId ? hellooPersonFrom(card, photos) : { name: "Advertiser" }; }
 
 function AdsChip({ on, children, onClick, testId }) {
@@ -79996,6 +80068,7 @@ function AdsPrice({ value, min = 0.1, max = 7, onChange, onDone, testId }) {
 
 // ── The Ads & Earn tab ──────────────────────────────────────────────────
 function HellooAdsHome({ me, photos, onCards, onToast, onReceipt }) {
+  useGloobalViewPass();
   const [my, setMy] = useStateH43(null);
   const [err, setErr] = useStateH43("");
   const [price, setPrice] = useStateH43(0.5);
@@ -80116,6 +80189,7 @@ function AdsWatch({ ad, where, photos, money, onClose, onNext, onToast }) {
 
 // ── The advertiser's side ───────────────────────────────────────────────
 function AdsAdvertiser({ me, onBack, onToast }) {
+  useGloobalViewPass();
   const [data, setData] = useStateH43(null);
   const [making, setMaking] = useStateH43(false);
   const load = useCallbackH43(() => adsApi.campaigns().then(setData).catch((e) => onToast((e && e.message) || "Couldn't load your ads.")), []);
@@ -82424,6 +82498,14 @@ function HellooRoot() {
     if (link.calls) { setTab("calls"); return; }
     if (link.chatId) openChat(link.chatId);
     else if (link.gloobalId && link.gloobalId !== user.symbolId) openChatWith(link.gloobalId);
+  }, [signedIn]);
+
+  // No open links: fetch the view pass for people's pictures as soon as
+  // Helloo is signed in (GLOOBAL features/viewpass), with Helloo's client.
+  useEffectH9(() => {
+    if (!signedIn) return;
+    gloobalViewPassUse(hellooHttp);
+    gloobalViewPassRefresh();
   }, [signedIn]);
 
   // Shared in from another app: read it once, then "Send to…".
