@@ -29,6 +29,14 @@ export default defineConfig({
         start_url: "/",
         scope: "/",
         categories: ["social", "communication"],
+        // Helloo in the phone's share sheet (Android, once installed), next
+        // to WhatsApp and Telegram: src/sw.js takes the post at /share-in.
+        share_target: {
+          action: "/share-in",
+          method: "POST",
+          enctype: "multipart/form-data",
+          params: { title: "title", text: "text", url: "url", files: [{ name: "file", accept: ["image/*"] }] },
+        },
         icons: [
           { src: "/icons/helloo-192.png", sizes: "192x192", type: "image/png", purpose: "any" },
           { src: "/icons/helloo-512.png", sizes: "512x512", type: "image/png", purpose: "any" },

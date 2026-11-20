@@ -13,6 +13,26 @@ self.skipWaiting();
 clientsClaim();
 cleanupOutdatedCaches();
 precacheAndRoute(self.__WB_MANIFEST);
+// Shared INTO Helloo from the phone's share sheet (manifest share_target).
+// The words and the first picture are kept in a cache for the app to read
+// (screens/ShareIn.jsx), then the app opens on "Send to…". Registered
+// before the navigation route so the POST is ours, not the app shell's.
+self.addEventListener("fetch", (event) => {
+  const url = new URL(event.request.url);
+  if (event.request.method !== "POST" || url.origin !== self.location.origin || url.pathname !== "/share-in") return;
+  event.respondWith((async () => {
+    try {
+      const form = await event.request.formData();
+      const file = form.getAll("file").find((f) => f && typeof f === "object" && f.size > 0);
+      await caches.delete("helloo-share-in");
+      const cache = await caches.open("helloo-share-in");
+      const meta = { title: String(form.get("title") || ""), text: String(form.get("text") || ""), url: String(form.get("url") || ""), fileName: file ? file.name : "", fileType: file ? file.type : "" };
+      await cache.put("/share-in/meta", new Response(JSON.stringify(meta), { headers: { "content-type": "application/json" } }));
+      if (file) await cache.put("/share-in/file", new Response(file, { headers: { "content-type": file.type || "image/png" } }));
+    } catch (e) { /* open the app anyway */ }
+    return Response.redirect("/?share=in", 303);
+  })());
+});
 registerRoute(new NavigationRoute(createHandlerBoundToURL("/index.html")));
 
 self.addEventListener("push", (event) => {

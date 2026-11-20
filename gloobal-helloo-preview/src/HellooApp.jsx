@@ -522,6 +522,7 @@ import { useState as useStateH45, useEffect as useEffectH45, useRef as useRefH45
 import { Zap as SnFlash, RefreshCcw as SnFlip, Eye as SnOnce, Timer as SnDay, Bookmark as SnKeep, EyeOff as SnGone, Images as SnGallery } from "lucide-react";
 import { useState as useStateH47, useEffect as useEffectH47, useCallback as useCallbackH47 } from "react";
 import { Briefcase as WxBag, BadgeCheck as WxReal, MapPin as WxPin, ShieldAlert as WxWarn, Search as WxFind, Pencil as WxEdit, X as WxX, ChevronRight as WxGo, Plus as WxPlus, LocateFixed as WxLocate, Flag as WxFlag } from "lucide-react";
+import { useState as useStateH48, useEffect as useEffectH48 } from "react";
 import { useState as useStateH11, useEffect as useEffectH11, useRef as useRefH11 } from "react";
 import { useState as useStateH9, useEffect as useEffectH9, useMemo as useMemoH9, useRef as useRefH9, useCallback as useCallbackH9 } from "react";
 // Auto-generated from organized sources by build_app.mjs
@@ -25066,6 +25067,19 @@ function gloobalQrToPngBlob(value, { moduleScale = 12, discColor, markStep = 0, 
   });
 }
 
+// Helloo, GLOOBAL's messenger: its address, and its mark (the same picture
+// as Helloo's own app icon), for the QR card's Helloo button and the
+// Helloo row in Profile.
+var GLOOBAL_HELLOO_APP = "https://gloobalhelloo.netlify.app";
+function GloobalHellooMark({ size = 18 }) {
+  return <svg width={size} height={size} viewBox="0 0 100 100" aria-hidden="true" style={{ flexShrink: 0, display: "block" }}><defs><linearGradient id="gl-helloo-mark" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stopColor="#4F46E5" /><stop offset="0.6" stopColor="#7C3AED" /><stop offset="1" stopColor="#C026D3" /></linearGradient></defs><rect width="100" height="100" rx="22" fill="url(#gl-helloo-mark)" /><g transform="translate(10 8) scale(0.4)"><path d="M143.8 56.2 A62 62 0 1 0 162 100 H150" fill="none" stroke="#fff" strokeWidth="30" strokeLinecap="round" strokeLinejoin="round" /><path d="M47 132 L26 184 L84 160 Z" fill="#fff" stroke="#fff" strokeWidth="8" strokeLinejoin="round" /><circle cx="84" cy="100" r="13" fill="#7CF5C4" /><circle cx="116" cy="100" r="13" fill="#FFB3CD" /></g></svg>;
+}
+// Opens Helloo on "Send to…" with these words (Helloo: screens/ShareIn.jsx).
+function gloobalOpenHelloo(text) {
+  const url = text ? `${GLOOBAL_HELLOO_APP}/?sharetext=${encodeURIComponent(String(text).slice(0, 1500))}` : `${GLOOBAL_HELLOO_APP}/`;
+  try { window.open(url, "_blank", "noopener"); } catch (e) { window.location.href = url; }
+}
+
 var GLOOBAL_QR_CARD_BUTTON = {
   flex: 1,
   minWidth: 0,
@@ -25295,7 +25309,17 @@ function GloobalReceiveQrCard({ gloobalId, name, side, style: forcedStyle = null
           style={{ ...GLOOBAL_QR_CARD_BUTTON, background: T.surface, color: T.ink, border: `1px solid ${T.line}` }}
         >
           <Copy4 size={16} aria-hidden="true" />
-          Copy ID
+          Copy
+        </button>
+        <button
+          type="button"
+          data-testid="qr-share-helloo"
+          onClick={() => gloobalOpenHelloo(`${side === "shop" && name ? `Pay ${name} on GLOOBAL:` : "Pay me on GLOOBAL:"} ${payload}`)}
+          aria-label="Send GLOOBAL QR on Helloo"
+          style={{ ...GLOOBAL_QR_CARD_BUTTON, background: T.surface, color: T.ink, border: `1px solid ${T.line}`, gap: 7 }}
+        >
+          <GloobalHellooMark size={18} />
+          Helloo
         </button>
         <button
           type="button"
@@ -60529,13 +60553,13 @@ function DashboardScreen({ dialCountry, onLogout, onOpenSend, onPayCreator, onPa
        because there is already an "About" row in this list and two rows
        starting with that word is a menu nobody can scan. */
   }{PROFILE_ROWS.slice(0, 1)
-    .concat(["Creator Profile"], shareRole === "merchant" ? ["My shops"] : [], PROFILE_ROWS.slice(1, 4), ["Sound pay", "Complaints & reports"], PROFILE_ROWS.slice(4)).map((label, i) => {
+    .concat(["Creator Profile"], shareRole === "merchant" ? ["My shops"] : [], PROFILE_ROWS.slice(1, 4), ["Helloo", "Sound pay", "Complaints & reports"], PROFILE_ROWS.slice(4)).map((label, i) => {
     // The theme's own family, very faint: one soft tint per row instead of
     // the eight-colour stripe the shared list drew in every theme.
     const rowColor = gloobalFamilyColor(i);
     return <button
       key={label}
-      data-testid={label === "My shops" ? "profile-my-shops" : undefined}
+      data-testid={label === "My shops" ? "profile-my-shops" : label === "Helloo" ? "profile-helloo" : undefined}
       // "Notifications" is the one row with a real screen behind it — the
       // server-held list, rendered from App.jsx so a push click can open
       // the same sheet. The rest still open their placeholder detail view.
@@ -60547,6 +60571,9 @@ function DashboardScreen({ dialCountry, onLogout, onOpenSend, onPayCreator, onPa
         // the centre of Home for a day; the founder moved it here: it is
         // the rare case, and the centre is not its place. The ear beside
         // the scanner still opens the same sheet.
+        // Helloo, GLOOBAL's messenger, opens in its own app.
+        : label === "Helloo"
+          ? gloobalOpenHelloo("")
         : label === "Sound pay"
           ? setShowEarn(true)
         : label === "Complaints & reports"
@@ -60569,7 +60596,7 @@ function DashboardScreen({ dialCountry, onLogout, onOpenSend, onPayCreator, onPa
     ><span style={{ fontSize: 13.5, fontWeight: 600, color: T.ink }}>{label}</span><span style={{ display: "inline-flex", alignItems: "center", gap: 8 }}>{label === "My shops" && shopsInfo && shopsInfo.shops && <span
       data-testid="profile-my-shops-count"
       style={{ fontSize: 11.5, fontWeight: 800, color: T.inkFaint }}
-    >{`${shopsInfo.shops.length} of ${Number(shopsInfo.max) || 5}`}</span>}{label === "Sound pay" && <SoundPlayIcon size={16} color={T.inkFaint} />}{label === "Complaints & reports" && complaintsNeedingMe > 0 && <span
+    >{`${shopsInfo.shops.length} of ${Number(shopsInfo.max) || 5}`}</span>}{label === "Helloo" && <GloobalHellooMark size={20} />}{label === "Sound pay" && <SoundPlayIcon size={16} color={T.inkFaint} />}{label === "Complaints & reports" && complaintsNeedingMe > 0 && <span
       data-complaints-badge
       style={{ minWidth: 20, height: 20, borderRadius: 10, background: T.negative, color: "#fff", fontSize: 11, fontWeight: 800, display: "inline-flex", alignItems: "center", justifyContent: "center", padding: "0 6px" }}
     >{complaintsNeedingMe}</span>}<ChevronRightIcon /></span></button>;
@@ -80595,6 +80622,84 @@ function WorkPost({ top, back, where, locate, busy, shopName, onToast, onPosted 
 }
 
 
+// ───── helloo: screens/ShareIn.jsx ─────
+// ─────────────────────────────────────────────────────────────────
+// Helloo · Share in.
+//
+// Something shared INTO Helloo from another app — a GLOOBAL QR from the
+// GLOOBAL app, a photo, a link. Two ways it arrives:
+//   - the phone's own share sheet (Android, Helloo installed): the
+//     manifest's share_target posts to /share-in, src/sw.js keeps the
+//     text and the picture in a cache and opens "/?share=in";
+//   - GLOOBAL's own "Helloo" button: "/?sharetext=…" with the words only.
+// Then: "Send to…", your chats; tap one and it is sent there. Private
+// chats are never listed — they make no sign until opened by name.
+// ─────────────────────────────────────────────────────────────────
+
+var HELLOO_SHARE_CACHE = "helloo-share-in";
+
+// What came in, read once and then thrown away. { text, file } or null.
+async function hellooReadShareIn() {
+  try {
+    const url = new URL(window.location.href);
+    const typed = url.searchParams.get("sharetext");
+    if (typed) return { text: typed.slice(0, 2000), file: null };
+    if (url.searchParams.get("share") !== "in" || typeof caches === "undefined") return null;
+    const cache = await caches.open(HELLOO_SHARE_CACHE);
+    const meta = await cache.match("/share-in/meta");
+    if (!meta) return null;
+    const m = await meta.json();
+    const pic = await cache.match("/share-in/file");
+    const blob = pic ? await pic.blob() : null;
+    await caches.delete(HELLOO_SHARE_CACHE);
+    const text = [m.text, m.url].filter(Boolean).filter((v, i, all) => !(i === 1 && all[0].includes(v))).join(" ").trim() || String(m.title || "").trim();
+    const file = blob && blob.size ? new File([blob], m.fileName || "shared.png", { type: blob.type || m.fileType || "image/png" }) : null;
+    return text || file ? { text: text.slice(0, 2000), file } : null;
+  } catch (e) {
+    return null;
+  }
+}
+
+function HellooShareInSheet({ share, chats, onSend, onClose }) {
+  const [q, setQ] = useStateH48("");
+  const [busy, setBusy] = useStateH48("");
+  const [pic, setPic] = useStateH48("");
+  useEffectH48(() => {
+    if (!share || !share.file) return undefined;
+    const u = URL.createObjectURL(share.file);
+    setPic(u);
+    return () => URL.revokeObjectURL(u);
+  }, [share]);
+  const list = (chats || []).filter((c) => !c.private && c.person);
+  const t = q.trim().toLowerCase();
+  const shown = (t ? list.filter((c) => String(c.person.handle || c.person.name || "").toLowerCase().includes(t)) : list).slice(0, 40);
+  const send = async (c) => {
+    if (busy) return;
+    setBusy(c.id);
+    try { await onSend(c); } finally { setBusy(""); }
+  };
+  return <HellooSheet label="Send to" onClose={onClose} zIndex={280}><div data-testid="helloo-share-in">
+    <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 10, marginBottom: 10 }}>
+      <div style={{ fontSize: 16, fontWeight: 800, fontFamily: T.fontDisplay, color: T.ink }}>Send to</div>
+      <button onClick={onClose} aria-label="Close" className="v2-tap" style={{ width: 32, height: 32, borderRadius: "50%", border: "none", background: T.surfaceSunk, color: T.inkSoft, display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer", flexShrink: 0 }}><HlX size={16} /></button>
+    </div>
+    <HellooCard style={{ display: "flex", alignItems: "center", gap: 11, padding: 10, marginBottom: 10 }}>
+      {pic ? <img src={pic} alt="" style={{ width: 54, height: 54, borderRadius: 10, objectFit: "cover", flexShrink: 0, background: T.surfaceSunk }} /> : null}
+      <div data-testid="helloo-share-in-text" style={{ flex: 1, minWidth: 0, fontSize: 12.5, color: T.inkSoft, lineHeight: 1.4, overflow: "hidden", display: "-webkit-box", WebkitLineClamp: 3, WebkitBoxOrient: "vertical", wordBreak: "break-word" }}>{share.text || "Photo"}</div>
+    </HellooCard>
+    <div style={{ display: "flex", alignItems: "center", gap: 8, padding: "0 12px", height: 40, borderRadius: 14, background: T.surfaceSunk, marginBottom: 10 }}>
+      <HlSearch size={15} color={T.inkFaint} />
+      <input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Search chats" aria-label="Search chats" style={{ flex: 1, minWidth: 0, border: "none", outline: "none", background: "none", fontSize: 14, color: T.ink, fontFamily: T.fontBody }} />
+    </div>
+    <div style={{ maxHeight: "48vh", overflowY: "auto" }}>{shown.length ? <HellooCard>{shown.map((c, i) => <button key={c.id} data-testid="helloo-share-in-chat" onClick={() => send(c)} disabled={Boolean(busy)} className="v2-tap" style={{ width: "100%", display: "flex", alignItems: "center", gap: 12, padding: "10px 14px", border: "none", borderTop: i ? `1px solid ${T.line}` : "none", background: "none", cursor: "pointer", textAlign: "left", fontFamily: T.fontBody }}>
+      <HellooAvatar person={c.person} size={42} />
+      <span style={{ flex: 1, minWidth: 0, fontSize: 14.5, fontWeight: 800, color: T.ink, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{c.person.handle || c.person.name}</span>
+      <span style={{ display: "flex", alignItems: "center", gap: 5, fontSize: 12, fontWeight: 800, color: T.accent, background: T.accentSoft, borderRadius: 999, padding: "6px 11px", flexShrink: 0 }}>{busy === c.id ? "Sending…" : <><HlSend size={13} />Send</>}</span>
+    </button>)}</HellooCard> : <HellooCard style={{ padding: "16px", fontSize: 13, color: T.inkSoft, textAlign: "center" }}>{t ? "No chat by that name" : "No chats yet. Start one, then share again."}</HellooCard>}</div>
+  </div></HellooSheet>;
+}
+
+
 // ───── helloo: hellooClient.jsx ─────
 // frontend/hellooClient.jsx
 //
@@ -81421,6 +81526,8 @@ function HellooRoot() {
   const [pinShown, setPinShown] = useStateH9(false);
   const pinInFlight = useRefH9(false);
   const [toast, setToast] = useStateH9("");
+  // Something shared into Helloo from another app (screens/ShareIn.jsx).
+  const [shareIn, setShareIn] = useStateH9(null);
   // Who this account can be here: itself, and each shop it runs.
   const [faces, setFaces] = useStateH9(null);
   useEffectH9(() => { if (!toast) return undefined; const t = setTimeout(() => setToast(""), 2600); return () => clearTimeout(t); }, [toast]);
@@ -81864,6 +81971,31 @@ function HellooRoot() {
     if (link.chatId) openChat(link.chatId);
     else if (link.gloobalId && link.gloobalId !== user.symbolId) openChatWith(link.gloobalId);
   }, [signedIn]);
+
+  // Shared in from another app: read it once, then "Send to…".
+  useEffectH9(() => {
+    if (!signedIn) return undefined;
+    let live = true;
+    hellooReadShareIn().then((got) => { if (!live || !got) return; hellooClearDeepLink(); setShareIn(got); });
+    return () => { live = false; };
+  }, [signedIn]);
+  const sendShareIn = async (row) => {
+    const got = shareIn;
+    if (!got) return;
+    try {
+      setScreen(null);
+      openChat(row.id);
+      if (got.file) {
+        const shot = await hellooCompressPhoto(got.file);
+        deliver(row.id, { kind: "photo", image: shot.image, mime: shot.mime, width: shot.width, height: shot.height, text: got.text || "", localSrc: shot.preview });
+      } else {
+        deliver(row.id, { kind: "text", text: got.text });
+      }
+      setShareIn(null);
+    } catch (err) {
+      setToast((err && err.message) || "Couldn't send that");
+    }
+  };
 
   // ── Live ─────────────────────────────────────────────────────────────
   const live = useHellooLive(signedIn, (frame) => {
@@ -82865,7 +82997,7 @@ function HellooRoot() {
   const chatThemeNow = openId && !screen ? ((((chatRows || []).find((c) => c.id === openId)) || {}).theme || (threads[openId] && threads[openId].chat && threads[openId].chat.theme) || "") : "";
   const themeNow = chatThemeNow && hellooFindTheme(chatThemeNow) ? chatThemeNow : themeKey;
   if (shownThemeRef.current !== themeNow + "|" + hellooSideNow()) { applyHellooTheme(themeNow); shownThemeRef.current = themeNow + "|" + hellooSideNow(); }
-  const shell = (children) => <div style={{ position: "absolute", inset: 0, overflow: "hidden", background: T.bg }}>{callLayer}<div style={{ position: "absolute", left: 0, right: 0, bottom: 0, top: callBar ? "calc(48px + env(safe-area-inset-top, 0px))" : 0 }}>{children}</div>{gReceipt && user && typeof LedgerProvider === "function" ? <LedgerProvider userId={user.accountId || "me"} currency={user.currency || "INR"}><ReceiptModal receipt={gReceipt} onClose={() => setGReceipt(null)} /></LedgerProvider> : null}{callBar}{typeof PaymentFaceHost === "function" ? <PaymentFaceHost /> : null}{typeof BiometricPinFallbackModal === "function" ? <BiometricPinFallbackModal open={Boolean(pinFallback)} symbolId={user && user.symbolId} reason={pinFallback && pinFallback.reason} onResolve={resolvePinFallback} /> : null}{toast && <div role="status" style={{ position: "absolute", left: 16, right: 16, bottom: "calc(96px + env(safe-area-inset-bottom, 0px))", display: "flex", justifyContent: "center", zIndex: 300, pointerEvents: "none" }}><span style={{ background: T.ink, color: T.bg, borderRadius: 18, padding: "9px 16px", fontSize: 13, fontWeight: 700, fontFamily: T.fontBody, boxShadow: "0 8px 24px rgba(0,0,0,0.25)", textAlign: "center", maxWidth: "100%" }}>{toast}</span></div>}</div>;
+  const shell = (children) => <div style={{ position: "absolute", inset: 0, overflow: "hidden", background: T.bg }}>{callLayer}<div style={{ position: "absolute", left: 0, right: 0, bottom: 0, top: callBar ? "calc(48px + env(safe-area-inset-top, 0px))" : 0 }}>{children}</div>{gReceipt && user && typeof LedgerProvider === "function" ? <LedgerProvider userId={user.accountId || "me"} currency={user.currency || "INR"}><ReceiptModal receipt={gReceipt} onClose={() => setGReceipt(null)} /></LedgerProvider> : null}{callBar}{typeof PaymentFaceHost === "function" ? <PaymentFaceHost /> : null}{shareIn && signedIn ? <HellooShareInSheet share={shareIn} chats={(chatRows || []).map((c) => hellooChatRowFrom(c, photos))} onSend={sendShareIn} onClose={() => setShareIn(null)} /> : null}{typeof BiometricPinFallbackModal === "function" ? <BiometricPinFallbackModal open={Boolean(pinFallback)} symbolId={user && user.symbolId} reason={pinFallback && pinFallback.reason} onResolve={resolvePinFallback} /> : null}{toast && <div role="status" style={{ position: "absolute", left: 16, right: 16, bottom: "calc(96px + env(safe-area-inset-bottom, 0px))", display: "flex", justifyContent: "center", zIndex: 300, pointerEvents: "none" }}><span style={{ background: T.ink, color: T.bg, borderRadius: 18, padding: "9px 16px", fontSize: 13, fontWeight: 700, fontFamily: T.fontBody, boxShadow: "0 8px 24px rgba(0,0,0,0.25)", textAlign: "center", maxWidth: "100%" }}>{toast}</span></div>}</div>;
 
   // ── A call fills the screen — or, made small, a bar at the top ───────
   // The call's screen is always the first thing in the shell while there

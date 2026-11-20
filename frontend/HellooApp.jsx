@@ -122,6 +122,8 @@ function HellooRoot() {
   const [pinShown, setPinShown] = useStateH9(false);
   const pinInFlight = useRefH9(false);
   const [toast, setToast] = useStateH9("");
+  // Something shared into Helloo from another app (screens/ShareIn.jsx).
+  const [shareIn, setShareIn] = useStateH9(null);
   // Who this account can be here: itself, and each shop it runs.
   const [faces, setFaces] = useStateH9(null);
   useEffectH9(() => { if (!toast) return undefined; const t = setTimeout(() => setToast(""), 2600); return () => clearTimeout(t); }, [toast]);
@@ -565,6 +567,31 @@ function HellooRoot() {
     if (link.chatId) openChat(link.chatId);
     else if (link.gloobalId && link.gloobalId !== user.symbolId) openChatWith(link.gloobalId);
   }, [signedIn]);
+
+  // Shared in from another app: read it once, then "Send to…".
+  useEffectH9(() => {
+    if (!signedIn) return undefined;
+    let live = true;
+    hellooReadShareIn().then((got) => { if (!live || !got) return; hellooClearDeepLink(); setShareIn(got); });
+    return () => { live = false; };
+  }, [signedIn]);
+  const sendShareIn = async (row) => {
+    const got = shareIn;
+    if (!got) return;
+    try {
+      setScreen(null);
+      openChat(row.id);
+      if (got.file) {
+        const shot = await hellooCompressPhoto(got.file);
+        deliver(row.id, { kind: "photo", image: shot.image, mime: shot.mime, width: shot.width, height: shot.height, text: got.text || "", localSrc: shot.preview });
+      } else {
+        deliver(row.id, { kind: "text", text: got.text });
+      }
+      setShareIn(null);
+    } catch (err) {
+      setToast((err && err.message) || "Couldn't send that");
+    }
+  };
 
   // ── Live ─────────────────────────────────────────────────────────────
   const live = useHellooLive(signedIn, (frame) => {
@@ -1566,7 +1593,7 @@ function HellooRoot() {
   const chatThemeNow = openId && !screen ? ((((chatRows || []).find((c) => c.id === openId)) || {}).theme || (threads[openId] && threads[openId].chat && threads[openId].chat.theme) || "") : "";
   const themeNow = chatThemeNow && hellooFindTheme(chatThemeNow) ? chatThemeNow : themeKey;
   if (shownThemeRef.current !== themeNow + "|" + hellooSideNow()) { applyHellooTheme(themeNow); shownThemeRef.current = themeNow + "|" + hellooSideNow(); }
-  const shell = (children) => <div style={{ position: "absolute", inset: 0, overflow: "hidden", background: T.bg }}>{callLayer}<div style={{ position: "absolute", left: 0, right: 0, bottom: 0, top: callBar ? "calc(48px + env(safe-area-inset-top, 0px))" : 0 }}>{children}</div>{gReceipt && user && typeof LedgerProvider === "function" ? <LedgerProvider userId={user.accountId || "me"} currency={user.currency || "INR"}><ReceiptModal receipt={gReceipt} onClose={() => setGReceipt(null)} /></LedgerProvider> : null}{callBar}{typeof PaymentFaceHost === "function" ? <PaymentFaceHost /> : null}{typeof BiometricPinFallbackModal === "function" ? <BiometricPinFallbackModal open={Boolean(pinFallback)} symbolId={user && user.symbolId} reason={pinFallback && pinFallback.reason} onResolve={resolvePinFallback} /> : null}{toast && <div role="status" style={{ position: "absolute", left: 16, right: 16, bottom: "calc(96px + env(safe-area-inset-bottom, 0px))", display: "flex", justifyContent: "center", zIndex: 300, pointerEvents: "none" }}><span style={{ background: T.ink, color: T.bg, borderRadius: 18, padding: "9px 16px", fontSize: 13, fontWeight: 700, fontFamily: T.fontBody, boxShadow: "0 8px 24px rgba(0,0,0,0.25)", textAlign: "center", maxWidth: "100%" }}>{toast}</span></div>}</div>;
+  const shell = (children) => <div style={{ position: "absolute", inset: 0, overflow: "hidden", background: T.bg }}>{callLayer}<div style={{ position: "absolute", left: 0, right: 0, bottom: 0, top: callBar ? "calc(48px + env(safe-area-inset-top, 0px))" : 0 }}>{children}</div>{gReceipt && user && typeof LedgerProvider === "function" ? <LedgerProvider userId={user.accountId || "me"} currency={user.currency || "INR"}><ReceiptModal receipt={gReceipt} onClose={() => setGReceipt(null)} /></LedgerProvider> : null}{callBar}{typeof PaymentFaceHost === "function" ? <PaymentFaceHost /> : null}{shareIn && signedIn ? <HellooShareInSheet share={shareIn} chats={(chatRows || []).map((c) => hellooChatRowFrom(c, photos))} onSend={sendShareIn} onClose={() => setShareIn(null)} /> : null}{typeof BiometricPinFallbackModal === "function" ? <BiometricPinFallbackModal open={Boolean(pinFallback)} symbolId={user && user.symbolId} reason={pinFallback && pinFallback.reason} onResolve={resolvePinFallback} /> : null}{toast && <div role="status" style={{ position: "absolute", left: 16, right: 16, bottom: "calc(96px + env(safe-area-inset-bottom, 0px))", display: "flex", justifyContent: "center", zIndex: 300, pointerEvents: "none" }}><span style={{ background: T.ink, color: T.bg, borderRadius: 18, padding: "9px 16px", fontSize: 13, fontWeight: 700, fontFamily: T.fontBody, boxShadow: "0 8px 24px rgba(0,0,0,0.25)", textAlign: "center", maxWidth: "100%" }}>{toast}</span></div>}</div>;
 
   // ── A call fills the screen — or, made small, a bar at the top ───────
   // The call's screen is always the first thing in the shell while there
