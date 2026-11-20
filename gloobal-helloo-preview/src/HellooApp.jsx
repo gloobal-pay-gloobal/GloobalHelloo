@@ -48469,6 +48469,9 @@ function CreatorAddressFields({ value, onChange, countryIso = "" }) {
       setNote({ tone: "good", text: "Pinned. Check each line and add a landmark." });
     } else setNote({ tone: "warn", text: "Pinned, but couldn't read a street name. Type the address below." });
     setAccuracy(null);
+    // The PIN now comes from the map: a warning about an earlier PIN no
+    // longer applies, and its area picks belonged to that PIN.
+    setPinState(""); setAreas([]);
     lastPin.current = next.pin || "";
     onChange(next);
   };
@@ -48497,7 +48500,7 @@ function CreatorAddressFields({ value, onChange, countryIso = "" }) {
     display: "block", fontSize: 13.5, fontWeight: 800, color: T.accent
   }}>{pinned ? "Move my store's pin" : "Place my store on the map"}</span><span style={{
     display: "block", fontSize: 11, fontWeight: 600, color: T.inkSoft, marginTop: 1
-  }}>Starts at your location. Fills the address and gives customers Directions</span></span></button>{
+  }}>{pinned ? "Opens at your pin. Drag the map to correct it" : "Starts at your location. Fills the address and gives customers Directions"}</span></span></button>{
     note.text ? <div role="status" style={{ fontSize: 11.5, fontWeight: 700, color: noteColor, lineHeight: 1.45, margin: "-3px 2px 0" }}>{note.text}</div> : null
   }{pinned ? <GloobalPinPreview lat={Number(v.lat)} lng={Number(v.lng)} onMove={() => setPlacing(true)} /> : null}{pinned ? <div style={{
     display: "flex", alignItems: "center", gap: 9, padding: "9px 11px", borderRadius: 13,
@@ -52462,6 +52465,11 @@ function GloobalPinMap({ at, onCancel, onConfirm, onToast }) {
   const [point, setPoint] = useState96({ lat: at.lat, lng: at.lng, zoom: at.zoom });
   const [parts, setParts] = useState96(null);
   const [looking, setLooking] = useState96(true);
+  // A line shown on the map itself, for when nobody above passed onToast.
+  const [said, setSaid] = useState96("");
+  const sayTimer = useRef55(0);
+  const say = (text) => { if (onToast) { onToast(text); return; } setSaid(text); clearTimeout(sayTimer.current); sayTimer.current = setTimeout(() => setSaid(""), 4000); };
+  useEffect93(() => () => clearTimeout(sayTimer.current), []);
   const asked = useRef55(0);
   const read = (lat, lng) => {
     const mine = asked.current + 1;
@@ -52484,7 +52492,8 @@ function GloobalPinMap({ at, onCancel, onConfirm, onToast }) {
   }, [map]);
   const here = async () => {
     const seen = await captureBrowserGeo({ timeoutMs: 12000, highAccuracy: true });
-    if (seen && seen.status === LOCATION_STATUS.AVAILABLE) { if (map) map.flyTo({ center: [seen.longitude, seen.latitude], zoom: GLOOBAL_MAP_PIN_ZOOM }); } else if (onToast) onToast("Couldn't find your location. Move the map by hand.");
+    if (seen && seen.status === LOCATION_STATUS.AVAILABLE) { if (map) map.flyTo({ center: [seen.longitude, seen.latitude], zoom: GLOOBAL_MAP_PIN_ZOOM }); }
+    else say(seen && seen.status === LOCATION_STATUS.DENIED ? "Location is blocked for GLOOBAL. Allow it in your browser settings, or move the map by hand." : "Couldn't find your location. Move the map by hand.");
   };
   const close = point.zoom >= GLOOBAL_MAP_PIN_MIN_ZOOM;
   const line1 = parts ? [parts.line1, parts.area].filter(Boolean).join(", ") : "";
@@ -52496,6 +52505,7 @@ function GloobalPinMap({ at, onCancel, onConfirm, onToast }) {
       {failed ? <div data-testid="pin-failed" style={{ position: "absolute", inset: 0, display: "flex", alignItems: "center", justifyContent: "center", padding: 30, textAlign: "center", fontSize: 13.5, fontWeight: 700, color: T.inkSoft, lineHeight: 1.5 }}>The map couldn't load. Check your connection, or use your typed address for now.</div> : <>
         <div data-testid="pin-hint" style={{ position: "absolute", left: "50%", top: "calc(50% - 92px)", transform: "translateX(-50%)", whiteSpace: "nowrap", background: T.ink, color: "#fff", fontSize: 12.5, fontWeight: 700, padding: "8px 12px", borderRadius: 12, pointerEvents: "none" }}>{close ? "Move the map until the pin is on your door" : "Zoom in to place it exactly"}</div>
         <div aria-hidden="true" style={{ position: "absolute", left: "50%", top: "50%", transform: "translate(-50%, -100%)", pointerEvents: "none", filter: "drop-shadow(0 6px 6px rgba(40,10,25,0.35))" }}><svg width="54" height="66" viewBox="0 0 58 72"><path d="M29 2C14 2 3 13 3 27c0 19 26 43 26 43s26-24 26-43C55 13 44 2 29 2z" fill={T.accent} stroke="#fff" strokeWidth="3" /></svg><span style={{ position: "absolute", left: 15, top: 13, color: "#fff", display: "flex" }}><MapStore size={24} /></span></div>
+        {said ? <div role="status" data-testid="pin-said" style={{ position: "absolute", left: 14, right: 70, bottom: 40, background: T.ink, color: "#fff", fontSize: 12.5, fontWeight: 700, lineHeight: 1.4, padding: "10px 12px", borderRadius: 12 }}>{said}</div> : null}
         <div style={{ position: "absolute", right: 14, bottom: 40, display: "flex", flexDirection: "column", gap: 10, alignItems: "center" }}>
           <div style={{ borderRadius: 14, overflow: "hidden", boxShadow: T.shadowCard, display: "flex", flexDirection: "column" }}><GloobalMapButton testId="pin-zoom-in" label="Zoom in" onClick={() => map && map.zoomIn()}><MapPlus size={19} /></GloobalMapButton><GloobalMapButton testId="pin-zoom-out" label="Zoom out" onClick={() => map && map.zoomOut()} style={{ borderTop: `1px solid ${T.line}` }}><MapMinus size={19} /></GloobalMapButton></div>
           <GloobalMapButton testId="pin-here" label="My location" onClick={here} style={{ borderRadius: "50%", color: T.accent, boxShadow: T.shadowCard }}><MapLocate size={20} /></GloobalMapButton>
@@ -52634,6 +52644,10 @@ function BazaarMap({ center, placeName = "", radiusKm, shops = [], query = "", o
     const ring = data.geometry.coordinates[0];
     const lngs = ring.map((p) => p[0]);
     const lats = ring.map((p) => p[1]);
+    // A tapped shop leaves room at the foot for its details (pick); that
+    // room stays on the map until cleared, and would squeeze the circle
+    // into the top corner. Clear it, then fit.
+    map.jumpTo({ padding: { top: 0, bottom: 0, left: 0, right: 0 } });
     map.fitBounds([[Math.min(...lngs), Math.min(...lats)], [Math.max(...lngs), Math.max(...lats)]], { padding: { top: 170, bottom: 190, left: 24, right: 24 }, duration: 400 });
   }, [map, center.lat, center.lng, radiusKm]);
   useEffect63(() => {
