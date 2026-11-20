@@ -44,8 +44,27 @@ var socialApi = {
   remove: (id) => gloobalApiClient.delete(socialAs(`/api/social/posts/${encodeURIComponent(id)}`)),
   upload: (data) => socialHttp.post("/api/social/media", { data }, { timeoutMs: 120e3 }),
   post: (body) => socialHttp.post("/api/social/posts", body, { timeoutMs: GLOOBAL_API_COLD_START_TIMEOUT_MS }),
-  myItems: () => socialHttp.get("/api/social/my-items")
+  myItems: () => socialHttp.get("/api/social/my-items"),
+  // The heart: likes, comments and new followers for you.
+  activity: () => socialHttp.get("/api/social/activity"),
+  activityCount: () => socialHttp.get("/api/social/activity?count=1"),
+  activitySeen: () => socialHttp.post("/api/social/activity/seen", {})
 };
+// "now", "5m", "3h", "2d", or a date.
+function socialAgo(at) {
+  const s = Math.max(0, (Date.now() - new Date(at).getTime()) / 1000);
+  if (s < 60) return "now"; if (s < 3600) return `${Math.floor(s / 60)}m`; if (s < 86400) return `${Math.floor(s / 3600)}h`; if (s < 7 * 86400) return `${Math.floor(s / 86400)}d`;
+  return new Date(at).toLocaleDateString("en-IN", { day: "numeric", month: "short" });
+}
+// A horizontal swipe on the page, unless it started on something that
+// scrolls sideways itself (photos, the status row, chips).
+function socialSideScroller(el) {
+  for (let n = el; n && n !== document.body; n = n.parentElement) {
+    const cs = getComputedStyle(n);
+    if ((cs.overflowX === "auto" || cs.overflowX === "scroll") && n.scrollWidth > n.clientWidth + 2) return true;
+  }
+  return false;
+}
 var SOCIAL_TOPICS = [["food", "🍛", "Food", "#FFEDD5"], ["learn", "📚", "Learn", "#DCFCE7"], ["shops", "🛍️", "Shops", "#FCE7F3"], ["sports", "🏏", "Sports", "#DBEAFE"], ["music", "🎵", "Music", "#E0E7FF"], ["travel", "✈️", "Travel", "#CCFBF1"], ["fun", "😂", "Fun", "#FEF3C7"], ["work", "💼", "Work", "#F3E8FF"]];
 // Hashtags to start from, by topic. Anybody can write their own.
 var SOCIAL_TAG_IDEAS = { "": ["today", "mylife", "india", "local"], food: ["chai", "streetfood", "homemade", "thali", "foodie"], learn: ["learn", "howto", "tips", "study"], shops: ["newarrival", "offer", "handmade", "shoplocal"], sports: ["cricket", "fitness", "matchday", "gym"], music: ["music", "singing", "cover", "dance"], travel: ["travel", "mountains", "roadtrip", "himachal"], fun: ["funny", "comedy", "friends", "memes"], work: ["work", "business", "startup", "hiring"] };
@@ -178,6 +197,44 @@ function SocialPostCard({ post, photos, act, muted, onMuted }) {
 }
 
 // ── The whole Social tab ────────────────────────────────────────────────
+// The heart: what happened to you on Social — likes and comments on your
+// posts, and people who started following you (with Follow back). Newest
+// first; what came since you last looked is under "New".
+function SocialActivity({ photos, onBack, onProfile, onFollow, onSeen }) {
+  const [data, setData] = useStateH40(null);
+  const [err, setErr] = useStateH40("");
+  const [back, setBack] = useStateH40({});
+  useEffectH40(() => {
+    let live = true;
+    socialApi.activity().then((r) => { if (!live) return; setData(r.items || []); socialApi.activitySeen().then(() => onSeen && onSeen()).catch(() => {}); }).catch((e) => live && setErr((e && e.message) || "Couldn't load your activity."));
+    return () => { live = false; };
+  }, []);
+  const line = (it) => it.type === "like" ? "liked your post" : it.type === "comment" ? <>commented: <span style={{ color: T.ink }}>“{it.text.length > 70 ? `${it.text.slice(0, 70)}…` : it.text}”</span></> : "started following you";
+  const row = (it, i) => {
+    const followed = it.type === "follow" && (back[it.who.accountId] ?? it.followingBack);
+    return <div key={i} data-testid="social-activity-row" style={{ display: "flex", alignItems: "center", gap: 11, padding: "10px 16px", background: it.fresh ? (T.accentSoft ? `${T.accentSoft}` : "transparent") : "transparent" }}>
+      <button onClick={() => onProfile(it.who)} aria-label="Profile" style={{ border: "none", background: "none", padding: 0, cursor: "pointer", flexShrink: 0, display: "flex" }}><SocialFace card={it.who} photos={photos} size={44} /></button>
+      <button onClick={() => onProfile(it.who)} style={{ flex: 1, minWidth: 0, border: "none", background: "none", padding: 0, cursor: "pointer", textAlign: "left", fontFamily: T.fontBody, fontSize: 13.5, color: T.inkSoft, lineHeight: 1.4 }}>
+        <b style={{ color: T.ink, fontWeight: 800 }}>{it.who.handle || it.who.name}</b> {line(it)} <span style={{ color: T.inkFaint, whiteSpace: "nowrap" }}>· {socialAgo(it.at)}</span>
+      </button>
+      {it.type === "follow"
+        ? <button data-testid="social-activity-follow" onClick={() => { const on = !followed; setBack((b) => Object.assign({}, b, { [it.who.accountId]: on })); onFollow(it.who, on); }} className="v2-tap" style={{ flexShrink: 0, height: 32, padding: "0 14px", borderRadius: 10, border: followed ? `1px solid ${T.line}` : "none", background: followed ? "none" : T.accent, color: followed ? T.ink : "#fff", fontSize: 12.5, fontWeight: 800, cursor: "pointer", fontFamily: T.fontBody }}>{followed ? "Following" : "Follow back"}</button>
+        : it.post && it.post.media ? <span style={{ width: 44, height: 44, borderRadius: 8, overflow: "hidden", background: T.surfaceSunk, flexShrink: 0 }}>{it.post.media.kind === "photo" ? <img src={socialMediaSrc(it.post.media)} alt="" style={{ width: "100%", height: "100%", objectFit: "cover", display: "block" }} /> : <span style={{ display: "flex", width: "100%", height: "100%", alignItems: "center", justifyContent: "center", color: T.inkFaint }}><SxReels size={18} /></span>}</span> : null}
+    </div>;
+  };
+  const fresh = (data || []).filter((x) => x.fresh); const earlier = (data || []).filter((x) => !x.fresh);
+  const label = (t) => <div style={{ fontSize: 13, fontWeight: 800, color: T.ink, padding: "14px 16px 4px" }}>{t}</div>;
+  return <div data-testid="social-activity" style={{ position: "absolute", inset: 0, zIndex: 30, background: HT.screenBg && HT.screenBg.startsWith("#") ? HT.screenBg : T.bg, display: "flex", flexDirection: "column" }}>
+    <div style={{ display: "flex", alignItems: "center", gap: 10, padding: "calc(10px + env(safe-area-inset-top, 0px)) 14px 8px", flexShrink: 0 }}><NavBackButton onClick={onBack} /><div style={{ fontSize: 20, fontWeight: 800, fontFamily: T.fontDisplay, color: T.ink }}>Activity</div></div>
+    <div style={{ flex: 1, minHeight: 0, overflowY: "auto", paddingBottom: 40 }}>
+      {err ? <SocialNote title="Couldn't load" text={err} /> : data === null ? <SocialNote title="Loading…" /> : !data.length ? <SocialNote title="Nothing yet" text="When people like or comment on your posts, or follow you, it shows here." /> : <>
+        {fresh.length ? <>{label("New")}{fresh.map(row)}</> : null}
+        {earlier.length ? <>{label(fresh.length ? "Earlier" : "Recent")}{earlier.map(row)}</> : null}
+      </>}
+    </div>
+  </div>;
+}
+
 function HellooSocialHome({ me, faces, photos, onCards, onOpenChat, onTip, onShopItem, onShop, onToast, composeTick }) {
   useGloobalViewPass();
   const myId = me.accountId || me.id || "";
@@ -188,6 +245,23 @@ function HellooSocialHome({ me, faces, photos, onCards, onOpenChat, onTip, onSho
   // A shop that is no longer yours: back to yourself.
   useEffectH40(() => { if (faces && faces.length && !faces.some((f) => f.as === as)) { socialFaceSave(myId, "self"); setAs("self"); } }, [faces, as]);
   const [view, setView] = useStateH40("feed");
+  // The heart: activity panel and how much is new.
+  const [activity, setActivity] = useStateH40(false);
+  const [unread, setUnread] = useStateH40(0);
+  const countActivity = useCallbackH40(() => { socialApi.activityCount().then((r) => setUnread(Number(r.unread) || 0)).catch(() => {}); }, []);
+  useEffectH40(() => { countActivity(); const t = setInterval(countActivity, 60000); return () => clearInterval(t); }, [countActivity]);
+  // For you ⇄ Explore by swiping left and right.
+  const swipe = useRefH40(null);
+  const onSwipeStart = (e) => { const t = e.touches && e.touches[0]; swipe.current = t && !socialSideScroller(e.target) ? { x: t.clientX, y: t.clientY } : null; };
+  const onSwipeEnd = (e) => {
+    const st = swipe.current; swipe.current = null;
+    const t = e.changedTouches && e.changedTouches[0];
+    if (!st || !t) return;
+    const dx = t.clientX - st.x, dy = t.clientY - st.y;
+    if (Math.abs(dx) < 70 || Math.abs(dy) > Math.abs(dx) * 0.6) return;
+    if (dx < 0 && view === "feed") setView("explore");
+    if (dx > 0 && view === "explore") setView("feed");
+  };
   const [feed, setFeed] = useStateH40(null);
   const [feedErr, setFeedErr] = useStateH40("");
   const [ex, setEx] = useStateH40(null);
@@ -271,7 +345,7 @@ function HellooSocialHome({ me, faces, photos, onCards, onOpenChat, onTip, onSho
     setFeed((f) => [post, ...(f || [])]); onToast("Posted");
   };
 
-  const head = <div style={{ position: "sticky", top: 0, zIndex: 5, background: `${HT.screenBg && HT.screenBg.startsWith("#") ? HT.screenBg : T.bg}F2`, backdropFilter: "blur(14px)", WebkitBackdropFilter: "blur(14px)", padding: "calc(10px + env(safe-area-inset-top, 0px)) 16px 8px" }}><div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 10 }}><span style={{ display: "flex", alignItems: "baseline", gap: 14, minWidth: 0 }}>{[["feed", "For you"], ["explore", "Explore"]].map(([k, l]) => <button key={k} onClick={() => setView(k)} data-testid={`social-view-${k}`} aria-current={view === k ? "page" : undefined} className="v2-tap" style={{ border: "none", background: "none", padding: 0, cursor: "pointer", fontSize: view === k ? 22 : 17, fontWeight: 800, fontFamily: T.fontDisplay, color: view === k ? T.ink : T.inkFaint, letterSpacing: -0.4, whiteSpace: "nowrap" }}>{l}</button>)}</span><span style={{ display: "flex", gap: 8, alignItems: "center", flexShrink: 0 }}><button onClick={() => (list.length > 1 ? setWho(true) : openMine())} aria-label={list.length > 1 ? "Social account" : "My posts"} data-testid="social-me" className="v2-tap" style={{ border: "none", background: list.length > 1 ? (HT.cardBg || T.surface) : "none", boxShadow: list.length > 1 ? (HT.cardShadow ?? T.shadowCard) : "none", borderRadius: 999, padding: list.length > 1 ? "3px 10px 3px 3px" : 0, cursor: "pointer", display: "flex", alignItems: "center", gap: 7, maxWidth: 150, fontFamily: T.fontBody }}>{face.kind === "shop" ? <span style={{ width: 32, height: 32, borderRadius: 11, background: T.accentSoft, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}><HlStore size={17} color={T.accent} /></span> : <HellooMeAvatar me={me} size={list.length > 1 ? 32 : 36} />}{list.length > 1 ? <><span style={{ minWidth: 0, fontSize: 12.5, fontWeight: 800, color: T.ink, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{face.kind === "shop" ? (face.handle || face.name) : "Personal"}</span><HlChevron size={14} color={T.inkFaint} style={{ transform: "rotate(90deg)", flexShrink: 0 }} /></> : null}</button></span></div></div>;
+  const head = <div style={{ position: "sticky", top: 0, zIndex: 5, background: `${HT.screenBg && HT.screenBg.startsWith("#") ? HT.screenBg : T.bg}F2`, backdropFilter: "blur(14px)", WebkitBackdropFilter: "blur(14px)", padding: "calc(10px + env(safe-area-inset-top, 0px)) 16px 8px" }}><div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 10 }}><span style={{ display: "flex", alignItems: "baseline", gap: 14, minWidth: 0 }}>{[["feed", "For you"], ["explore", "Explore"]].map(([k, l]) => <button key={k} onClick={() => setView(k)} data-testid={`social-view-${k}`} aria-current={view === k ? "page" : undefined} className="v2-tap" style={{ border: "none", background: "none", padding: 0, cursor: "pointer", fontSize: view === k ? 22 : 17, fontWeight: 800, fontFamily: T.fontDisplay, color: view === k ? T.ink : T.inkFaint, letterSpacing: -0.4, whiteSpace: "nowrap" }}>{l}</button>)}</span><span style={{ display: "flex", gap: 8, alignItems: "center", flexShrink: 0 }}><button onClick={() => setActivity(true)} aria-label={unread ? `Activity · ${unread} new` : "Activity"} data-testid="social-heart" className="v2-tap" style={{ position: "relative", width: 40, height: 40, borderRadius: "50%", border: "none", background: "none", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", color: T.ink, flexShrink: 0 }}><SxHeart size={24} />{unread ? <span data-testid="social-heart-count" style={{ position: "absolute", top: 3, right: 1, minWidth: 18, height: 18, padding: "0 5px", borderRadius: 9, background: T.negative || "#E23F45", color: "#fff", fontSize: 10.5, fontWeight: 800, display: "flex", alignItems: "center", justifyContent: "center", border: `2px solid ${HT.screenBg && HT.screenBg.startsWith("#") ? HT.screenBg : T.bg}` }}>{unread > 9 ? "9+" : unread}</span> : null}</button><button onClick={() => (list.length > 1 ? setWho(true) : openMine())} aria-label={list.length > 1 ? "Social account" : "My posts"} data-testid="social-me" className="v2-tap" style={{ border: "none", background: list.length > 1 ? (HT.cardBg || T.surface) : "none", boxShadow: list.length > 1 ? (HT.cardShadow ?? T.shadowCard) : "none", borderRadius: 999, padding: list.length > 1 ? "3px 10px 3px 3px" : 0, cursor: "pointer", display: "flex", alignItems: "center", gap: 7, maxWidth: 150, fontFamily: T.fontBody }}>{face.kind === "shop" ? <span style={{ width: 32, height: 32, borderRadius: 11, background: T.accentSoft, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}><HlStore size={17} color={T.accent} /></span> : <HellooMeAvatar me={me} size={list.length > 1 ? 32 : 36} />}{list.length > 1 ? <><span style={{ minWidth: 0, fontSize: 12.5, fontWeight: 800, color: T.ink, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{face.kind === "shop" ? (face.handle || face.name) : "Personal"}</span><HlChevron size={14} color={T.inkFaint} style={{ transform: "rotate(90deg)", flexShrink: 0 }} /></> : null}</button></span></div></div>;
 
   // Before people's pictures open: the fingerprint / face check (GLOOBAL
   // features/viewpass), shown above everything while it is due.
@@ -287,7 +361,9 @@ function HellooSocialHome({ me, faces, photos, onCards, onOpenChat, onTip, onSho
     body = <SocialExplore ex={ex} see={see} tag={tag} onTag={setTag} onFilter={() => setFilter(true)} q={q} onQ={setQ} found={found} photos={photos} act={act} follows={follows} onOpen={setOpen} onToast={onToast} />;
   }
 
-  return <HellooScreen><div data-testid="social-home" style={{ flex: 1, minHeight: 0, overflowY: "auto", display: "block" }}>{head}{view === "feed" ? statusRow : null}{body}</div>
+  return <HellooScreen><div data-testid="social-home" onTouchStart={onSwipeStart} onTouchEnd={onSwipeEnd} style={{ flex: 1, minHeight: 0, overflowY: "auto", display: "block" }}>{head}{view === "feed" ? statusRow : null}<div key={view} className="social-swap" style={{ animation: "socialSwap 0.22s ease-out" }}>{body}</div></div>
+    <style>{"@keyframes socialSwap{from{opacity:0.35;transform:translateX(" + (view === "explore" ? "18px" : "-18px") + ")}to{opacity:1;transform:none}}"}</style>
+    {activity ? <SocialActivity photos={photos} onBack={() => { setActivity(false); countActivity(); }} onSeen={() => setUnread(0)} onProfile={(c) => { setActivity(false); openProfile(c); }} onFollow={(c, on) => act.follow(c, on)} /> : null}
     {profile ? <SocialProfile state={profile} me={me} photos={photos} act={act} onBack={() => setProfile(null)} onOpen={setOpen} onMessage={onOpenChat} onShop={onShop} onCompose={() => setCompose("post")} /> : null}
     {open ? <SocialViewer post={open} photos={photos} act={act} muted={muted} onMuted={setMuted} onBack={() => setOpen(null)} /> : null}
     {talk ? <SocialComments post={talk} photos={photos} onCards={seen} onCount={(n) => patch(talk.id, (p) => Object.assign({}, p, { comments: n }))} onClose={() => setTalk(null)} onToast={onToast} /> : null}
