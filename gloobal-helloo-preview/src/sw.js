@@ -23,12 +23,14 @@ self.addEventListener("fetch", (event) => {
   event.respondWith((async () => {
     try {
       const form = await event.request.formData();
-      const file = form.getAll("file").find((f) => f && typeof f === "object" && f.size > 0);
+      // Every file: one picture from GLOOBAL, or a WhatsApp export (the
+      // chat's .txt and all its photos, voice notes and videos).
+      const files = form.getAll("file").filter((f) => f && typeof f === "object" && f.size > 0).slice(0, 2000);
       await caches.delete("helloo-share-in");
       const cache = await caches.open("helloo-share-in");
-      const meta = { title: String(form.get("title") || ""), text: String(form.get("text") || ""), url: String(form.get("url") || ""), fileName: file ? file.name : "", fileType: file ? file.type : "" };
+      const meta = { title: String(form.get("title") || ""), text: String(form.get("text") || ""), url: String(form.get("url") || ""), files: files.map((f) => ({ name: f.name, type: f.type })), fileName: files[0] ? files[0].name : "", fileType: files[0] ? files[0].type : "" };
+      for (let i = 0; i < files.length; i += 1) await cache.put(`/share-in/file/${i}`, new Response(files[i], { headers: { "content-type": files[i].type || "application/octet-stream" } }));
       await cache.put("/share-in/meta", new Response(JSON.stringify(meta), { headers: { "content-type": "application/json" } }));
-      if (file) await cache.put("/share-in/file", new Response(file, { headers: { "content-type": file.type || "image/png" } }));
     } catch (e) { /* open the app anyway */ }
     return Response.redirect("/?share=in", 303);
   })());

@@ -36,6 +36,7 @@ const HELLOO_MODULES = [
   "screens/Stickers.jsx",
   "screens/Snap.jsx",
   "screens/Work.jsx",
+  "screens/WaImport.jsx",
   "screens/ShareIn.jsx",
   "hellooClient.jsx",
   "HellooApp.jsx"

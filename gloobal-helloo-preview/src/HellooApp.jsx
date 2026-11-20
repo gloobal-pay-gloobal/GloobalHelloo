@@ -522,6 +522,8 @@ import { useState as useStateH45, useEffect as useEffectH45, useRef as useRefH45
 import { Zap as SnFlash, RefreshCcw as SnFlip, Eye as SnOnce, Timer as SnDay, Bookmark as SnKeep, EyeOff as SnGone, Images as SnGallery } from "lucide-react";
 import { useState as useStateH47, useEffect as useEffectH47, useCallback as useCallbackH47 } from "react";
 import { Briefcase as WxBag, BadgeCheck as WxReal, MapPin as WxPin, ShieldAlert as WxWarn, Search as WxFind, Pencil as WxEdit, X as WxX, ChevronRight as WxGo, Plus as WxPlus, LocateFixed as WxLocate, Flag as WxFlag } from "lucide-react";
+import { useState as useStateH49, useEffect as useEffectH49 } from "react";
+import { MessageCircle as HlWaMsg, Paperclip as HlWaClip } from "lucide-react";
 import { useState as useStateH48, useEffect as useEffectH48 } from "react";
 import { useState as useStateH11, useEffect as useEffectH11, useRef as useRefH11 } from "react";
 import { useState as useStateH9, useEffect as useEffectH9, useMemo as useMemoH9, useRef as useRefH9, useCallback as useCallbackH9 } from "react";
@@ -78217,7 +78219,7 @@ function HellooBubble({ m, person, prevSame }) {
   return <div data-helloo-msg={m.from} style={{ alignSelf: mine ? "flex-end" : "flex-start", maxWidth: "82%", display: "flex", flexDirection: "column", alignItems: mine ? "flex-end" : "flex-start", marginTop: prevSame ? 2 : 8 }}>{card ? <>{card}<span style={{ fontSize: 10, color: T.inkFaint, marginTop: 3 }}>{hellooClockSec(m.at)}</span></> : <span style={{ padding: m.kind === "photo" ? 2 : "9px 12px", borderRadius: mine ? `${HT.bubbleRadius ?? 18}px ${HT.bubbleRadius ?? 18}px ${HT.bubbleTail ?? 5}px ${HT.bubbleRadius ?? 18}px` : `${HT.bubbleRadius ?? 18}px ${HT.bubbleRadius ?? 18}px ${HT.bubbleRadius ?? 18}px ${HT.bubbleTail ?? 5}px`, border: mine ? "none" : (HT.bubbleBorder || "none"), background: mine ? HT.bubbleMe : HT.bubbleThem, color: mine ? (HT.bubbleMeInk || "#fff") : T.ink, boxShadow: mine ? (HT.bubbleMeShadow || "none") : (HT.cardShadow ?? T.shadowCard), fontSize: 14.5, lineHeight: 1.4, overflowWrap: "anywhere", position: "relative" }}>{m.paidText && <span style={{ display: "block" }}><HellooPaidBadge amountText={m.paidText} earnedText={m.earnedText} mine={mine} /></span>}{quote}{m.kind === "voice" ? <HellooVoiceNote m={m} mine={mine} /> : m.kind === "photo" ? <span style={{ display: "block" }}><button onClick={m.onOpen} aria-label="Open photo" style={{ display: "block", padding: 0, border: "none", background: "none", cursor: m.onOpen ? "zoom-in" : "default", position: "relative" }}>{!mine && m.watchId ? <HellooWatchMark id={m.watchId} small /> : null}{m.src ? <img src={m.src} alt={m.text || "Photo"} style={{ filter: hellooFx(m.fx), display: "block", width: 230, height: m.width && m.height ? Math.round(230 * Math.min(1.4, Math.max(0.6, m.height / m.width))) : 172, objectFit: "cover", borderRadius: 15 }} /> : <span style={{ display: "block", width: 230, height: m.width && m.height ? Math.round(230 * Math.min(1.4, Math.max(0.6, m.height / m.width))) : 172, borderRadius: 15, background: `linear-gradient(135deg, ${hellooHue(String(m.id))}33, ${hellooHue(String(m.id) + "x")}66)` }} />}</button>{m.text ? <span style={{ display: "block", padding: "6px 8px 14px" }}>{m.text}</span> : null}</span> : m.text}<span style={{ display: m.kind === "photo" ? "inline-flex" : "flex", justifyContent: "flex-end", alignItems: "center", fontSize: 10, color: mine ? "rgba(255,255,255,0.75)" : T.inkFaint, marginTop: m.kind === "photo" ? 0 : 3, position: m.kind === "photo" ? "absolute" : "static", right: 10, bottom: 8 }}>{hellooClockSec(m.at)}{mine && <HellooTick read={m.read} delivered={m.delivered} seenAt={m.seenAt} />}</span></span>}{m.kind === "photo" ? <HellooSnapFoot m={m} /> : null}</div>;
 }
 
-function HellooThreadScreen({ onSnap, onSticker, onPaySticker, me, chat, onBack, onCall, onVideo, onMore, onFindDate, dateOn = false, onPay, onAttach, onMenu, draft = "", onDraft, onSend, typing = false, ownerView = false, quickReplies = [], strip = null, paidPrice = 0, mode = "personal", onMode, onWriteLetter, recording = null, onMic, onCancelRecording, hasOlder = false, onLoadOlder, onMessageHold, replyTo = null, onCancelReply, composerNote = null, onOpenPerson, paidCurrency, shopOpenLine = "", children }) {
+function HellooThreadScreen({ onSnap, onSticker, onPaySticker, me, chat, onBack, onCall, onVideo, onMore, onFindDate, dateOn = false, onPay, onAttach, onMenu, draft = "", onDraft, onSend, typing = false, ownerView = false, quickReplies = [], strip = null, paidPrice = 0, mode = "personal", onMode, onWriteLetter, recording = null, onMic, onCancelRecording, hasOlder = false, onLoadOlder, onMessageHold, replyTo = null, onCancelReply, composerNote = null, onOpenPerson, paidCurrency, shopOpenLine = "", history = null, children }) {
   // Tries in a row that went the same way (three cancelled voice calls)
   // read as one line.
   const shown = hellooGroupCalls(chat.messages);
@@ -78229,7 +78231,7 @@ function HellooThreadScreen({ onSnap, onSticker, onPaySticker, me, chat, onBack,
   useEffectH4(() => { const el = scrollRef.current; if (el) el.scrollTop = el.scrollHeight; }, [chat.id, newest && (newest.id || newest.clientId)]);
   const p = chat.person;
   const sub = typing ? "typing…" : p.online ? `Online · ${p.city || p.country}` : p.lastSeen ? `Last seen ${p.lastSeen}` : p.city || p.country;
-  return <HellooScreen><div style={{ display: "flex", alignItems: "center", gap: 8, padding: "calc(8px + env(safe-area-inset-top, 0px)) 10px 8px", background: HT.chatBg || HT.wash, flexShrink: 0 }}><NavBackButton onClick={onBack} /><HellooAvatar person={p} size={40} online={p.online} /><button onClick={onOpenPerson || onMore} className="v2-tap" style={{ flex: 1, minWidth: 0, border: "none", background: "none", textAlign: "left", padding: 0, cursor: "pointer", fontFamily: T.fontBody }}><span style={{ display: "block", fontSize: 15.5, fontWeight: 800, color: T.ink, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{p.handle ? <CreatorHandleText handle={p.handle} icon={false} /> : p.name}</span><span style={{ display: "block", fontSize: 11.5, color: typing ? T.accent : T.inkSoft, marginTop: 1, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{sub}</span></button>{onMode && <HellooModeSwitch mode={mode} onChange={onMode} />}{onVideo && <HellooRoundButton Icon={HlVideo} label="Video call" onClick={onVideo} color={T.accent} size={38} />}{onCall && <HellooRoundButton Icon={HlPhone} label="Voice call" onClick={onCall} color={HT.free} size={38} />}<HellooRoundButton Icon={HlMore} label="More" onClick={onMore} size={38} /></div><div ref={scrollRef} style={{ flex: 1, minHeight: 0, overflowY: "auto", padding: "8px 14px 12px", display: "flex", flexDirection: "column", background: HT.chatBg || HT.wash }}>{strip}{hasOlder && <button onClick={onLoadOlder} className="v2-tap" style={{ alignSelf: "center", border: "none", borderRadius: 999, background: T.surface, color: T.accent, fontSize: 12, fontWeight: 800, padding: "6px 14px", margin: "4px 0 8px", cursor: "pointer", fontFamily: T.fontBody, boxShadow: T.shadowCard }}>Earlier messages</button>}{shown.map((m, i) => { const bubble = <HellooBubble key={m.id || i} m={m} person={p} prevSame={i > 0 && shown[i - 1].from === m.from && !["day", "system", "call"].includes(shown[i - 1].kind) && !["day", "system", "call"].includes(m.kind)} />; return onMessageHold && !["day", "system"].includes(m.kind) && !m.pending ? <HellooHold key={m.id || i} onHold={() => onMessageHold(m)} align={m.from === "me" ? "flex-end" : "flex-start"}>{bubble}</HellooHold> : bubble; })}</div>{(p.handle && !ownerView && onMenu) && <div style={{ display: "flex", gap: 8, padding: "8px 12px 0", background: T.surface, borderTop: `1px solid ${T.line}`, flexShrink: 0 }}><button onClick={onMenu} data-testid="helloo-shop-menu" className="v2-tap" style={{ display: "inline-flex", alignItems: "center", gap: 6, border: "none", borderRadius: 999, padding: "7px 13px", background: "#DB27771A", color: "#DB2777", fontSize: 12.5, fontWeight: 800, cursor: "pointer", fontFamily: T.fontBody }}><HlStore size={15} />Menu · order here</button>{shopOpenLine ? <HellooChip>{shopOpenLine}</HellooChip> : null}</div>}{composerNote ? <div style={{ padding: "12px 16px calc(14px + env(safe-area-inset-bottom, 0px))", borderTop: `1px solid ${T.line}`, background: T.surface, flexShrink: 0 }}>{composerNote}</div> : mode === "pro" ? <HellooProComposer person={p} onWrite={onWriteLetter} /> : <>{replyTo && <div style={{ display: "flex", alignItems: "center", gap: 10, padding: "8px 12px 0", background: T.surface, borderTop: `1px solid ${T.line}`, flexShrink: 0 }}><HlReply size={16} color={T.accent} /><span style={{ flex: 1, minWidth: 0, borderLeft: `3px solid ${T.accent}`, paddingLeft: 9 }}><span style={{ display: "block", fontSize: 12, fontWeight: 800, color: T.accent }}>Replying to {replyTo.who}</span><span style={{ display: "block", fontSize: 12.5, color: T.inkSoft, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{replyTo.preview}</span></span><button onClick={onCancelReply} aria-label="Cancel reply" style={{ width: 30, height: 30, border: "none", borderRadius: "50%", background: T.surfaceAlt, display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer" }}><HlX size={15} color={T.inkSoft} /></button></div>}{paidPrice > 0 && <HellooPaidComposerBar price={paidPrice} currency={paidCurrency || me.currency} />}{ownerView && quickReplies.length > 0 && <div style={{ display: "flex", gap: 8, padding: "8px 12px 0", overflowX: "auto", scrollbarWidth: "none", background: T.surface, borderTop: `1px solid ${T.line}`, flexShrink: 0 }}>{quickReplies.map((q) => <HellooChip key={q}>{q}</HellooChip>)}</div>}<div style={{ padding: "8px 10px calc(10px + env(safe-area-inset-bottom, 0px))", background: HT.chatBg || HT.wash, flexShrink: 0 }}>{(() => {
+  return <HellooScreen><div style={{ display: "flex", alignItems: "center", gap: 8, padding: "calc(8px + env(safe-area-inset-top, 0px)) 10px 8px", background: HT.chatBg || HT.wash, flexShrink: 0 }}><NavBackButton onClick={onBack} /><HellooAvatar person={p} size={40} online={p.online} /><button onClick={onOpenPerson || onMore} className="v2-tap" style={{ flex: 1, minWidth: 0, border: "none", background: "none", textAlign: "left", padding: 0, cursor: "pointer", fontFamily: T.fontBody }}><span style={{ display: "block", fontSize: 15.5, fontWeight: 800, color: T.ink, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{p.handle ? <CreatorHandleText handle={p.handle} icon={false} /> : p.name}</span><span style={{ display: "block", fontSize: 11.5, color: typing ? T.accent : T.inkSoft, marginTop: 1, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{sub}</span></button>{onMode && <HellooModeSwitch mode={mode} onChange={onMode} />}{onVideo && <HellooRoundButton Icon={HlVideo} label="Video call" onClick={onVideo} color={T.accent} size={38} />}{onCall && <HellooRoundButton Icon={HlPhone} label="Voice call" onClick={onCall} color={HT.free} size={38} />}<HellooRoundButton Icon={HlMore} label="More" onClick={onMore} size={38} /></div><div ref={scrollRef} style={{ flex: 1, minHeight: 0, overflowY: "auto", padding: "8px 14px 12px", display: "flex", flexDirection: "column", background: HT.chatBg || HT.wash }}>{strip}{history}{hasOlder && <button onClick={onLoadOlder} className="v2-tap" style={{ alignSelf: "center", border: "none", borderRadius: 999, background: T.surface, color: T.accent, fontSize: 12, fontWeight: 800, padding: "6px 14px", margin: "4px 0 8px", cursor: "pointer", fontFamily: T.fontBody, boxShadow: T.shadowCard }}>Earlier messages</button>}{shown.map((m, i) => { const bubble = <HellooBubble key={m.id || i} m={m} person={p} prevSame={i > 0 && shown[i - 1].from === m.from && !["day", "system", "call"].includes(shown[i - 1].kind) && !["day", "system", "call"].includes(m.kind)} />; return onMessageHold && !["day", "system"].includes(m.kind) && !m.pending ? <HellooHold key={m.id || i} onHold={() => onMessageHold(m)} align={m.from === "me" ? "flex-end" : "flex-start"}>{bubble}</HellooHold> : bubble; })}</div>{(p.handle && !ownerView && onMenu) && <div style={{ display: "flex", gap: 8, padding: "8px 12px 0", background: T.surface, borderTop: `1px solid ${T.line}`, flexShrink: 0 }}><button onClick={onMenu} data-testid="helloo-shop-menu" className="v2-tap" style={{ display: "inline-flex", alignItems: "center", gap: 6, border: "none", borderRadius: 999, padding: "7px 13px", background: "#DB27771A", color: "#DB2777", fontSize: 12.5, fontWeight: 800, cursor: "pointer", fontFamily: T.fontBody }}><HlStore size={15} />Menu · order here</button>{shopOpenLine ? <HellooChip>{shopOpenLine}</HellooChip> : null}</div>}{composerNote ? <div style={{ padding: "12px 16px calc(14px + env(safe-area-inset-bottom, 0px))", borderTop: `1px solid ${T.line}`, background: T.surface, flexShrink: 0 }}>{composerNote}</div> : mode === "pro" ? <HellooProComposer person={p} onWrite={onWriteLetter} /> : <>{replyTo && <div style={{ display: "flex", alignItems: "center", gap: 10, padding: "8px 12px 0", background: T.surface, borderTop: `1px solid ${T.line}`, flexShrink: 0 }}><HlReply size={16} color={T.accent} /><span style={{ flex: 1, minWidth: 0, borderLeft: `3px solid ${T.accent}`, paddingLeft: 9 }}><span style={{ display: "block", fontSize: 12, fontWeight: 800, color: T.accent }}>Replying to {replyTo.who}</span><span style={{ display: "block", fontSize: 12.5, color: T.inkSoft, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{replyTo.preview}</span></span><button onClick={onCancelReply} aria-label="Cancel reply" style={{ width: 30, height: 30, border: "none", borderRadius: "50%", background: T.surfaceAlt, display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer" }}><HlX size={15} color={T.inkSoft} /></button></div>}{paidPrice > 0 && <HellooPaidComposerBar price={paidPrice} currency={paidCurrency || me.currency} />}{ownerView && quickReplies.length > 0 && <div style={{ display: "flex", gap: 8, padding: "8px 12px 0", overflowX: "auto", scrollbarWidth: "none", background: T.surface, borderTop: `1px solid ${T.line}`, flexShrink: 0 }}>{quickReplies.map((q) => <HellooChip key={q}>{q}</HellooChip>)}</div>}<div style={{ padding: "8px 10px calc(10px + env(safe-area-inset-bottom, 0px))", background: HT.chatBg || HT.wash, flexShrink: 0 }}>{(() => {
     // One bar for everything: the text on the left, every button on the right
     // (stickers, attach, pay, camera, then voice or send).
     const ib = (Icon, label, fn, color, extra) => <button type="button" onClick={fn} aria-label={label} title={label} className="v2-tap" {...(extra || {})} style={{ width: 36, height: 36, borderRadius: "50%", border: "none", background: "none", display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer", flexShrink: 0, padding: 0 }}><Icon size={21} color={color || T.inkSoft} /></button>;
@@ -80622,6 +80624,239 @@ function WorkPost({ top, back, where, locate, busy, shopName, onToast, onPosted 
 }
 
 
+// ───── helloo: screens/WaImport.jsx ─────
+// ─────────────────────────────────────────────────────────────────
+// Helloo · WhatsApp history.
+//
+// WhatsApp's own "Export chat" (⋮ → More → Export chat → Include media),
+// shared to Helloo from the phone's share sheet: the chat as a .txt and the
+// photos, videos, voice notes and documents beside it. Helloo reads the
+// text, matches each "(file attached)" line to its file, asks which Helloo
+// chat it belongs to and which name is you, and keeps it ON THIS PHONE
+// (IndexedDB) — never sent to GLOOBAL, never shown to the other person.
+// In that chat, "WhatsApp history" opens it, read-only, in date order.
+// ─────────────────────────────────────────────────────────────────
+
+// ── Reading the export ──────────────────────────────────────────────
+// Android: 20/11/26, 2:10 pm - Anita Rao: See you at six
+// iPhone:  [20/11/26, 2:10:05 PM] Anita Rao: See you at six
+// A line that does not start like that continues the message above it.
+var HELLOO_WA_LINE = /^\u200e?\[?(\d{1,2})[\/.\-](\d{1,2})[\/.\-](\d{2,4}),?\s+(\d{1,2})[:.](\d{2})(?:[:.](\d{2}))?[\s  ]*([AaPp]\.?\s?[Mm]\.?)?\]?\s*(?:[-–]\s*)?(.*)$/;
+var HELLOO_WA_FILE = /^\u200e?(?:<attached:\s*([^>]+)>|(.+?\.[A-Za-z0-9]{2,5})\s+\(file attached\))\s*([\s\S]*)$/;
+var HELLOO_WA_OMITTED = /^\u200e?<?(?:media|image|video|audio|sticker|document|GIF|Contact card) omitted>?$/i;
+
+function hellooWaParse(raw) {
+  const lines = String(raw || "").replace(/\r\n?/g, "\n").split("\n");
+  const heads = [];
+  for (const line of lines) {
+    const m = HELLOO_WA_LINE.exec(line);
+    if (m) heads.push({ a: Number(m[1]), b: Number(m[2]), y: Number(m[3]), h: Number(m[4]), mi: Number(m[5]), s: Number(m[6] || 0), ap: (m[7] || "").replace(/[.\s]/g, "").toLowerCase(), rest: m[8] });
+    else if (heads.length) heads[heads.length - 1].rest += "\n" + line;
+  }
+  if (heads.length < 2) return null;
+  // Day first (India and most of the world) unless a date says otherwise.
+  const monthFirst = heads.some((x) => x.b > 12) && !heads.some((x) => x.a > 12);
+  const names = new Map();
+  const messages = [];
+  for (const x of heads) {
+    const day = monthFirst ? x.b : x.a; const month = monthFirst ? x.a : x.b;
+    const year = x.y < 100 ? 2000 + x.y : x.y;
+    let hour = x.h; if (x.ap === "pm" && hour < 12) hour += 12; if (x.ap === "am" && hour === 12) hour = 0;
+    const at = new Date(year, month - 1, day, hour, x.mi, x.s);
+    if (isNaN(at.getTime())) continue;
+    const colon = x.rest.indexOf(": ");
+    // No "Name: " — a line from WhatsApp itself (encryption notice, someone added).
+    if (colon < 0 || colon > 60) { messages.push({ at, system: true, text: x.rest.replace(/^\u200e/, "").trim() }); continue; }
+    const name = x.rest.slice(0, colon).replace(/^\u200e/, "").trim();
+    const body = x.rest.slice(colon + 2);
+    names.set(name, (names.get(name) || 0) + 1);
+    const f = HELLOO_WA_FILE.exec(body.trim());
+    if (f) messages.push({ at, name, file: (f[1] || f[2]).trim(), text: (f[3] || "").trim() });
+    else if (HELLOO_WA_OMITTED.test(body.trim())) messages.push({ at, name, omitted: true, text: "" });
+    else messages.push({ at, name, text: body.replace(/\u200e/g, "").trim().replace(/\s*<This message was edited>$/, " (edited)") });
+  }
+  const people = [...names.entries()].sort((p, q) => q[1] - p[1]).map(([n]) => n);
+  if (!people.length) return null;
+  return { names: people, messages };
+}
+
+// What a file is, by its name: WhatsApp's own names say it (IMG-, VID-, PTT-, AUD-).
+function hellooWaKind(name, type) {
+  const n = String(name || "").toLowerCase(); const t = String(type || "");
+  if (t.startsWith("image/") || /\.(jpe?g|png|webp|gif|heic)$/.test(n)) return n.endsWith(".webp") && n.startsWith("stk-") ? "sticker" : "photo";
+  if (t.startsWith("video/") || /\.(mp4|3gp|mov)$/.test(n)) return "video";
+  if (t.startsWith("audio/") || /\.(opus|ogg|m4a|mp3|aac|amr)$/.test(n)) return "voice";
+  return "file";
+}
+
+// The export's chat .txt among the shared files, read and parsed. null if none.
+async function hellooWaFromFiles(files) {
+  const txt = (files || []).filter((f) => /\.txt$/i.test(f.name) || f.type === "text/plain");
+  for (const f of txt) {
+    const parsed = hellooWaParse(await f.text());
+    if (parsed) {
+      const title = (/WhatsApp Chat (?:with|-)\s*(.+?)\.txt$/i.exec(f.name) || [])[1] || "";
+      const media = (files || []).filter((x) => x !== f);
+      return Object.assign(parsed, { title, media });
+    }
+  }
+  return null;
+}
+
+// ── Kept on this phone ──────────────────────────────────────────────
+function hellooWaDb() {
+  return new Promise((ok, fail) => {
+    const req = indexedDB.open("helloo-wa-history", 1);
+    req.onupgradeneeded = () => req.result.createObjectStore("chats");
+    req.onsuccess = () => ok(req.result);
+    req.onerror = () => fail(req.error);
+  });
+}
+async function hellooWaPut(chatId, record) {
+  const db = await hellooWaDb();
+  await new Promise((ok, fail) => { const t = db.transaction("chats", "readwrite"); t.objectStore("chats").put(record, chatId); t.oncomplete = ok; t.onerror = () => fail(t.error); });
+}
+async function hellooWaGet(chatId) {
+  try {
+    const db = await hellooWaDb();
+    return await new Promise((ok) => { const r = db.transaction("chats").objectStore("chats").get(chatId); r.onsuccess = () => ok(r.result || null); r.onerror = () => ok(null); });
+  } catch (e) { return null; }
+}
+async function hellooWaDelete(chatId) {
+  const db = await hellooWaDb();
+  await new Promise((ok) => { const t = db.transaction("chats", "readwrite"); t.objectStore("chats").delete(chatId); t.oncomplete = ok; t.onerror = ok; });
+}
+// The record: who was who, every message, each file as a Blob.
+function hellooWaRecord(parsed, me) {
+  const byName = new Map((parsed.media || []).map((f) => [f.name, f]));
+  let photos = 0, others = 0;
+  const messages = parsed.messages.map((m) => {
+    const out = { at: m.at.toISOString(), mine: !m.system && m.name === me, system: Boolean(m.system), name: m.name || "", text: m.text || "" };
+    if (m.file) {
+      const blob = byName.get(m.file) || null;
+      out.file = { name: m.file, kind: hellooWaKind(m.file, blob && blob.type), blob };
+      if (blob) { if (out.file.kind === "photo") photos += 1; else others += 1; }
+    } else if (m.omitted) out.omitted = true;
+    return out;
+  });
+  return { source: "whatsapp", importedAt: new Date().toISOString(), me, names: parsed.names, title: parsed.title, messages, counts: { messages: messages.filter((m) => !m.system).length, photos, others } };
+}
+
+var HELLOO_WA_GREEN = "#25D366";
+function HellooWaBadge({ size = 18 }) {
+  return <span aria-hidden="true" style={{ width: size, height: size, borderRadius: "50%", background: HELLOO_WA_GREEN, color: "#fff", display: "inline-flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}><HlWaMsg size={Math.round(size * 0.58)} /></span>;
+}
+var hellooWaDate = (d) => new Date(d).toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric" });
+
+// ── Importing: which chat, which one is you ──────────────────────────
+function HellooWaImportSheet({ parsed, chats, onImport, onClose }) {
+  const guessMe = parsed.names.find((n) => n !== parsed.title) || parsed.names[0];
+  const [me, setMe] = useStateH49(guessMe);
+  const [q, setQ] = useStateH49("");
+  const [pick, setPick] = useStateH49(null);
+  const [busy, setBusy] = useStateH49(false);
+  const list = (chats || []).filter((c) => !c.private && c.person);
+  const them = parsed.names.find((n) => n !== me) || parsed.title || "";
+  const t = (q || "").trim().toLowerCase();
+  // The chat whose name looks like the export's, first.
+  const score = (c) => { const n = String(c.person.handle || c.person.name || "").toLowerCase(); const w = String(them).toLowerCase(); return n === w ? 2 : w && (n.includes(w.split(" ")[0]) || w.includes(n)) ? 1 : 0; };
+  const shown = (t ? list.filter((c) => String(c.person.handle || c.person.name || "").toLowerCase().includes(t)) : [...list].sort((a, b) => score(b) - score(a))).slice(0, 30);
+  const msgs = parsed.messages.filter((m) => !m.system);
+  const files = parsed.messages.filter((m) => m.file);
+  const found = new Set((parsed.media || []).map((f) => f.name));
+  const photos = files.filter((m) => found.has(m.file) && hellooWaKind(m.file) === "photo").length;
+  const others = files.filter((m) => found.has(m.file)).length - photos;
+  const missing = files.filter((m) => !found.has(m.file)).length + parsed.messages.filter((m) => m.omitted).length;
+  const first = msgs[0] && msgs[0].at; const last = msgs[msgs.length - 1] && msgs[msgs.length - 1].at;
+  const go = async () => { if (!pick || busy) return; setBusy(true); try { await onImport(pick, me); } finally { setBusy(false); } };
+  return <HellooSheet label="Import WhatsApp chat" onClose={onClose} zIndex={280}><div data-testid="helloo-wa-import">
+    <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 10 }}>
+      <HellooWaBadge size={30} />
+      <div style={{ flex: 1, minWidth: 0 }}>
+        <div style={{ fontSize: 16, fontWeight: 800, fontFamily: T.fontDisplay, color: T.ink }}>Import WhatsApp chat</div>
+        <div style={{ fontSize: 12, color: T.inkSoft, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{parsed.title ? `Chat with ${parsed.title}` : parsed.names.join(", ")}</div>
+      </div>
+      <button onClick={onClose} aria-label="Close" className="v2-tap" style={{ width: 32, height: 32, borderRadius: "50%", border: "none", background: T.surfaceSunk, color: T.inkSoft, display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer", flexShrink: 0 }}><HlX size={16} /></button>
+    </div>
+    <HellooCard style={{ padding: "11px 14px", marginBottom: 12 }}>
+      <div data-testid="helloo-wa-counts" style={{ display: "grid", gridTemplateColumns: "repeat(3, minmax(0, 1fr))", gap: 6, textAlign: "center" }}>{[[msgs.length, "messages"], [photos, "photos"], [others, "voice & files"]].map(([n, l]) => <div key={l}><div style={{ fontSize: 18, fontWeight: 800, color: T.ink, fontFamily: T.fontDisplay }}>{n.toLocaleString("en-IN")}</div><div style={{ fontSize: 11, color: T.inkSoft, fontWeight: 700 }}>{l}</div></div>)}</div>
+      {first ? <div style={{ fontSize: 11.5, color: T.inkSoft, textAlign: "center", marginTop: 8 }}>{hellooWaDate(first)} – {hellooWaDate(last)}{missing ? ` · ${missing} not included in the export` : ""}</div> : null}
+    </HellooCard>
+    <div style={{ fontSize: 12, fontWeight: 800, color: T.inkSoft, margin: "0 2px 6px" }}>Which one is you?</div>
+    <div style={{ display: "flex", flexWrap: "wrap", gap: 7, marginBottom: 12 }}>{parsed.names.slice(0, 6).map((n) => <HellooChip key={n} on={me === n} onClick={() => setMe(n)}>{n}</HellooChip>)}</div>
+    <div style={{ fontSize: 12, fontWeight: 800, color: T.inkSoft, margin: "0 2px 6px" }}>Put it in your Helloo chat with</div>
+    <div style={{ display: "flex", alignItems: "center", gap: 8, padding: "0 12px", height: 38, borderRadius: 14, background: T.surfaceSunk, marginBottom: 8 }}>
+      <HlSearch size={15} color={T.inkFaint} />
+      <input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Search chats" aria-label="Search chats" style={{ flex: 1, minWidth: 0, border: "none", outline: "none", background: "none", fontSize: 14, color: T.ink, fontFamily: T.fontBody }} />
+    </div>
+    <div style={{ maxHeight: "26vh", overflowY: "auto", marginBottom: 10 }}><HellooCard>{shown.map((c, i) => { const on = pick && pick.id === c.id; return <button key={c.id} data-testid="helloo-wa-chat" onClick={() => setPick(c)} className="v2-tap" style={{ width: "100%", display: "flex", alignItems: "center", gap: 12, padding: "9px 14px", border: "none", borderTop: i ? `1px solid ${T.line}` : "none", background: on ? T.accentSoft : "none", cursor: "pointer", textAlign: "left", fontFamily: T.fontBody }}>
+      <HellooAvatar person={c.person} size={38} flag={false} />
+      <span style={{ flex: 1, minWidth: 0, fontSize: 14, fontWeight: 800, color: T.ink, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{c.person.handle || c.person.name}</span>
+      <span style={{ width: 20, height: 20, borderRadius: "50%", border: on ? "none" : `2px solid ${T.line}`, background: on ? T.accent : "none", color: "#fff", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>{on ? <HlCheck size={13} /> : null}</span>
+    </button>; })}</HellooCard></div>
+    <div style={{ display: "flex", alignItems: "flex-start", gap: 7, fontSize: 11.5, color: T.inkSoft, lineHeight: 1.45, margin: "0 2px 12px" }}><HlLock size={13} style={{ flexShrink: 0, marginTop: 2 }} /><span>Kept on this phone only. {them ? `${them} doesn't` : "The other person doesn't"} see it, and it is never sent to GLOOBAL.</span></div>
+    <button data-testid="helloo-wa-import-go" onClick={go} disabled={!pick || busy} className="v2-tap" style={{ width: "100%", height: 48, borderRadius: 999, border: "none", background: pick ? T.accent : T.surfaceSunk, color: pick ? "#fff" : T.inkFaint, fontSize: 15, fontWeight: 800, cursor: pick ? "pointer" : "default", fontFamily: T.fontBody }}>{busy ? "Importing…" : pick ? `Import into ${pick.person.handle || pick.person.name}` : "Choose a chat"}</button>
+  </div></HellooSheet>;
+}
+
+// The row at the top of a chat that has WhatsApp history.
+function HellooWaHistoryRow({ info, onOpen }) {
+  return <button data-testid="helloo-wa-row" onClick={onOpen} className="v2-tap" style={{ alignSelf: "center", display: "inline-flex", alignItems: "center", gap: 8, border: "none", borderRadius: 999, background: T.surface, boxShadow: T.shadowCard, padding: "6px 13px 6px 7px", margin: "4px 0 8px", cursor: "pointer", fontFamily: T.fontBody, maxWidth: "92%" }}><HellooWaBadge size={22} /><span style={{ fontSize: 12, fontWeight: 800, color: T.ink, whiteSpace: "nowrap" }}>WhatsApp history</span><span style={{ fontSize: 11.5, color: T.inkSoft, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{info.counts.messages.toLocaleString("en-IN")} messages</span></button>;
+}
+
+// One kept file, drawn from its Blob.
+function HellooWaFile({ file, mine }) {
+  const [src, setSrc] = useStateH49("");
+  useEffectH49(() => { if (!file.blob) return undefined; const u = URL.createObjectURL(file.blob); setSrc(u); return () => URL.revokeObjectURL(u); }, [file]);
+  if (!file.blob) return <span style={{ display: "inline-flex", alignItems: "center", gap: 6, fontSize: 12.5, fontStyle: "italic", opacity: 0.8 }}><HlWaClip size={13} />{file.name} · not in the export</span>;
+  if (file.kind === "photo" || file.kind === "sticker") return src ? <img src={src} alt="" style={{ display: "block", width: "100%", maxWidth: 240, borderRadius: 12, marginBottom: 2 }} /> : null;
+  if (file.kind === "video") return src ? <video src={src} controls playsInline style={{ display: "block", width: "100%", maxWidth: 240, borderRadius: 12 }} /> : null;
+  if (file.kind === "voice") return src ? <audio src={src} controls style={{ width: 220, maxWidth: "100%", height: 36 }} /> : null;
+  return <a href={src} download={file.name} style={{ display: "inline-flex", alignItems: "center", gap: 6, fontSize: 13, fontWeight: 700, color: mine ? "#fff" : T.accent }}><HlWaClip size={14} />{file.name}</a>;
+}
+
+// The kept history, read-only.
+function HellooWaHistoryScreen({ chatId, person, onBack, onRemoved }) {
+  const [rec, setRec] = useStateH49(null);
+  const [limit, setLimit] = useStateH49(300);
+  useEffectH49(() => { let live = true; hellooWaGet(chatId).then((r) => { if (live) setRec(r || false); }); return () => { live = false; }; }, [chatId]);
+  const all = rec ? rec.messages : [];
+  const shown = all.slice(Math.max(0, all.length - limit));
+  let lastDay = "";
+  const rows = [];
+  shown.forEach((m, i) => {
+    const day = hellooWaDate(m.at);
+    if (day !== lastDay) { rows.push(<div key={"d" + i} style={{ alignSelf: "center", fontSize: 10.5, fontWeight: 800, letterSpacing: 0.6, textTransform: "uppercase", color: T.inkFaint, background: T.surfaceSunk, borderRadius: 999, padding: "4px 11px", margin: "8px 0 4px" }}>{day}</div>); lastDay = day; }
+    if (m.system) { rows.push(<div key={i} style={{ alignSelf: "center", maxWidth: "88%", textAlign: "center", fontSize: 11, color: T.inkSoft, background: T.surfaceSunk, borderRadius: 10, padding: "5px 10px", margin: "3px 0" }}>{m.text}</div>); return; }
+    const prev = shown[i - 1]; const same = prev && !prev.system && prev.mine === m.mine && hellooWaDate(prev.at) === day;
+    const photoOnly = m.file && (m.file.kind === "photo" || m.file.kind === "sticker") && m.file.blob && !m.text;
+    rows.push(<div key={i} data-helloo-wa-msg={m.mine ? "me" : "them"} style={{ alignSelf: m.mine ? "flex-end" : "flex-start", maxWidth: "80%", marginTop: same ? 2 : 8 }}><div style={{ padding: photoOnly ? 4 : "8px 12px 6px", borderRadius: 18, borderBottomRightRadius: m.mine ? 6 : 18, borderBottomLeftRadius: m.mine ? 18 : 6, background: m.mine ? (HT.bubbleMine || T.accent) : (HT.bubbleTheirs || T.surface), color: m.mine ? (HT.bubbleMineInk || "#fff") : T.ink, boxShadow: m.mine ? "none" : T.shadowCard, fontSize: 14.5, lineHeight: 1.4, wordBreak: "break-word", whiteSpace: "pre-wrap" }}>
+      {m.file ? <HellooWaFile file={m.file} mine={m.mine} /> : null}
+      {m.omitted ? <span style={{ fontStyle: "italic", opacity: 0.75, fontSize: 13 }}>Media not included in the export</span> : null}
+      {m.text ? <div style={{ marginTop: m.file ? 4 : 0, padding: photoOnly ? "0 6px" : 0 }}>{m.text}</div> : null}
+      <div style={{ fontSize: 10.5, opacity: 0.65, textAlign: "right", marginTop: 2, padding: photoOnly ? "0 6px 2px" : 0 }}>{new Date(m.at).toLocaleTimeString("en-IN", { hour: "numeric", minute: "2-digit" })}</div>
+    </div></div>);
+  });
+  const remove = async () => { await hellooWaDelete(chatId); onRemoved && onRemoved(); };
+  return <HellooScreen style={{ background: HT.chatBg || HT.wash }}>
+    <div style={{ display: "flex", alignItems: "center", gap: 8, padding: "calc(8px + env(safe-area-inset-top, 0px)) 10px 8px", flexShrink: 0 }}>
+      <NavBackButton onClick={onBack} />
+      <HellooAvatar person={person} size={38} flag={false} />
+      <div style={{ flex: 1, minWidth: 0 }}>
+        <div style={{ fontSize: 15.5, fontWeight: 800, color: T.ink, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{person.handle || person.name}</div>
+        <div style={{ display: "flex", alignItems: "center", gap: 5, fontSize: 11.5, color: T.inkSoft }}><HellooWaBadge size={13} />WhatsApp history{rec ? ` · ${hellooWaDate(rec.messages[0].at)} – ${hellooWaDate(rec.messages[rec.messages.length - 1].at)}` : ""}</div>
+      </div>
+    </div>
+    <div style={{ flex: 1, minHeight: 0, overflowY: "auto", padding: "4px 12px 24px", display: "flex", flexDirection: "column" }}>
+      <div style={{ alignSelf: "center", display: "inline-flex", alignItems: "center", gap: 6, fontSize: 11, fontWeight: 700, color: HT.free, background: HT.freeSoft, borderRadius: 999, padding: "5px 11px", margin: "4px 0 6px" }}><HlLock size={12} />Imported from WhatsApp · only on this phone</div>
+      {all.length > shown.length ? <button onClick={() => setLimit((n) => n + 300)} className="v2-tap" style={{ alignSelf: "center", border: "none", borderRadius: 999, background: T.surface, color: T.accent, fontSize: 12, fontWeight: 800, padding: "6px 14px", margin: "4px 0 8px", cursor: "pointer", fontFamily: T.fontBody, boxShadow: T.shadowCard }}>Earlier messages</button> : null}
+      {rec === null ? <div style={{ textAlign: "center", color: T.inkFaint, fontSize: 13, marginTop: 30 }}>Opening…</div> : rows}
+      {rec ? <button onClick={remove} className="v2-tap" style={{ alignSelf: "center", border: "none", background: "none", color: T.negative, fontSize: 12.5, fontWeight: 800, padding: "14px 10px 4px", cursor: "pointer", fontFamily: T.fontBody }}>Remove WhatsApp history from this phone</button> : null}
+    </div>
+  </HellooScreen>;
+}
+
+
 // ───── helloo: screens/ShareIn.jsx ─────
 // ─────────────────────────────────────────────────────────────────
 // Helloo · Share in.
@@ -80649,11 +80884,20 @@ async function hellooReadShareIn() {
     const meta = await cache.match("/share-in/meta");
     if (!meta) return null;
     const m = await meta.json();
-    const pic = await cache.match("/share-in/file");
-    const blob = pic ? await pic.blob() : null;
+    const list = Array.isArray(m.files) ? m.files : (m.fileName ? [{ name: m.fileName, type: m.fileType }] : []);
+    const files = [];
+    for (let i = 0; i < list.length; i += 1) {
+      const hit = (await cache.match(`/share-in/file/${i}`)) || (i === 0 ? await cache.match("/share-in/file") : null);
+      if (!hit) continue;
+      const blob = await hit.blob();
+      if (blob.size) files.push(new File([blob], list[i].name || `shared-${i}`, { type: blob.type || list[i].type || "" }));
+    }
     await caches.delete(HELLOO_SHARE_CACHE);
     const text = [m.text, m.url].filter(Boolean).filter((v, i, all) => !(i === 1 && all[0].includes(v))).join(" ").trim() || String(m.title || "").trim();
-    const file = blob && blob.size ? new File([blob], m.fileName || "shared.png", { type: blob.type || m.fileType || "image/png" }) : null;
+    // A WhatsApp export goes to Import instead of "Send to…".
+    const wa = await hellooWaFromFiles(files);
+    if (wa) return { wa };
+    const file = files.find((f) => /^image\//.test(f.type)) || null;
     return text || file ? { text: text.slice(0, 2000), file } : null;
   } catch (e) {
     return null;
@@ -81528,6 +81772,10 @@ function HellooRoot() {
   const [toast, setToast] = useStateH9("");
   // Something shared into Helloo from another app (screens/ShareIn.jsx).
   const [shareIn, setShareIn] = useStateH9(null);
+  // WhatsApp history kept on this phone (screens/WaImport.jsx): what the
+  // open chat has, and whether it is being read.
+  const [waInfo, setWaInfo] = useStateH9(null);
+  const [waOpen, setWaOpen] = useStateH9(false);
   // Who this account can be here: itself, and each shop it runs.
   const [faces, setFaces] = useStateH9(null);
   useEffectH9(() => { if (!toast) return undefined; const t = setTimeout(() => setToast(""), 2600); return () => clearTimeout(t); }, [toast]);
@@ -81979,6 +82227,29 @@ function HellooRoot() {
     hellooReadShareIn().then((got) => { if (!live || !got) return; hellooClearDeepLink(); setShareIn(got); });
     return () => { live = false; };
   }, [signedIn]);
+  useEffectH9(() => {
+    setWaOpen(false);
+    if (!openId) { setWaInfo(null); return undefined; }
+    try { const raw = localStorage.getItem("helloo.wa." + openId); setWaInfo(raw ? JSON.parse(raw) : null); } catch (e) { setWaInfo(null); }
+    return undefined;
+  }, [openId]);
+  const importWa = async (row, meName) => {
+    const got = shareIn && shareIn.wa;
+    if (!got) return;
+    try {
+      const record = hellooWaRecord(got, meName);
+      await hellooWaPut(row.id, record);
+      const info = { counts: record.counts, from: record.messages[0] && record.messages[0].at, to: record.messages.length ? record.messages[record.messages.length - 1].at : null };
+      try { localStorage.setItem("helloo.wa." + row.id, JSON.stringify(info)); } catch (e) { /* the row just won't show */ }
+      setShareIn(null);
+      setScreen(null);
+      openChat(row.id);
+      setWaInfo(info);
+      setToast(`WhatsApp history imported · ${record.counts.messages.toLocaleString("en-IN")} messages`);
+    } catch (err) {
+      setToast((err && err.message) || "Couldn't import that chat");
+    }
+  };
   const sendShareIn = async (row) => {
     const got = shareIn;
     if (!got) return;
@@ -82997,7 +83268,7 @@ function HellooRoot() {
   const chatThemeNow = openId && !screen ? ((((chatRows || []).find((c) => c.id === openId)) || {}).theme || (threads[openId] && threads[openId].chat && threads[openId].chat.theme) || "") : "";
   const themeNow = chatThemeNow && hellooFindTheme(chatThemeNow) ? chatThemeNow : themeKey;
   if (shownThemeRef.current !== themeNow + "|" + hellooSideNow()) { applyHellooTheme(themeNow); shownThemeRef.current = themeNow + "|" + hellooSideNow(); }
-  const shell = (children) => <div style={{ position: "absolute", inset: 0, overflow: "hidden", background: T.bg }}>{callLayer}<div style={{ position: "absolute", left: 0, right: 0, bottom: 0, top: callBar ? "calc(48px + env(safe-area-inset-top, 0px))" : 0 }}>{children}</div>{gReceipt && user && typeof LedgerProvider === "function" ? <LedgerProvider userId={user.accountId || "me"} currency={user.currency || "INR"}><ReceiptModal receipt={gReceipt} onClose={() => setGReceipt(null)} /></LedgerProvider> : null}{callBar}{typeof PaymentFaceHost === "function" ? <PaymentFaceHost /> : null}{shareIn && signedIn ? <HellooShareInSheet share={shareIn} chats={(chatRows || []).map((c) => hellooChatRowFrom(c, photos))} onSend={sendShareIn} onClose={() => setShareIn(null)} /> : null}{typeof BiometricPinFallbackModal === "function" ? <BiometricPinFallbackModal open={Boolean(pinFallback)} symbolId={user && user.symbolId} reason={pinFallback && pinFallback.reason} onResolve={resolvePinFallback} /> : null}{toast && <div role="status" style={{ position: "absolute", left: 16, right: 16, bottom: "calc(96px + env(safe-area-inset-bottom, 0px))", display: "flex", justifyContent: "center", zIndex: 300, pointerEvents: "none" }}><span style={{ background: T.ink, color: T.bg, borderRadius: 18, padding: "9px 16px", fontSize: 13, fontWeight: 700, fontFamily: T.fontBody, boxShadow: "0 8px 24px rgba(0,0,0,0.25)", textAlign: "center", maxWidth: "100%" }}>{toast}</span></div>}</div>;
+  const shell = (children) => <div style={{ position: "absolute", inset: 0, overflow: "hidden", background: T.bg }}>{callLayer}<div style={{ position: "absolute", left: 0, right: 0, bottom: 0, top: callBar ? "calc(48px + env(safe-area-inset-top, 0px))" : 0 }}>{children}</div>{gReceipt && user && typeof LedgerProvider === "function" ? <LedgerProvider userId={user.accountId || "me"} currency={user.currency || "INR"}><ReceiptModal receipt={gReceipt} onClose={() => setGReceipt(null)} /></LedgerProvider> : null}{callBar}{typeof PaymentFaceHost === "function" ? <PaymentFaceHost /> : null}{shareIn && shareIn.wa && signedIn ? <HellooWaImportSheet parsed={shareIn.wa} chats={(chatRows || []).map((c) => hellooChatRowFrom(c, photos))} onImport={importWa} onClose={() => setShareIn(null)} /> : null}{shareIn && !shareIn.wa && signedIn ? <HellooShareInSheet share={shareIn} chats={(chatRows || []).map((c) => hellooChatRowFrom(c, photos))} onSend={sendShareIn} onClose={() => setShareIn(null)} /> : null}{typeof BiometricPinFallbackModal === "function" ? <BiometricPinFallbackModal open={Boolean(pinFallback)} symbolId={user && user.symbolId} reason={pinFallback && pinFallback.reason} onResolve={resolvePinFallback} /> : null}{toast && <div role="status" style={{ position: "absolute", left: 16, right: 16, bottom: "calc(96px + env(safe-area-inset-bottom, 0px))", display: "flex", justifyContent: "center", zIndex: 300, pointerEvents: "none" }}><span style={{ background: T.ink, color: T.bg, borderRadius: 18, padding: "9px 16px", fontSize: 13, fontWeight: 700, fontFamily: T.fontBody, boxShadow: "0 8px 24px rgba(0,0,0,0.25)", textAlign: "center", maxWidth: "100%" }}>{toast}</span></div>}</div>;
 
   // ── A call fills the screen — or, made small, a bar at the top ───────
   // The call's screen is always the first thing in the shell while there
@@ -83121,8 +83392,9 @@ function HellooRoot() {
       return shell(<><HellooPriceCard person={priceGate.person} price={priceGate.rule.price} currency={priceGate.rule.currency} viewerIsBusiness={priceGate.rule.kind === "business"} balance={priceGate.balance != null && !Number.isNaN(priceGate.balance) ? priceGate.balance : null} balanceCurrency={me.currency} busy={Boolean(priceGate.busy)} onAgree={() => payAndSend(priceGate)} onAsk={card && card.askPending ? undefined : () => { setPriceGate(null); setAskText(""); setSheet("ask"); }} onBack={() => setPriceGate(null)} /><PayPinModal open={Boolean(reachPin)} onClose={() => setReachPin(null)} amountLabel={hellooMoneyText(priceGate.rule.price, priceGate.rule.currency)} onVerified={(pinValue) => payAndSend(priceGate, pinValue)} /></>);
     }
     if (watchAsk) return shell(<><HellooScreen style={{ background: HT.chatBg || HT.wash }} /><HellooWatchWarning me={me} onClose={() => setWatchAsk(null)} onAgree={() => { const go = watchAsk.go; hellooWatchAgree(meId); setWatchAsk(null); go(); }} /></>);
+    if (waOpen && waInfo) return shell(<HellooWaHistoryScreen chatId={openId} person={person} onBack={() => setWaOpen(false)} onRemoved={() => { try { localStorage.removeItem("helloo.wa." + openId); } catch (e) { /* fine */ } setWaInfo(null); setWaOpen(false); setToast("WhatsApp history removed from this phone"); }} />);
     if (snapCam) return shell(<HellooSnapCamera person={person} onClose={() => setSnapCam(false)} onSend={sendSnap} onToast={setToast} />);
-    return shell(<HellooThreadScreen onSnap={() => setSnapCam(true)} onSticker={(id) => deliver(openId, { kind: "sticker", stickerId: id })} onPaySticker={(id) => { const st = HELLOO_STICKERS[id] || {}; const amt = hellooStickerAmount(id); setPay({ amount: amt ? String(amt) : "", note: st.words || "", busy: false, error: "", sticker: id }); setSheet("pay"); }} me={me} chat={{ id: openId, person, messages: bubbles }} onFindDate={() => setSheet("find-date")} dateOn={Boolean(chatPeriod && chatPeriod !== "all")} strip={<>{chatPeriod && chatPeriod !== "all" ? <div style={{ display: "flex", alignItems: "center", gap: 10, padding: "8px 12px", background: HT.barBg || T.surface, borderBottom: `1px solid ${T.line}` }}><HellooPeriodPill value={chatPeriod} onOpen={() => setSheet("find-date")} onClear={() => setChatPeriod(null)} />{msgs.length === 0 ? <span data-testid="helloo-period-empty" style={{ fontSize: 12.5, color: T.inkSoft }}>Nothing {hellooPeriodWords(chatPeriod)} in this chat.</span> : <span style={{ fontSize: 12, color: T.inkFaint, fontWeight: 700 }}>{msgs.length} {msgs.length === 1 ? "message" : "messages"}</span>}</div> : null}{paidStrip}{strip}</>} paidPrice={rule && !rule.free && !rule.closed ? rule.price : 0} paidCurrency={rule && rule.currency} typing={Boolean(typing[openId]) && !iBlocked} draft={draft} onDraft={(v) => onDraftChange(openId, v)} onSend={sendText} recording={recording} onMic={recording ? stopAndSend : startRecording} onCancelRecording={cancelRecording} hasOlder={Boolean(thread && thread.more)} onLoadOlder={() => loadThread(openId, true)} onPay={person.gloobalId ? () => { setPay({ amount: "", note: "", busy: false, error: "" }); setSheet("pay"); } : undefined} onAttach={() => setSheet("attach")} onMenu={person.handle && person.gloobalId && !iBlocked ? () => openMenu(person) : undefined} onMore={() => setSheet("menu")} onOpenPerson={() => setScreen("contact")} onCall={!iBlocked && person.gloobalId ? () => startCall(person, false) : undefined} onVideo={!iBlocked && person.gloobalId ? () => startCall(person, true) : undefined} onMessageHold={(m) => setHeld(m)} replyTo={reply} onCancelReply={() => setReplyTo(null)} composerNote={note} onBack={closeThread}>
+    return shell(<HellooThreadScreen history={waInfo ? <HellooWaHistoryRow info={waInfo} onOpen={() => setWaOpen(true)} /> : null} onSnap={() => setSnapCam(true)} onSticker={(id) => deliver(openId, { kind: "sticker", stickerId: id })} onPaySticker={(id) => { const st = HELLOO_STICKERS[id] || {}; const amt = hellooStickerAmount(id); setPay({ amount: amt ? String(amt) : "", note: st.words || "", busy: false, error: "", sticker: id }); setSheet("pay"); }} me={me} chat={{ id: openId, person, messages: bubbles }} onFindDate={() => setSheet("find-date")} dateOn={Boolean(chatPeriod && chatPeriod !== "all")} strip={<>{chatPeriod && chatPeriod !== "all" ? <div style={{ display: "flex", alignItems: "center", gap: 10, padding: "8px 12px", background: HT.barBg || T.surface, borderBottom: `1px solid ${T.line}` }}><HellooPeriodPill value={chatPeriod} onOpen={() => setSheet("find-date")} onClear={() => setChatPeriod(null)} />{msgs.length === 0 ? <span data-testid="helloo-period-empty" style={{ fontSize: 12.5, color: T.inkSoft }}>Nothing {hellooPeriodWords(chatPeriod)} in this chat.</span> : <span style={{ fontSize: 12, color: T.inkFaint, fontWeight: 700 }}>{msgs.length} {msgs.length === 1 ? "message" : "messages"}</span>}</div> : null}{paidStrip}{strip}</>} paidPrice={rule && !rule.free && !rule.closed ? rule.price : 0} paidCurrency={rule && rule.currency} typing={Boolean(typing[openId]) && !iBlocked} draft={draft} onDraft={(v) => onDraftChange(openId, v)} onSend={sendText} recording={recording} onMic={recording ? stopAndSend : startRecording} onCancelRecording={cancelRecording} hasOlder={Boolean(thread && thread.more)} onLoadOlder={() => loadThread(openId, true)} onPay={person.gloobalId ? () => { setPay({ amount: "", note: "", busy: false, error: "" }); setSheet("pay"); } : undefined} onAttach={() => setSheet("attach")} onMenu={person.handle && person.gloobalId && !iBlocked ? () => openMenu(person) : undefined} onMore={() => setSheet("menu")} onOpenPerson={() => setScreen("contact")} onCall={!iBlocked && person.gloobalId ? () => startCall(person, false) : undefined} onVideo={!iBlocked && person.gloobalId ? () => startCall(person, true) : undefined} onMessageHold={(m) => setHeld(m)} replyTo={reply} onCancelReply={() => setReplyTo(null)} composerNote={note} onBack={closeThread}>
       {sheet === "pay" && <HellooPaySheet sticker={pay.sticker || ""} person={person} me={me} amount={pay.amount} onAmount={(a) => setPay((p) => Object.assign({}, p, { amount: a.replace(/^0+/, ""), error: "" }))} note={pay.note} onNote={(n) => setPay((p) => Object.assign({}, p, { note: n }))} choiceId={pay.choiceId || null} onChoice={(id) => setPay((p) => Object.assign({}, p, { choiceId: id }))} busy={pay.busy} error={pay.error} onClose={() => { if (!pay.busy) setSheet(null); }} onSend={() => startPay(person, openId)} />}
       {sheet === "shopmenu" && <HellooShopMenuSheet shop={person} items={menu.items} basket={menu.basket} onAdd={(it) => menuBump(it, 1)} onRemove={(it) => menuBump(it, -1)} totalText={hellooMoneyText(menuTotal, menuCurrency)} note={menu.note} onNote={(v) => setMenu((m) => Object.assign({}, m, { note: v }))} busy={menu.busy} error={menu.error} loadError={menu.loadError} paidAlready={Boolean(menu.paidRef)} onPay={() => (menu.paidRef ? orderNow(person, openId, "") : setOrderPinOpen(true))} onClose={() => { if (!menu.busy) setSheet(null); }} />}
       <PayPinModal open={orderPinOpen} onClose={() => setOrderPinOpen(false)} amountLabel={hellooMoneyText(menuTotal, menuCurrency)} onVerified={(pinValue) => orderNow(person, openId, pinValue)} />

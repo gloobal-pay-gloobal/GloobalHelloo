@@ -25,11 +25,20 @@ async function hellooReadShareIn() {
     const meta = await cache.match("/share-in/meta");
     if (!meta) return null;
     const m = await meta.json();
-    const pic = await cache.match("/share-in/file");
-    const blob = pic ? await pic.blob() : null;
+    const list = Array.isArray(m.files) ? m.files : (m.fileName ? [{ name: m.fileName, type: m.fileType }] : []);
+    const files = [];
+    for (let i = 0; i < list.length; i += 1) {
+      const hit = (await cache.match(`/share-in/file/${i}`)) || (i === 0 ? await cache.match("/share-in/file") : null);
+      if (!hit) continue;
+      const blob = await hit.blob();
+      if (blob.size) files.push(new File([blob], list[i].name || `shared-${i}`, { type: blob.type || list[i].type || "" }));
+    }
     await caches.delete(HELLOO_SHARE_CACHE);
     const text = [m.text, m.url].filter(Boolean).filter((v, i, all) => !(i === 1 && all[0].includes(v))).join(" ").trim() || String(m.title || "").trim();
-    const file = blob && blob.size ? new File([blob], m.fileName || "shared.png", { type: blob.type || m.fileType || "image/png" }) : null;
+    // A WhatsApp export goes to Import instead of "Send to…".
+    const wa = await hellooWaFromFiles(files);
+    if (wa) return { wa };
+    const file = files.find((f) => /^image\//.test(f.type)) || null;
     return text || file ? { text: text.slice(0, 2000), file } : null;
   } catch (e) {
     return null;
