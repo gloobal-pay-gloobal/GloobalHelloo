@@ -80174,34 +80174,52 @@ function SocialProfilesSheet({ me, list, face, photos, accounts, onUse, onSet, o
     try { await onSet(f, on); setAsk(null); } catch (e) { /* toasted by onSet */ }
     setBusy("");
   };
-  const curOn = accounts && accounts[face.as] && accounts[face.as].on;
-  return <HellooSheet title="Your social profiles" onClose={onClose}>
-    <div style={{ fontSize: 13, color: T.inkSoft, lineHeight: 1.5, margin: "-4px 2px 14px" }}>Each one is separate: its own posts, followers and status. Turn on only the ones you want people to see. Your chats stay the same.</div>
-    <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
-      {list.map((f) => {
-        const shop = f.kind === "shop";
-        const a = (accounts && accounts[f.as]) || null;
-        const on = Boolean(a && a.on);
-        const using = f.as === face.as;
-        const tint = shop ? T.accent : (T.positive || "#16A34A");
-        return <div key={f.as} data-testid={`social-as-${shop ? f.handle : "self"}`} role="button" tabIndex={0} aria-pressed={using} onClick={() => (on ? onUse(f) : setAsk({ f, on: true }))} className="v2-tap" style={{ position: "relative", display: "flex", alignItems: "center", gap: 12, padding: "14px 14px", borderRadius: 20, cursor: "pointer", background: HT.cardBg || T.surface, boxShadow: using ? `0 0 0 2px ${tint}` : (HT.cardShadow ?? T.shadowCard), transition: "box-shadow 0.2s ease" }}>
-          <span style={{ position: "relative", flexShrink: 0, opacity: on ? 1 : 0.55 }}>
-            {shop ? <SocialFace card={{ accountId: f.accountId, gloobalId: f.gloobalId, name: f.name, handle: f.handle, side: "shop" }} photos={photos} size={50} /> : <HellooMeAvatar me={me} size={50} />}
-            <span aria-hidden="true" style={{ position: "absolute", right: -2, bottom: -2, width: 20, height: 20, borderRadius: shop ? 7 : "50%", background: tint, border: `2px solid ${HT.cardBg || T.surface}`, display: "flex", alignItems: "center", justifyContent: "center" }}>{shop ? <HlStore size={11} color="#fff" /> : <HlUser size={11} color="#fff" />}</span>
-          </span>
-          <span style={{ flex: 1, minWidth: 0 }}>
-            <span style={{ display: "flex", alignItems: "center", gap: 6, minWidth: 0 }}>
-              <span style={{ fontSize: 15.5, fontWeight: 800, color: T.ink, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{nameOf(f)}</span>
-              {using && on ? <span style={{ flexShrink: 0, fontSize: 10.5, fontWeight: 800, color: tint, background: `${tint}1A`, padding: "2px 7px", borderRadius: 999 }}>Using</span> : null}
-            </span>
-            <span style={{ display: "block", fontSize: 12.5, color: T.inkSoft, marginTop: 2, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{shop ? "Shop" : "Personal"} · {a === null ? "…" : on ? `${socialCount(a.posts)} post${a.posts === 1 ? "" : "s"} · ${socialCount(a.followers)} follower${a.followers === 1 ? "" : "s"}` : "Off · nobody sees it"}</span>
-          </span>
-          <SocialSwitch on={on} busy={busy === f.as || a === null} label={`${nameOf(f)} on Social`} testid={`social-on-${shop ? f.handle : "self"}`} onChange={(v) => setAsk({ f, on: v })} />
-        </div>;
-      })}
+  const curOn = Boolean(accounts && accounts[face.as] && accounts[face.as].on);
+  const onCount = list.filter((f) => accounts && accounts[f.as] && accounts[f.as].on).length;
+  const faceOf = (f, size) => (f.kind === "shop" ? <SocialFace card={{ accountId: f.accountId, gloobalId: f.gloobalId, name: f.name, handle: f.handle, side: "shop" }} photos={photos} size={size} /> : <HellooMeAvatar me={me} size={size} />);
+  const statsOf = (a) => (a ? [[socialCount(a.posts), a.posts === 1 ? "post" : "posts"], [socialCount(a.followers), a.followers === 1 ? "follower" : "followers"]] : [["…", "posts"], ["…", "followers"]]);
+  const cur = face; const curA = (accounts && accounts[cur.as]) || null; const curShop = cur.kind === "shop";
+  const others = list.filter((f) => f.as !== cur.as);
+  const sw = (f, a) => <SocialSwitch on={Boolean(a && a.on)} busy={busy === f.as || a === null} label={`${nameOf(f)} on Social`} testid={`social-on-${f.kind === "shop" ? f.handle : "self"}`} onChange={(v) => setAsk({ f, on: v })} />;
+  const bgScreen = HT.screenBg && HT.screenBg.startsWith("#") ? HT.screenBg : T.bg;
+  return <HellooSheet title={<span style={{ display: "flex", alignItems: "center", gap: 10 }}>Social profiles<span style={{ fontSize: 12, fontWeight: 800, color: T.inkSoft, background: T.surfaceAlt, padding: "3px 9px", borderRadius: 999, fontFamily: T.fontBody }}>{accounts ? `${onCount} of ${list.length} on` : `${list.length}`}</span></span>} label="Your social profiles" onClose={onClose}>
+    {/* The one in use, big. */}
+    <div data-testid={`social-as-${curShop ? cur.handle : "self"}`} aria-pressed="true" style={{ position: "relative", overflow: "hidden", borderRadius: 24, background: HT.cardBg || T.surface, boxShadow: HT.cardShadow ?? T.shadowCard }}>
+      <div aria-hidden="true" style={{ height: 64, background: curOn ? T.gradButton : (T.line || "#D6D3E0"), opacity: curOn ? 0.9 : 1 }} />
+      <div style={{ position: "absolute", top: 12, right: 12, display: "flex", alignItems: "center", gap: 8, padding: "4px 4px 4px 11px", borderRadius: 999, background: "rgba(255,255,255,0.92)" }}><span style={{ fontSize: 12, fontWeight: 800, color: curOn ? (T.positive || "#16A34A") : T.inkSoft }}>{curOn ? "On" : "Off"}</span>{sw(cur, curA)}</div>
+      <div style={{ padding: "0 16px 16px", marginTop: -34 }}>
+        <span style={{ position: "relative", display: "inline-flex", padding: 4, borderRadius: "50%", background: "#fff", boxShadow: "0 4px 14px rgba(0,0,0,0.12)" }}><span style={{ display: "inline-flex", borderRadius: "50%", background: "#fff", filter: curOn ? "none" : "grayscale(0.7)" }}>{faceOf(cur, 64)}</span></span>
+        <div style={{ display: "flex", alignItems: "center", gap: 7, marginTop: 6, minWidth: 0 }}>
+          <span style={{ fontSize: 19, fontWeight: 800, fontFamily: T.fontDisplay, color: T.ink, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{nameOf(cur)}</span>
+          <span style={{ flexShrink: 0, display: "inline-flex", alignItems: "center", gap: 4, fontSize: 11, fontWeight: 800, color: curShop ? T.accent : T.inkSoft, background: curShop ? T.accentSoft : T.surfaceAlt, padding: "3px 8px", borderRadius: 999 }}>{curShop ? <HlStore size={11} /> : <HlUser size={11} />}{curShop ? "Shop" : "Personal"}</span>
+        </div>
+        {curOn ? <div style={{ display: "flex", gap: 8, marginTop: 10, flexWrap: "wrap" }}>{statsOf(curA).map(([n, l]) => <span key={l} style={{ display: "inline-flex", alignItems: "baseline", gap: 5, padding: "6px 12px", borderRadius: 12, background: T.surfaceAlt }}><span style={{ fontSize: 16, fontWeight: 800, color: T.ink, fontFamily: T.fontDisplay }}>{n}</span><span style={{ fontSize: 12.5, color: T.inkSoft, fontWeight: 700 }}>{l}</span></span>)}</div>
+          : <div style={{ fontSize: 13, color: T.inkSoft, marginTop: 6, lineHeight: 1.45 }}>Off: nobody can find or see this profile. Turn it on to post, follow, like and comment.</div>}
+        <div style={{ marginTop: 14, display: "flex" }}>{curOn
+          ? <span data-testid="social-my-profile" style={{ display: "flex", flex: 1 }}><HellooSecondary onClick={onOpenMine}>Open profile</HellooSecondary></span>
+          : <span style={{ display: "flex", flex: 1 }}><HellooPrimary color={T.positive || "#16A34A"} onClick={() => setAsk({ f: cur, on: true })}>Turn on</HellooPrimary></span>}</div>
+      </div>
     </div>
-    <div style={{ height: 14 }} />
-    {curOn ? <span data-testid="social-my-profile" style={{ display: "flex" }}><HellooSecondary onClick={onOpenMine}>Open {face.kind === "shop" ? "this shop's" : "my"} profile</HellooSecondary></span> : null}
+
+    {others.length ? <>
+      <div style={{ fontSize: 12, fontWeight: 800, color: T.inkSoft, letterSpacing: 0.4, textTransform: "uppercase", margin: "18px 4px 8px" }}>Switch to</div>
+      <div style={{ borderRadius: 20, background: HT.cardBg || T.surface, boxShadow: HT.cardShadow ?? T.shadowCard, overflow: "hidden" }}>
+        {others.map((f, k) => {
+          const shop = f.kind === "shop";
+          const a = (accounts && accounts[f.as]) || null;
+          const on = Boolean(a && a.on);
+          return <div key={f.as} data-testid={`social-as-${shop ? f.handle : "self"}`} role="button" tabIndex={0} onClick={() => (on ? onUse(f) : setAsk({ f, on: true }))} className="v2-tap" style={{ display: "flex", alignItems: "center", gap: 12, padding: "12px 14px", cursor: "pointer", borderTop: k ? `1px solid ${T.line}` : "none" }}>
+            <span style={{ position: "relative", flexShrink: 0, opacity: on ? 1 : 0.5 }}>{faceOf(f, 44)}<span aria-hidden="true" style={{ position: "absolute", right: -2, bottom: -2, width: 18, height: 18, borderRadius: shop ? 6 : "50%", background: shop ? T.accent : T.inkSoft, border: `2px solid ${HT.cardBg || T.surface}`, display: "flex", alignItems: "center", justifyContent: "center" }}>{shop ? <HlStore size={10} color="#fff" /> : <HlUser size={10} color="#fff" />}</span></span>
+            <span style={{ flex: 1, minWidth: 0 }}>
+              <span style={{ display: "block", fontSize: 15, fontWeight: 800, color: on ? T.ink : T.inkSoft, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{nameOf(f)}</span>
+              <span style={{ display: "block", fontSize: 12.5, color: T.inkSoft, marginTop: 1, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{a === null ? "…" : on ? `${socialCount(a.posts)} posts · ${socialCount(a.followers)} followers` : "Off · only you know it's here"}</span>
+            </span>
+            {sw(f, a)}
+          </div>;
+        })}
+      </div>
+      <div style={{ fontSize: 12, color: T.inkFaint, lineHeight: 1.5, margin: "10px 4px 0" }}>Tap one to post as it. Each has its own posts, followers and status; your chats stay the same.</div>
+    </> : null}
     {ask ? <HellooSheet title={ask.on ? `Turn on ${nameOf(ask.f)}?` : `Turn off ${nameOf(ask.f)}?`} onClose={() => setAsk(null)} zIndex={70}>
       <div data-testid="social-on-confirm" style={{ fontSize: 14, color: T.inkSoft, lineHeight: 1.55, marginBottom: 16 }}>{ask.on
         ? "People on Helloo can find this profile, see its posts and status, and follow it. You can post, like and comment as it. Turn it off any time."
