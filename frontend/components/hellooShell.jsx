@@ -241,8 +241,53 @@ function HellooMeAvatar({ me, size = 38 }) {
   return <HellooAvatar person={{ id: me.gloobalId || me.id, name: me.name, photo: me.photo, flag: "" }} size={size} flag={false} />;
 }
 
+// ── THE VERIFIED BADGE, IN FOUR COLOURS ─────────────────────────────────
+//
+// Everyone on GLOOBAL is a real, verified person, so everyone has the
+// badge. Its colour says how far they reach — like a channel's award, but
+// earned by real people only (every follower and every view on GLOOBAL is
+// a verified GLOOBAL ID):
+//   1 Verified   green   every GLOOBAL ID
+//   2 Rising     blue    1,000+ followers, or 10,000+ people reached a month
+//   3 Star       gold    100,000+ followers, or 1,000,000+ reached a month
+//   4 Icon       violet  the hardest: 10,000,000+ followers AND 25,000,000+
+//                        people reached a month, three months running, with
+//                        no rule broken — both, not either, and kept up
+var HELLOO_BADGE_TIERS = [
+  { tier: 1, name: "Verified", from: "#22C55E", to: "#15803D", ring: "#DCFCE7", followers: 0, reach: 0, says: "A real person with a GLOOBAL ID" },
+  { tier: 2, name: "Rising", from: "#3B82F6", to: "#1D4ED8", ring: "#DBEAFE", followers: 1000, reach: 10000, says: "1,000+ followers, or 10,000+ people reached a month" },
+  { tier: 3, name: "Star", from: "#FCD34D", to: "#B45309", ring: "#FEF3C7", followers: 100000, reach: 1000000, says: "100,000+ followers, or 1 million+ reached a month" },
+  { tier: 4, name: "Icon", from: "#A855F7", to: "#DB2777", ring: "#F3E8FF", followers: 10000000, reach: 25000000, both: true, months: 3, says: "10 million+ followers and 25 million+ reached every month, 3 months running" },
+];
+// `reachMonths`: the people reached in each of the last months, newest first.
+function hellooBadgeTier(followers = 0, reach = 0, reachMonths = [reach], clean = true) {
+  let t = 1;
+  for (const b of HELLOO_BADGE_TIERS) {
+    if (b.both) {
+      const kept = reachMonths.length >= b.months && reachMonths.slice(0, b.months).every((n) => n >= b.reach);
+      if (followers >= b.followers && kept && clean) t = b.tier;
+    } else if (followers >= b.followers || (b.reach && reach >= b.reach)) t = b.tier;
+  }
+  return t;
+}
+// The seal: eight soft points, a white tick; gold and violet shine, and the
+// Icon carries a small star. Beside a name it is the same size as the name's
+// letters: pass the text's font size (the default, "1em", follows the text).
+function HellooBadge({ tier = 1, size = "1em", title }) {
+  const b = HELLOO_BADGE_TIERS[Math.min(4, Math.max(1, tier)) - 1];
+  const id = `hb${b.tier}`;
+  const pts = []; for (let i = 0; i < 16; i += 1) { const r = i % 2 ? 9.2 : 11.6; const a = (Math.PI * 2 * i) / 16 - Math.PI / 2; pts.push(`${(12 + r * Math.cos(a)).toFixed(2)},${(12 + r * Math.sin(a)).toFixed(2)}`); }
+  return <svg width={size} height={size} viewBox="0 0 24 24" role="img" aria-label={title || `${b.name} · GLOOBAL`} data-badge-tier={b.tier} style={{ flexShrink: 0, display: "inline-block", verticalAlign: "-0.125em", overflow: "visible" }}>
+    <defs><linearGradient id={id} x1="0" y1="0" x2="1" y2="1"><stop offset="0" stopColor={b.from} /><stop offset="1" stopColor={b.to} /></linearGradient>{b.tier >= 3 ? <linearGradient id={`${id}s`} x1="0" y1="0" x2="0" y2="1"><stop offset="0" stopColor="#fff" stopOpacity="0.55" /><stop offset="0.55" stopColor="#fff" stopOpacity="0" /></linearGradient> : null}</defs>
+    <polygon points={pts.join(" ")} fill={`url(#${id})`} strokeLinejoin="round" stroke={`url(#${id})`} strokeWidth="1.4" />
+    {b.tier >= 3 ? <polygon points={pts.join(" ")} fill={`url(#${id}s)`} /> : null}
+    <path d="M7.4 12.3 L10.6 15.4 L16.8 9" fill="none" stroke="#fff" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round" />
+    {b.tier === 4 ? <path d="M20.4 1.2 L21.1 3 L22.9 3.7 L21.1 4.4 L20.4 6.2 L19.7 4.4 L17.9 3.7 L19.7 3 Z" fill="#FDE047" stroke="#fff" strokeWidth="0.5" /> : null}
+  </svg>;
+}
+
 // A name with GLOOBAL's verified mark: the account exists, the name is the
 // one on it.
 function HellooVerifiedName({ person, size = 15 }) {
-  return <span style={{ display: "inline-flex", alignItems: "center", gap: 5, minWidth: 0 }}><span style={{ fontSize: size, fontWeight: 800, color: T.ink, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{person.handle ? <CreatorHandleText handle={person.handle} icon={false} /> : person.name}</span><HlVerified size={size + 2} color={HT.free} style={{ flexShrink: 0 }} /></span>;
+  return <span style={{ display: "inline-flex", alignItems: "center", gap: 5, minWidth: 0 }}><span style={{ fontSize: size, fontWeight: 800, color: T.ink, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{person.handle ? <CreatorHandleText handle={person.handle} icon={false} /> : person.name}</span><HellooBadge tier={person.badge || 1} size={size} /></span>;
 }

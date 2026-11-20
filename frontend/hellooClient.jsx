@@ -219,6 +219,8 @@ function hellooPersonFrom(card, photos) {
     gloobalId: card.gloobalId,
     name: card.name || card.gloobalId || "",
     handle: card.handle || null,
+    // The verified badge's colour: 1 Verified, 2 Rising, 3 Star, 4 Icon.
+    badge: Number(card.badge) || 1,
     // A shop's calling hours ({ mode, from, to, open }); null for a person.
     calls: card.handle ? card.calls || null : null,
     iso: country.iso,

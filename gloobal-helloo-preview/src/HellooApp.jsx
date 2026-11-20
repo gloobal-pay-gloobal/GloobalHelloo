@@ -78289,10 +78289,55 @@ function HellooMeAvatar({ me, size = 38 }) {
   return <HellooAvatar person={{ id: me.gloobalId || me.id, name: me.name, photo: me.photo, flag: "" }} size={size} flag={false} />;
 }
 
+// ── THE VERIFIED BADGE, IN FOUR COLOURS ─────────────────────────────────
+//
+// Everyone on GLOOBAL is a real, verified person, so everyone has the
+// badge. Its colour says how far they reach — like a channel's award, but
+// earned by real people only (every follower and every view on GLOOBAL is
+// a verified GLOOBAL ID):
+//   1 Verified   green   every GLOOBAL ID
+//   2 Rising     blue    1,000+ followers, or 10,000+ people reached a month
+//   3 Star       gold    100,000+ followers, or 1,000,000+ reached a month
+//   4 Icon       violet  the hardest: 10,000,000+ followers AND 25,000,000+
+//                        people reached a month, three months running, with
+//                        no rule broken — both, not either, and kept up
+var HELLOO_BADGE_TIERS = [
+  { tier: 1, name: "Verified", from: "#22C55E", to: "#15803D", ring: "#DCFCE7", followers: 0, reach: 0, says: "A real person with a GLOOBAL ID" },
+  { tier: 2, name: "Rising", from: "#3B82F6", to: "#1D4ED8", ring: "#DBEAFE", followers: 1000, reach: 10000, says: "1,000+ followers, or 10,000+ people reached a month" },
+  { tier: 3, name: "Star", from: "#FCD34D", to: "#B45309", ring: "#FEF3C7", followers: 100000, reach: 1000000, says: "100,000+ followers, or 1 million+ reached a month" },
+  { tier: 4, name: "Icon", from: "#A855F7", to: "#DB2777", ring: "#F3E8FF", followers: 10000000, reach: 25000000, both: true, months: 3, says: "10 million+ followers and 25 million+ reached every month, 3 months running" },
+];
+// `reachMonths`: the people reached in each of the last months, newest first.
+function hellooBadgeTier(followers = 0, reach = 0, reachMonths = [reach], clean = true) {
+  let t = 1;
+  for (const b of HELLOO_BADGE_TIERS) {
+    if (b.both) {
+      const kept = reachMonths.length >= b.months && reachMonths.slice(0, b.months).every((n) => n >= b.reach);
+      if (followers >= b.followers && kept && clean) t = b.tier;
+    } else if (followers >= b.followers || (b.reach && reach >= b.reach)) t = b.tier;
+  }
+  return t;
+}
+// The seal: eight soft points, a white tick; gold and violet shine, and the
+// Icon carries a small star. Beside a name it is the same size as the name's
+// letters: pass the text's font size (the default, "1em", follows the text).
+function HellooBadge({ tier = 1, size = "1em", title }) {
+  const b = HELLOO_BADGE_TIERS[Math.min(4, Math.max(1, tier)) - 1];
+  const id = `hb${b.tier}`;
+  const pts = []; for (let i = 0; i < 16; i += 1) { const r = i % 2 ? 9.2 : 11.6; const a = (Math.PI * 2 * i) / 16 - Math.PI / 2; pts.push(`${(12 + r * Math.cos(a)).toFixed(2)},${(12 + r * Math.sin(a)).toFixed(2)}`); }
+  return <svg width={size} height={size} viewBox="0 0 24 24" role="img" aria-label={title || `${b.name} · GLOOBAL`} data-badge-tier={b.tier} style={{ flexShrink: 0, display: "inline-block", verticalAlign: "-0.125em", overflow: "visible" }}>
+    <defs><linearGradient id={id} x1="0" y1="0" x2="1" y2="1"><stop offset="0" stopColor={b.from} /><stop offset="1" stopColor={b.to} /></linearGradient>{b.tier >= 3 ? <linearGradient id={`${id}s`} x1="0" y1="0" x2="0" y2="1"><stop offset="0" stopColor="#fff" stopOpacity="0.55" /><stop offset="0.55" stopColor="#fff" stopOpacity="0" /></linearGradient> : null}</defs>
+    <polygon points={pts.join(" ")} fill={`url(#${id})`} strokeLinejoin="round" stroke={`url(#${id})`} strokeWidth="1.4" />
+    {b.tier >= 3 ? <polygon points={pts.join(" ")} fill={`url(#${id}s)`} /> : null}
+    <path d="M7.4 12.3 L10.6 15.4 L16.8 9" fill="none" stroke="#fff" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round" />
+    {b.tier === 4 ? <path d="M20.4 1.2 L21.1 3 L22.9 3.7 L21.1 4.4 L20.4 6.2 L19.7 4.4 L17.9 3.7 L19.7 3 Z" fill="#FDE047" stroke="#fff" strokeWidth="0.5" /> : null}
+  </svg>;
+}
+
 // A name with GLOOBAL's verified mark: the account exists, the name is the
 // one on it.
 function HellooVerifiedName({ person, size = 15 }) {
-  return <span style={{ display: "inline-flex", alignItems: "center", gap: 5, minWidth: 0 }}><span style={{ fontSize: size, fontWeight: 800, color: T.ink, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{person.handle ? <CreatorHandleText handle={person.handle} icon={false} /> : person.name}</span><HlVerified size={size + 2} color={HT.free} style={{ flexShrink: 0 }} /></span>;
+  return <span style={{ display: "inline-flex", alignItems: "center", gap: 5, minWidth: 0 }}><span style={{ fontSize: size, fontWeight: 800, color: T.ink, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{person.handle ? <CreatorHandleText handle={person.handle} icon={false} /> : person.name}</span><HellooBadge tier={person.badge || 1} size={size} /></span>;
 }
 
 
@@ -78990,7 +79035,7 @@ function HellooShopProfile({ shop, person, onBack, onMessage, onCall, onPay, onM
     <div data-testid="helloo-shop-top" style={{ position: "relative", padding: "calc(74px + env(safe-area-inset-top, 0px)) 18px 24px", background: `linear-gradient(165deg, ${deep(1.18)} 0%, ${deep(0.92)} 55%, ${deep(0.62)} 100%)`, borderRadius: "0 0 34px 34px", overflow: "hidden", transition: "background 0.4s ease" }}>
       <div aria-hidden="true" style={{ position: "absolute", right: -60, top: -40, width: 220, height: 220, borderRadius: "50%", background: "rgba(255,255,255,0.10)" }} /><div aria-hidden="true" style={{ position: "absolute", left: -50, bottom: -90, width: 200, height: 200, borderRadius: "50%", background: "rgba(255,255,255,0.07)" }} />
       <div style={{ position: "absolute", left: 14, right: 14, top: "calc(14px + env(safe-area-inset-top, 0px))", display: "flex", justifyContent: "space-between", alignItems: "center" }}><button onClick={onBack} aria-label="Back" className="v2-tap" style={{ width: 42, height: 42, borderRadius: "50%", border: "none", background: "rgba(255,255,255,0.22)", display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer" }}><HlBack size={19} color="#fff" /></button>{person.flag ? <span title={person.country || ""} style={{ width: 42, height: 42, borderRadius: "50%", background: "#fff", display: "flex", alignItems: "center", justifyContent: "center" }}><FlagEmoji flag={person.flag} size={26} shape="circle" border="none" /></span> : null}</div>
-      <div style={{ position: "relative", display: "flex", gap: 14, alignItems: "center" }}><span style={{ width: 84, height: 84, borderRadius: 24, border: "3px solid #fff", overflow: "hidden", flexShrink: 0, background: "rgba(255,255,255,0.25)", boxShadow: "0 14px 28px -12px rgba(0,0,0,0.45)", display: "flex", alignItems: "center", justifyContent: "center", color: "#fff", fontSize: 30, fontWeight: 800, fontFamily: T.fontDisplay }}>{person.photo ? <img src={person.photo} alt="" style={{ width: "100%", height: "100%", objectFit: "cover" }} /> : hellooInitials(who)}</span><span style={{ minWidth: 0 }}><span style={{ display: "flex", alignItems: "center", gap: 6, minWidth: 0 }}><span style={{ fontSize: 25, fontWeight: 800, fontFamily: T.fontDisplay, letterSpacing: -0.4, color: "#fff", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{who}</span><HlVerified size={19} color="#fff" /></span>{(shop && (shop.kind || shop.where)) ? <span style={{ display: "block", fontSize: 13.5, color: "rgba(255,255,255,0.88)", marginTop: 3, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{[shop.kind, shop.where].filter(Boolean).join(" · ")}</span> : null}<span style={{ display: "block", fontSize: 11.5, color: "rgba(255,255,255,0.72)", marginTop: 4, letterSpacing: 1.2 }}>{person.id}</span></span></div>
+      <div style={{ position: "relative", display: "flex", gap: 14, alignItems: "center" }}><span style={{ width: 84, height: 84, borderRadius: 24, border: "3px solid #fff", overflow: "hidden", flexShrink: 0, background: "rgba(255,255,255,0.25)", boxShadow: "0 14px 28px -12px rgba(0,0,0,0.45)", display: "flex", alignItems: "center", justifyContent: "center", color: "#fff", fontSize: 30, fontWeight: 800, fontFamily: T.fontDisplay }}>{person.photo ? <img src={person.photo} alt="" style={{ width: "100%", height: "100%", objectFit: "cover" }} /> : hellooInitials(who)}</span><span style={{ minWidth: 0 }}><span style={{ display: "flex", alignItems: "center", gap: 6, minWidth: 0 }}><span style={{ fontSize: 25, fontWeight: 800, fontFamily: T.fontDisplay, letterSpacing: -0.4, color: "#fff", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{who}</span><HellooBadge tier={(person && person.badge) || 1} size={24} /></span>{(shop && (shop.kind || shop.where)) ? <span style={{ display: "block", fontSize: 13.5, color: "rgba(255,255,255,0.88)", marginTop: 3, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{[shop.kind, shop.where].filter(Boolean).join(" · ")}</span> : null}<span style={{ display: "block", fontSize: 11.5, color: "rgba(255,255,255,0.72)", marginTop: 4, letterSpacing: 1.2 }}>{person.id}</span></span></div>
       <div style={{ position: "relative", display: "flex", gap: 6, marginTop: 14, flexWrap: "wrap" }}>{openText ? chip(<><span style={{ width: 7, height: 7, borderRadius: "50%", background: isOpen ? "#6EE7B7" : "rgba(255,255,255,0.6)" }} />{openText}</>, isOpen) : null}{sum.count ? chip(`★ ${Number(sum.average).toFixed(1)} · ${sum.count}`) : null}{t && t.calls && t.calls.seconds ? chip(`${mins(t.calls.seconds)} together`) : null}</div>
     </div>
     {items.length || onMenu ? <div style={{ padding: "22px 16px 0" }}>{sec("Menu / Services", onMenu ? link(items.length > 5 ? `All ${items.length} ›` : "Open ›", onMenu) : null)}{items.length ? <HellooCard style={{ padding: 0, overflow: "hidden" }}>{items.slice(0, 5).map(itemRow)}</HellooCard> : <HellooCard style={{ padding: "14px 16px", fontSize: 13, color: T.inkSoft }}>{shop && shop.count ? shop.count : "What this shop offers"}</HellooCard>}</div> : null}
@@ -79064,7 +79109,7 @@ function HellooFriendProfile({ media = null, mediaFilter = "all", onMediaFilter,
       <div style={{ position: "absolute", inset: 0, opacity: 0.16, backgroundImage: "radial-gradient(circle at 85% 20%, #fff 0, transparent 40%), radial-gradient(circle at 10% 90%, #fff 0, transparent 35%)" }} />
       <div style={{ alignSelf: "stretch", padding: "0 12px", display: "flex", justifyContent: "space-between", alignItems: "center", position: "relative" }}><button onClick={onBack} aria-label="Back" className="v2-tap" style={{ width: 40, height: 40, borderRadius: "50%", border: "none", background: "rgba(255,255,255,0.22)", display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer" }}><HlBack size={20} color="#fff" /></button>{person.flag ? <span title={person.country} style={{ width: 34, height: 34, borderRadius: "50%", background: "rgba(255,255,255,0.95)", display: "flex", alignItems: "center", justifyContent: "center" }}><FlagEmoji flag={person.flag} size={24} shape="circle" border="1px solid rgba(0,0,0,0.12)" /></span> : null}</div>
       <div style={{ marginTop: -14, borderRadius: "50%", background: T.bg, lineHeight: 0, position: "relative" }}><HellooAvatar person={person} size={84} flag={false} online={person.online} /></div>
-      <div style={{ marginTop: 8, display: "flex", alignItems: "center", gap: 6, maxWidth: "88%", position: "relative" }}><span style={{ fontSize: 23, fontWeight: 800, fontFamily: T.fontDisplay, color: "#fff", letterSpacing: -0.4, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{hellooName(person)}</span><HlVerified size={20} color="#fff" /></div>
+      <div style={{ marginTop: 8, display: "flex", alignItems: "center", gap: 6, maxWidth: "88%", position: "relative" }}><span style={{ fontSize: 23, fontWeight: 800, fontFamily: T.fontDisplay, color: "#fff", letterSpacing: -0.4, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{hellooName(person)}</span><HellooBadge tier={(person && person.badge) || 1} size={22} /></div>
       <div style={{ marginTop: 6, display: "flex", alignItems: "center", gap: 8, position: "relative" }}><span style={{ padding: "4px 9px", borderRadius: 9, background: "rgba(255,255,255,0.95)", fontSize: 12, fontWeight: 800 }}><ColoredGloobalId id={person.id} /></span>{person.online ? <span style={{ fontSize: 12, fontWeight: 800, color: "#BBF7D0" }}>● Online</span> : status ? <span style={{ fontSize: 12, fontWeight: 700, color: "rgba(255,255,255,0.8)" }}>{status}</span> : null}</div>
     </div>
     <div style={{ margin: "-24px 16px 0", position: "relative", background: T.surface, borderRadius: 22, padding: 8, boxShadow: "0 14px 30px -16px rgba(30,27,75,0.35)", display: "flex", gap: 6 }}>{btn(HlChat, "Message", onMessage, T.accent)}{btn(HlPhone, "Call", onCall, HT.free)}{btn(HlVideo, "Video", onVideo, "#DB2777")}{btn(HlWallet, "Pay", onPay, "#0B7A57")}</div>
@@ -79737,7 +79782,7 @@ function SocialFace({ card, photos, size = 38 }) {
 }
 function SocialName({ card, size = 14, color }) {
   const label = card.handle ? card.handle : card.name;
-  return <span style={{ display: "inline-flex", alignItems: "center", gap: 4, minWidth: 0, maxWidth: "100%" }}><span style={{ fontSize: size, fontWeight: 800, color: color || T.ink, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{label}</span><HlVerified size={size + 1} color={color || HT.free} style={{ flexShrink: 0 }} /></span>;
+  return <span style={{ display: "inline-flex", alignItems: "center", gap: 4, minWidth: 0, maxWidth: "100%" }}><span style={{ fontSize: size, fontWeight: 800, color: color || T.ink, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{label}</span><HellooBadge tier={card.badge || 1} size={size} /></span>;
 }
 // A caption with its #hashtags as things to tap.
 function SocialCaption({ text, onTag, color }) {
@@ -80098,7 +80143,7 @@ function SocialProfile({ state, me, photos, act, onBack, onOpen, onMessage, onSh
   return <><div data-testid="social-profile" style={{ position: "absolute", inset: 0, zIndex: 40, background: HT.screenBg || T.bg, overflowY: "auto", fontFamily: T.fontBody }}>
     <div style={{ position: "relative", height: 150, margin: "calc(8px + env(safe-area-inset-top, 0px)) 8px 0", background: `linear-gradient(135deg, ${hue}99 0%, ${hue} 60%, ${hue}CC 100%)`, borderRadius: 28, overflow: "hidden", boxShadow: `0 14px 30px -18px ${hue}` }}><span aria-hidden="true" style={{ position: "absolute", inset: 0, background: "radial-gradient(90% 120% at 100% 0%, rgba(255,255,255,0.35) 0%, transparent 55%), linear-gradient(180deg, transparent 55%, rgba(0,0,0,0.18) 100%)" }} /><div style={{ position: "absolute", left: 12, top: 12 }}><button onClick={onBack} aria-label="Back" className="v2-tap" style={{ width: 40, height: 40, borderRadius: "50%", border: "none", background: "rgba(255,255,255,0.22)", display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer" }}><HlBack size={19} color="#fff" /></button></div></div>
     <div style={{ position: "relative", zIndex: 2, display: "flex", alignItems: "flex-end", gap: 12, padding: "0 18px", marginTop: -46 }}><span style={{ padding: 4, borderRadius: "50%", background: HT.screenBg && HT.screenBg.startsWith("#") ? HT.screenBg : T.bg, display: "flex" }}><SocialFace card={card} photos={photos} size={88} /></span><span style={{ display: "flex", flex: 1, paddingBottom: 6, minWidth: 0 }}>{p ? <>{stat(p.posts, "posts")}{stat(p.followers, "followers")}{stat(p.following, "following")}</> : null}</span></div>
-    <div style={{ padding: "10px 18px 0", display: "flex", alignItems: "flex-start", gap: 10 }}><span style={{ flex: 1, minWidth: 0 }}><SocialName card={card} size={19} />{card.handle && card.name && card.name !== card.handle ? <div style={{ fontSize: 13.5, color: T.inkSoft, marginTop: 3 }}>{card.name}</div> : null}</span></div>
+    <div style={{ padding: "10px 18px 0", display: "flex", alignItems: "flex-start", gap: 10 }}><span style={{ flex: 1, minWidth: 0 }}><SocialName card={card} size={19} />{(card.badge || 1) >= 2 ? <div data-testid="social-badge-level" style={{ display: "inline-flex", alignItems: "center", gap: 6, marginTop: 6, padding: "4px 10px", borderRadius: 999, background: HELLOO_BADGE_TIERS[card.badge - 1].ring, color: HELLOO_BADGE_TIERS[card.badge - 1].to, fontSize: 12, fontWeight: 800 }}><HellooBadge tier={card.badge} size={12} />{HELLOO_BADGE_TIERS[card.badge - 1].name}{p && typeof p.followers === "number" ? ` · ${socialCount(p.followers)} followers` : ""}</div> : null}{card.handle && card.name && card.name !== card.handle ? <div style={{ fontSize: 13.5, color: T.inkSoft, marginTop: 3 }}>{card.name}</div> : null}</span></div>
     {state.error ? <SocialNote title="Couldn't open this profile" text={state.error} /> : !p ? <SocialNote title="Loading…" /> : <>
       <div style={{ display: "flex", gap: 8, padding: "14px 18px 4px" }}>{p.isMe ? btn(SxAddPic, "New post", onCompose, true) : <>{btn(null, p.isFollowing ? "Following" : "Follow", () => act.follow(p, !p.isFollowing), !p.isFollowing)}{btn(HlChat, "Message", () => onMessage(p))}{btn(SxCoins, "Tip", () => act.tip(p))}</>}</div>
       <div style={{ display: "flex", margin: "12px 18px 0", padding: 4, borderRadius: 14, background: T.surfaceAlt }}>{[["posts", SxGrid, "Posts"], ["reels", SxReels, "Videos"], ["work", WxBag, "Work"], p.side === "shop" ? ["shop", HlStore, "Shop"] : null].filter(Boolean).map(([k, I, l]) => { const on = tab === k; return <button key={k} onClick={() => (k === "shop" ? onShop(p) : setTab(k))} data-testid={`social-tab-${k}`} aria-pressed={on} className="v2-tap" style={{ flex: 1, minWidth: 0, height: 36, borderRadius: 10, border: "none", background: on ? (HT.cardBg || T.surface) : "transparent", boxShadow: on ? T.shadowCard : "none", display: "flex", alignItems: "center", justifyContent: "center", gap: 5, fontSize: 12.5, fontWeight: 800, color: on ? T.ink : T.inkSoft, cursor: "pointer", fontFamily: T.fontBody }}><I size={15} color={on ? T.ink : T.inkSoft} />{l}</button>; })}</div>
@@ -81646,6 +81691,8 @@ function hellooPersonFrom(card, photos) {
     gloobalId: card.gloobalId,
     name: card.name || card.gloobalId || "",
     handle: card.handle || null,
+    // The verified badge's colour: 1 Verified, 2 Rising, 3 Star, 4 Icon.
+    badge: Number(card.badge) || 1,
     // A shop's calling hours ({ mode, from, to, open }); null for a person.
     calls: card.handle ? card.calls || null : null,
     iso: country.iso,
