@@ -88,7 +88,9 @@ function HellooMark({ size = 64, variant = HELLOO_MARK_DEFAULT }) {
 // A person on Helloo. The GLOOBAL ID is the identity; the name, flag and
 // city are what the ID resolved to. A shop is a person with a handle.
 function hellooInitials(name) {
-  return String(name || "?").split(/\s+/).filter(Boolean).slice(0, 2).map((w) => w[0].toUpperCase()).join("");
+  // Letters and digits only: "Ajay (Office)" → "AO", not "A(".
+  const firsts = String(name || "").split(/\s+/).map((w) => (w.match(/[\p{L}\p{N}]/u) || [""])[0]).filter(Boolean);
+  return firsts.length ? firsts.slice(0, 2).join("").toUpperCase() : "?";
 }
 var HELLOO_AVATAR_HUES = ["#7C3AED", "#2563EB", "#059669", "#EA580C", "#DB2777", "#0E7490"];
 function hellooHue(key) {
