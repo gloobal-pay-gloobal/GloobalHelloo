@@ -48,7 +48,10 @@ var socialApi = {
   // The heart: likes, comments and new followers for you.
   activity: () => socialHttp.get("/api/social/activity"),
   activityCount: () => socialHttp.get("/api/social/activity?count=1"),
-  activitySeen: () => socialHttp.post("/api/social/activity/seen", {})
+  activitySeen: () => socialHttp.post("/api/social/activity/seen", {}),
+  // Your social profiles, each off until you turn it on.
+  accounts: () => gloobalApiClient.get("/api/social/accounts"),
+  setOn: (as, on) => gloobalApiClient.post(`/api/social/on?as=${encodeURIComponent(as || "self")}`, { on })
 };
 // "now", "5m", "3h", "2d", or a date.
 function socialAgo(at) {
@@ -235,11 +238,70 @@ function SocialActivity({ photos, onBack, onProfile, onFollow, onSeen }) {
   </div>;
 }
 
+// A small on/off switch.
+function SocialSwitch({ on, busy, onChange, label, testid }) {
+  return <button type="button" role="switch" aria-checked={on} aria-label={label} data-testid={testid} disabled={busy} onClick={(e) => { e.stopPropagation(); onChange(!on); }} className="v2-tap" style={{ position: "relative", width: 50, height: 30, borderRadius: 15, border: "none", padding: 0, flexShrink: 0, cursor: busy ? "default" : "pointer", background: on ? (T.positive || "#16A34A") : (T.line || "#D6D3E0"), transition: "background 0.2s ease", opacity: busy ? 0.6 : 1 }}>
+    <span style={{ position: "absolute", top: 3, left: on ? 23 : 3, width: 24, height: 24, borderRadius: "50%", background: "#fff", boxShadow: "0 1px 3px rgba(0,0,0,0.25)", transition: "left 0.2s ease" }} />
+  </button>;
+}
+
+// Your social profiles: yourself, and each shop. Each one is off until you
+// turn it on; only an "on" one can be used to post, follow, like and comment.
+function SocialProfilesSheet({ me, list, face, photos, accounts, onUse, onSet, onOpenMine, onClose }) {
+  const [ask, setAsk] = useStateH40(null); // { f, on }
+  const [busy, setBusy] = useStateH40("");
+  const nameOf = (f) => (f.kind === "shop" ? (f.handle || f.name) : (f.name || me.name));
+  const go = async () => {
+    const { f, on } = ask; setBusy(f.as);
+    try { await onSet(f, on); setAsk(null); } catch (e) { /* toasted by onSet */ }
+    setBusy("");
+  };
+  const curOn = accounts && accounts[face.as] && accounts[face.as].on;
+  return <HellooSheet title="Your social profiles" onClose={onClose}>
+    <div style={{ fontSize: 13, color: T.inkSoft, lineHeight: 1.5, margin: "-4px 2px 14px" }}>Each one is separate: its own posts, followers and status. Turn on only the ones you want people to see. Your chats stay the same.</div>
+    <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+      {list.map((f) => {
+        const shop = f.kind === "shop";
+        const a = (accounts && accounts[f.as]) || null;
+        const on = Boolean(a && a.on);
+        const using = f.as === face.as;
+        const tint = shop ? T.accent : (T.positive || "#16A34A");
+        return <div key={f.as} data-testid={`social-as-${shop ? f.handle : "self"}`} role="button" tabIndex={0} aria-pressed={using} onClick={() => (on ? onUse(f) : setAsk({ f, on: true }))} className="v2-tap" style={{ position: "relative", display: "flex", alignItems: "center", gap: 12, padding: "14px 14px", borderRadius: 20, cursor: "pointer", background: HT.cardBg || T.surface, boxShadow: using ? `0 0 0 2px ${tint}` : (HT.cardShadow ?? T.shadowCard), transition: "box-shadow 0.2s ease" }}>
+          <span style={{ position: "relative", flexShrink: 0, opacity: on ? 1 : 0.55 }}>
+            {shop ? <SocialFace card={{ accountId: f.accountId, gloobalId: f.gloobalId, name: f.name, handle: f.handle, side: "shop" }} photos={photos} size={50} /> : <HellooMeAvatar me={me} size={50} />}
+            <span aria-hidden="true" style={{ position: "absolute", right: -2, bottom: -2, width: 20, height: 20, borderRadius: shop ? 7 : "50%", background: tint, border: `2px solid ${HT.cardBg || T.surface}`, display: "flex", alignItems: "center", justifyContent: "center" }}>{shop ? <HlStore size={11} color="#fff" /> : <HlUser size={11} color="#fff" />}</span>
+          </span>
+          <span style={{ flex: 1, minWidth: 0 }}>
+            <span style={{ display: "flex", alignItems: "center", gap: 6, minWidth: 0 }}>
+              <span style={{ fontSize: 15.5, fontWeight: 800, color: T.ink, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{nameOf(f)}</span>
+              {using && on ? <span style={{ flexShrink: 0, fontSize: 10.5, fontWeight: 800, color: tint, background: `${tint}1A`, padding: "2px 7px", borderRadius: 999 }}>Using</span> : null}
+            </span>
+            <span style={{ display: "block", fontSize: 12.5, color: T.inkSoft, marginTop: 2, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{shop ? "Shop" : "Personal"} · {a === null ? "…" : on ? `${socialCount(a.posts)} post${a.posts === 1 ? "" : "s"} · ${socialCount(a.followers)} follower${a.followers === 1 ? "" : "s"}` : "Off · nobody sees it"}</span>
+          </span>
+          <SocialSwitch on={on} busy={busy === f.as || a === null} label={`${nameOf(f)} on Social`} testid={`social-on-${shop ? f.handle : "self"}`} onChange={(v) => setAsk({ f, on: v })} />
+        </div>;
+      })}
+    </div>
+    <div style={{ height: 14 }} />
+    {curOn ? <span data-testid="social-my-profile" style={{ display: "flex" }}><HellooSecondary onClick={onOpenMine}>Open {face.kind === "shop" ? "this shop's" : "my"} profile</HellooSecondary></span> : null}
+    {ask ? <HellooSheet title={ask.on ? `Turn on ${nameOf(ask.f)}?` : `Turn off ${nameOf(ask.f)}?`} onClose={() => setAsk(null)} zIndex={70}>
+      <div data-testid="social-on-confirm" style={{ fontSize: 14, color: T.inkSoft, lineHeight: 1.55, marginBottom: 16 }}>{ask.on
+        ? "People on Helloo can find this profile, see its posts and status, and follow it. You can post, like and comment as it. Turn it off any time."
+        : "Its profile, posts and status are hidden from everyone, and you can't post or comment as it, until you turn it on again. Nothing is deleted."}</div>
+      <div style={{ display: "flex", gap: 10 }}><HellooSecondary onClick={() => setAsk(null)}>Not now</HellooSecondary><span data-testid="social-on-go" style={{ display: "flex", flex: 1 }}><HellooPrimary disabled={Boolean(busy)} color={ask.on ? (T.positive || "#16A34A") : (T.negative || "#DC2626")} onClick={go}>{busy ? "…" : ask.on ? "Turn on" : "Turn off"}</HellooPrimary></span></div>
+    </HellooSheet> : null}
+  </HellooSheet>;
+}
+
 function HellooSocialHome({ me, faces, photos, onCards, onOpenChat, onTip, onShopItem, onShop, onToast, composeTick }) {
   useGloobalViewPass();
   const myId = me.accountId || me.id || "";
   const [as, setAs] = useStateH40(() => socialFaceLoad(myId));
   const [who, setWho] = useStateH40(false);
+  // Which of your social profiles are on (null until known).
+  const [accounts, setAccounts] = useStateH40(null);
+  const loadAccounts = useCallbackH40(() => { socialApi.accounts().then((r) => setAccounts(r.accounts || {})).catch(() => {}); }, []);
+  useEffectH40(() => { loadAccounts(); }, [loadAccounts]);
   const list = (faces || []).length ? faces : [{ as: "self", kind: "self", accountId: myId, gloobalId: me.gloobalId, name: me.name }];
   const face = list.find((f) => f.as === as) || list[0];
   // A shop that is no longer yours: back to yourself.
@@ -320,6 +382,17 @@ function HellooSocialHome({ me, faces, photos, onCards, onOpenChat, onTip, onSho
   };
   const openMine = () => openProfile({ gloobalId: face.gloobalId || me.gloobalId, accountId: face.accountId || myId, name: face.name || me.name, side: face.kind === "shop" ? "shop" : "self" });
   const useAs = (f) => { setWho(false); if (f.as === as) return; socialFaceSave(myId, f.as); setFeed(null); setEx(null); setStories([]); setProfile(null); setOpen(null); setFollows({}); setAs(f.as); onToast(f.kind === "shop" ? `Social as ${f.name || "your shop"}` : "Social as yourself"); };
+  const isOff = Boolean(accounts && accounts[face.as] && !accounts[face.as].on);
+  const setOn = async (f, on) => {
+    try {
+      await socialApi.setOn(f.as, on);
+      setAccounts((m) => Object.assign({}, m, { [f.as]: Object.assign({}, (m && m[f.as]) || { posts: 0, followers: 0 }, { on }) }));
+      const name = f.kind === "shop" ? (f.handle || f.name) : "Your profile";
+      onToast(on ? `${name} is on Social` : `${name} is off · hidden from everyone`);
+      if (on && f.as !== face.as) useAs(f);
+      loadAccounts();
+    } catch (e) { onToast((e && e.message) || "Couldn't change that."); throw e; }
+  };
   const act = {
     toast: (t) => onToast(t),
     like: (post, on) => { patch(post.id, (p) => Object.assign({}, p, { liked: on, likes: Math.max(0, p.likes + (on ? 1 : -1)) })); socialApi.like(post.id, on).then((r) => patch(post.id, (p) => Object.assign({}, p, { liked: r.liked, likes: r.likes }))).catch(() => patch(post.id, (p) => Object.assign({}, p, { liked: !on, likes: Math.max(0, p.likes + (on ? -1 : 1)) }))); },
@@ -345,11 +418,11 @@ function HellooSocialHome({ me, faces, photos, onCards, onOpenChat, onTip, onSho
     setFeed((f) => [post, ...(f || [])]); onToast("Posted");
   };
 
-  const head = <div style={{ position: "sticky", top: 0, zIndex: 5, background: `${HT.screenBg && HT.screenBg.startsWith("#") ? HT.screenBg : T.bg}F2`, backdropFilter: "blur(14px)", WebkitBackdropFilter: "blur(14px)", padding: "calc(10px + env(safe-area-inset-top, 0px)) 16px 8px" }}><div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 10 }}><span style={{ display: "flex", alignItems: "baseline", gap: 14, minWidth: 0 }}>{[["feed", "For you"], ["explore", "Explore"]].map(([k, l]) => <button key={k} onClick={() => setView(k)} data-testid={`social-view-${k}`} aria-current={view === k ? "page" : undefined} className="v2-tap" style={{ border: "none", background: "none", padding: 0, cursor: "pointer", fontSize: view === k ? 22 : 17, fontWeight: 800, fontFamily: T.fontDisplay, color: view === k ? T.ink : T.inkFaint, letterSpacing: -0.4, whiteSpace: "nowrap" }}>{l}</button>)}</span><span style={{ display: "flex", gap: 8, alignItems: "center", flexShrink: 0 }}><button onClick={() => setActivity(true)} aria-label={unread ? `Activity · ${unread} new` : "Activity"} data-testid="social-heart" className="v2-tap" style={{ position: "relative", width: 40, height: 40, borderRadius: "50%", border: "none", background: "none", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", color: T.ink, flexShrink: 0 }}><SxHeart size={24} />{unread ? <span data-testid="social-heart-count" style={{ position: "absolute", top: 3, right: 1, minWidth: 18, height: 18, padding: "0 5px", borderRadius: 9, background: T.negative || "#E23F45", color: "#fff", fontSize: 10.5, fontWeight: 800, display: "flex", alignItems: "center", justifyContent: "center", border: `2px solid ${HT.screenBg && HT.screenBg.startsWith("#") ? HT.screenBg : T.bg}` }}>{unread > 9 ? "9+" : unread}</span> : null}</button><button onClick={() => (list.length > 1 ? setWho(true) : openMine())} aria-label={list.length > 1 ? "Social account" : "My posts"} data-testid="social-me" className="v2-tap" style={{ border: "none", background: list.length > 1 ? (HT.cardBg || T.surface) : "none", boxShadow: list.length > 1 ? (HT.cardShadow ?? T.shadowCard) : "none", borderRadius: 999, padding: list.length > 1 ? "3px 10px 3px 3px" : 0, cursor: "pointer", display: "flex", alignItems: "center", gap: 7, maxWidth: 150, fontFamily: T.fontBody }}>{face.kind === "shop" ? <span style={{ width: 32, height: 32, borderRadius: 11, background: T.accentSoft, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}><HlStore size={17} color={T.accent} /></span> : <HellooMeAvatar me={me} size={list.length > 1 ? 32 : 36} />}{list.length > 1 ? <><span style={{ minWidth: 0, fontSize: 12.5, fontWeight: 800, color: T.ink, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{face.kind === "shop" ? (face.handle || face.name) : "Personal"}</span><HlChevron size={14} color={T.inkFaint} style={{ transform: "rotate(90deg)", flexShrink: 0 }} /></> : null}</button></span></div></div>;
+  const head = <div style={{ position: "sticky", top: 0, zIndex: 5, background: `${HT.screenBg && HT.screenBg.startsWith("#") ? HT.screenBg : T.bg}F2`, backdropFilter: "blur(14px)", WebkitBackdropFilter: "blur(14px)", padding: "calc(10px + env(safe-area-inset-top, 0px)) 16px 8px" }}><div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 10 }}><span style={{ display: "flex", alignItems: "baseline", gap: 14, minWidth: 0 }}>{[["feed", "For you"], ["explore", "Explore"]].map(([k, l]) => <button key={k} onClick={() => setView(k)} data-testid={`social-view-${k}`} aria-current={view === k ? "page" : undefined} className="v2-tap" style={{ border: "none", background: "none", padding: 0, cursor: "pointer", fontSize: view === k ? 22 : 17, fontWeight: 800, fontFamily: T.fontDisplay, color: view === k ? T.ink : T.inkFaint, letterSpacing: -0.4, whiteSpace: "nowrap" }}>{l}</button>)}</span><span style={{ display: "flex", gap: 8, alignItems: "center", flexShrink: 0 }}><button onClick={() => setActivity(true)} aria-label={unread ? `Activity · ${unread} new` : "Activity"} data-testid="social-heart" className="v2-tap" style={{ position: "relative", width: 40, height: 40, borderRadius: "50%", border: "none", background: "none", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", color: T.ink, flexShrink: 0 }}><SxHeart size={24} />{unread ? <span data-testid="social-heart-count" style={{ position: "absolute", top: 3, right: 1, minWidth: 18, height: 18, padding: "0 5px", borderRadius: 9, background: T.negative || "#E23F45", color: "#fff", fontSize: 10.5, fontWeight: 800, display: "flex", alignItems: "center", justifyContent: "center", border: `2px solid ${HT.screenBg && HT.screenBg.startsWith("#") ? HT.screenBg : T.bg}` }}>{unread > 9 ? "9+" : unread}</span> : null}</button><button onClick={() => { loadAccounts(); setWho(true); }} aria-label="Your social profiles" data-testid="social-me" className="v2-tap" style={{ border: "none", background: list.length > 1 ? (HT.cardBg || T.surface) : "none", boxShadow: list.length > 1 ? (HT.cardShadow ?? T.shadowCard) : "none", borderRadius: 999, padding: list.length > 1 ? "3px 10px 3px 3px" : 0, cursor: "pointer", display: "flex", alignItems: "center", gap: 7, maxWidth: 150, fontFamily: T.fontBody }}>{face.kind === "shop" ? <span style={{ width: 32, height: 32, borderRadius: 11, background: T.accentSoft, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}><HlStore size={17} color={T.accent} /></span> : <HellooMeAvatar me={me} size={list.length > 1 ? 32 : 36} />}{list.length > 1 ? <><span style={{ minWidth: 0, fontSize: 12.5, fontWeight: 800, color: T.ink, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{face.kind === "shop" ? (face.handle || face.name) : "Personal"}</span><HlChevron size={14} color={T.inkFaint} style={{ transform: "rotate(90deg)", flexShrink: 0 }} /></> : null}</button></span></div></div>;
 
   // Before people's pictures open: the fingerprint / face check (GLOOBAL
   // features/viewpass), shown above everything while it is due.
-  const statusRow = <><GloobalSealedGate onSetup={() => { try { window.open("https://gloobalv3.netlify.app/", "_blank", "noopener"); } catch (e) { /* fine */ } }} /><SocialStatusRow people={stories} photos={photos} onAdd={() => setCompose("pick")} onOpen={(i) => setStory(i)} /></>;
+  const statusRow = <><GloobalSealedGate onSetup={() => { try { window.open("https://gloobalv3.netlify.app/", "_blank", "noopener"); } catch (e) { /* fine */ } }} /><SocialStatusRow people={stories} photos={photos} onAdd={() => (isOff ? setWho(true) : setCompose("pick"))} onOpen={(i) => setStory(i)} /></>;
   let body;
   if (view === "feed") {
     body = feed === null
@@ -361,7 +434,7 @@ function HellooSocialHome({ me, faces, photos, onCards, onOpenChat, onTip, onSho
     body = <SocialExplore ex={ex} see={see} tag={tag} onTag={setTag} onFilter={() => setFilter(true)} q={q} onQ={setQ} found={found} photos={photos} act={act} follows={follows} onOpen={setOpen} onToast={onToast} />;
   }
 
-  return <HellooScreen><div data-testid="social-home" onTouchStart={onSwipeStart} onTouchEnd={onSwipeEnd} style={{ flex: 1, minHeight: 0, overflowY: "auto", display: "block" }}>{head}{view === "feed" ? statusRow : null}<div key={view} className="social-swap" style={{ animation: "socialSwap 0.22s ease-out" }}>{body}</div></div>
+  return <HellooScreen><div data-testid="social-home" onTouchStart={onSwipeStart} onTouchEnd={onSwipeEnd} style={{ flex: 1, minHeight: 0, overflowY: "auto", display: "block" }}>{head}{view === "feed" ? statusRow : null}{isOff ? <div data-testid="social-off-banner" style={{ margin: "4px 14px 10px", padding: "12px 14px", borderRadius: 18, background: HT.cardBg || T.surface, boxShadow: HT.cardShadow ?? T.shadowCard, display: "flex", alignItems: "center", gap: 12 }}><span style={{ flex: 1, minWidth: 0 }}><span style={{ display: "block", fontSize: 14, fontWeight: 800, color: T.ink }}>{face.kind === "shop" ? `${face.handle || face.name} is off` : "Your social profile is off"}</span><span style={{ display: "block", fontSize: 12.5, color: T.inkSoft, marginTop: 2, lineHeight: 1.4 }}>You can look around. Turn it on to post, follow, like and comment.</span></span><button onClick={() => setWho(true)} data-testid="social-turn-on" className="v2-tap" style={{ flexShrink: 0, border: "none", borderRadius: 999, padding: "9px 14px", background: T.gradButton, color: HT.onAccent || "#fff", fontSize: 13, fontWeight: 800, cursor: "pointer", fontFamily: T.fontBody }}>Turn on</button></div> : null}<div key={view} className="social-swap" style={{ animation: "socialSwap 0.22s ease-out" }}>{body}</div></div>
     <style>{"@keyframes socialSwap{from{opacity:0.35;transform:translateX(" + (view === "explore" ? "18px" : "-18px") + ")}to{opacity:1;transform:none}}"}</style>
     {activity ? <SocialActivity photos={photos} onBack={() => { setActivity(false); countActivity(); }} onSeen={() => setUnread(0)} onProfile={(c) => { setActivity(false); openProfile(c); }} onFollow={(c, on) => act.follow(c, on)} /> : null}
     {profile ? <SocialProfile state={profile} me={me} photos={photos} act={act} onBack={() => setProfile(null)} onOpen={setOpen} onMessage={onOpenChat} onShop={onShop} onCompose={() => setCompose("post")} /> : null}
@@ -372,7 +445,7 @@ function HellooSocialHome({ me, faces, photos, onCards, onOpenChat, onTip, onSho
       : [[HlUser, "View profile", () => { const a = more.author; setMore(null); openProfile(a); }], [HlChat, "Message", () => { const a = more.author; setMore(null); onOpenChat(a); }], [HlFlag, "Report", () => { const id = more.id; setMore(null); socialApi.report(id, "").then(() => onToast("Reported · thank you")).catch(() => onToast("Couldn't report right now.")); }, true]]
     ).map(([Icon, title, fn, danger], i) => <HellooRow key={title} Icon={Icon} title={title} first={i === 0} onPress={fn} danger={danger} color={danger ? T.negative : T.accent} />)}</HellooCard></HellooSheet> : null}
     {story !== null && stories[story] ? <SocialStatusViewer people={stories} start={story} photos={photos} muted={muted} onMuted={setMuted} onClose={() => setStory(null)} onProfile={(c) => { setStory(null); openProfile(c); }} onDelete={(id) => { setStory(null); socialApi.remove(id).then(() => { loadStories(); onToast("Status removed"); }).catch(() => onToast("Couldn't remove it.")); }} /> : null}
-    {who ? <HellooSheet title="Social account" onClose={() => setWho(false)}><div style={{ fontSize: 12.5, color: T.inkSoft, lineHeight: 1.5, margin: "0 2px 12px" }}>Each one has its own posts, status and profile. Choosing here does not change who you are in chats.</div><HellooCard>{list.map((f, i) => { const on = f.as === face.as; const shop = f.kind === "shop"; return <button key={f.as} data-testid={`social-as-${shop ? f.handle : "self"}`} aria-pressed={on} onClick={() => useAs(f)} className="v2-tap" style={{ width: "100%", display: "flex", alignItems: "center", gap: 12, padding: "12px 14px", border: "none", borderTop: i ? `1px solid ${T.line}` : "none", background: "none", cursor: "pointer", textAlign: "left", fontFamily: T.fontBody }}><span style={{ width: 40, height: 40, borderRadius: shop ? 13 : "50%", background: shop ? T.accentSoft : T.surfaceAlt, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>{shop ? <HlStore size={19} color={T.accent} /> : <HlUser size={19} color={T.inkSoft} />}</span><span style={{ flex: 1, minWidth: 0 }}><span style={{ display: "block", fontSize: 14.5, fontWeight: 800, color: T.ink, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{shop ? (f.handle || f.name) : (f.name || me.name)}</span><span style={{ display: "block", fontSize: 12, color: T.inkSoft, marginTop: 1 }}>{shop ? "Shop" : "Personal"}</span></span><span aria-hidden="true" style={{ width: 22, height: 22, borderRadius: "50%", border: on ? "none" : `2px solid ${T.line}`, background: on ? T.accent : "transparent", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>{on && <HlCheck size={13} color="#fff" strokeWidth={3} />}</span></button>; })}</HellooCard><div style={{ height: 12 }} /><span data-testid="social-my-profile" style={{ display: "flex" }}><HellooSecondary onClick={() => { setWho(false); openMine(); }}>Open my profile</HellooSecondary></span></HellooSheet> : null}
+    {who ? <SocialProfilesSheet me={me} list={list} face={face} photos={photos} accounts={accounts} onUse={useAs} onSet={setOn} onOpenMine={() => { setWho(false); openMine(); }} onClose={() => setWho(false)} /> : null}
     {filter ? <SocialFilter see={see} tag={tag} tags={(ex && ex.tags) || []} onClose={() => setFilter(false)} onSave={(nextSee, nextTag) => { socialSeeWrite(nextSee); setSee(nextSee); setTag(nextTag); setFilter(false); onToast(nextSee.length ? "Saved · Explore shows what you picked" : "Explore shows everything"); }} /> : null}
     {compose === "pick" ? <HellooSheet label="Add" onClose={() => setCompose("")}><HellooCard><span data-testid="social-add-status"><HellooRow Icon={SxClock} title="Status" value="Gone after 24 hours" first onPress={() => setCompose("status")} color={T.accent} /></span><span data-testid="social-add-post"><HellooRow Icon={SxAddPic} title="Post" value="Stays on your profile" onPress={() => setCompose("post")} color={T.accent} /></span></HellooCard></HellooSheet> : null}
     {compose === "post" || compose === "status" ? <SocialComposer me={me} asName={face.kind === "shop" ? (face.handle || face.name) : (face.name || me.name)} status={compose === "status"} onClose={() => setCompose("")} onPosted={posted} onToast={onToast} /> : null}

@@ -272,6 +272,8 @@ import { useState as useState66, useEffect as useEffect63, useRef as useRef37 } 
 import { Navigation as BmNav, Copy as BmCopy, MapPin as BmPin, Store as BmStore, MessageSquare as BmChat, Wallet as BmPay, Star as BmStar, Search as BmFind, X as BmX } from "lucide-react";
 import { useState as useStateVp, useEffect as useEffectVp } from "react";
 import { Fingerprint as VpPrint, Lock as VpLock } from "lucide-react";
+import { useState as useStateBd, useEffect as useEffectBd } from "react";
+import { Check as BdCheck, Lock as BdLock, Info as BdInfo } from "lucide-react";
 import { useState as useStateUm, useEffect as useEffectUm, useRef as useRefUm, useCallback as useCallbackUm } from "react";
 import {
   Tag as UmTag, MapPin as UmPin, ShieldCheck as UmSafe, BadgeCheck as UmReal, Camera as UmCam, Handshake as UmDeal,
@@ -52809,6 +52811,235 @@ function GloobalSealedGate({ onSetup }) {
 }
 
 
+// src/features/badges/badges.jsx
+//
+// MY BADGES: every badge GLOOBAL gives, the level you are at, and exactly
+// what the next level needs — so anyone can see how to earn each one.
+// The rules come from the server (server/lib/badgeRules.js, LEVELS); this
+// screen only draws them. Opened only from the badge button at the top right
+// of your GLOOBAL ID (Profile → Personal details).
+
+var gloobalBadgesApi = { mine: () => gloobalApiClient.get("/api/badges/me") };
+
+// Four levels, four colours. Social's top level (Icon) is violet, as in Helloo.
+var GLOOBAL_SEAL_COLOURS = { 1: "#16A34A", 2: "#2563EB", 3: "#D4A017", 4: "#DB2777" };
+var gloobalSealColour = (family, tier) => (family === "social" && tier === 4 ? "#7C3AED" : GLOOBAL_SEAL_COLOURS[tier] || "#94A3B8");
+
+// The glyph inside the seal tells the family apart.
+function GloobalSealGlyph({ glyph }) {
+  const s = { fill: "none", stroke: "#fff", strokeWidth: 2.1, strokeLinecap: "round", strokeLinejoin: "round" };
+  if (glyph === "globe") return <g {...s}><circle cx="12" cy="12" r="5.2" /><path d="M6.8 12h10.4M12 6.8c1.7 1.6 1.7 8.8 0 10.4M12 6.8c-1.7 1.6-1.7 8.8 0 10.4" /></g>;
+  if (glyph === "heart") return <path d="M12 16.6s-4.8-2.9-4.8-6.1a2.6 2.6 0 0 1 4.8-1.4 2.6 2.6 0 0 1 4.8 1.4c0 3.2-4.8 6.1-4.8 6.1z" fill="#fff" />;
+  if (glyph === "briefcase") return <g {...s}><rect x="7" y="9.4" width="10" height="7" rx="1.4" /><path d="M10 9.4V8.2a1 1 0 0 1 1-1h2a1 1 0 0 1 1 1v1.2M7 12.6h10" /></g>;
+  return <path d="M8.3 12.2l2.5 2.5 4.9-5" fill="none" stroke="#fff" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round" />;
+}
+// Eight-pointed seal, same shape as the Helloo verified badge.
+var GLOOBAL_SEAL_PATH = (() => {
+  const p = [];
+  for (let i = 0; i < 16; i += 1) { const a = (Math.PI / 8) * i - Math.PI / 2; const r = i % 2 ? 9.1 : 11; p.push(`${(12 + r * Math.cos(a)).toFixed(2)} ${(12 + r * Math.sin(a)).toFixed(2)}`); }
+  return `M${p.join("L")}Z`;
+})();
+function GloobalSeal({ family = "social", glyph = "tick", tier = 1, size = 22, off = false, title }) {
+  const c = off ? "#CBD5E1" : gloobalSealColour(family, tier);
+  return <svg width={size} height={size} viewBox="0 0 24 24" role="img" aria-label={title || "badge"} style={{ flexShrink: 0, display: "inline-block", verticalAlign: "middle" }}>
+    <path d={GLOOBAL_SEAL_PATH} fill={c} strokeLinejoin="round" stroke={c} strokeWidth="1.2" />
+    <GloobalSealGlyph glyph={glyph} />
+  </svg>;
+}
+
+var bdNum = (n) => { const v = Number(n) || 0; return v >= 1e6 ? `${+(v / 1e6).toFixed(1)}M` : v >= 1e3 ? `${+(v / 1e3).toFixed(1)}K` : `${+v.toFixed(1)}`; };
+var bdIsYesNo = (n) => n.key === "clean" || n.key === "card";
+
+var bdCap = (t) => t.charAt(0).toUpperCase() + t.slice(1);
+var bdNeedText = (n) => (bdIsYesNo(n) ? bdCap(n.label) : `${bdNum(n.at)}${n.key === "percent" ? "" : " "}${n.label}`);
+var bdReduced = () => typeof window !== "undefined" && window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+var BD_ORDER = ["social", "pay", "share", "work"];
+var BD_SHORT = { social: "Social", pay: "Payments", share: "Give back", work: "Work" };
+// Your badges in order, one per family you have (a family not started yet
+// is left out of the flip).
+var bdMine = (fams) => BD_ORDER.filter((k) => fams && fams[k] && fams[k].tier).map((k) => ({ family: k, glyph: fams[k].glyph, tier: fams[k].tier, name: fams[k].names[fams[k].tier - 1], title: fams[k].title }));
+
+// A seal that turns over to the next of your badges every few seconds.
+function GloobalFlipSeal({ items, size = 24, every = 5000, onShow }) {
+  const [i, setI] = useStateBd(0);
+  const [turn, setTurn] = useStateBd(0); // 0 face, 1 half-way out, 2 coming back in
+  const many = items && items.length > 1;
+  useEffectBd(() => {
+    if (!many || bdReduced()) return undefined;
+    let a = null; let b = null;
+    const t = setInterval(() => {
+      setTurn(1);
+      a = setTimeout(() => { setI((x) => (x + 1) % items.length); setTurn(2); b = setTimeout(() => setTurn(0), 30); }, 260);
+    }, every);
+    return () => { clearInterval(t); clearTimeout(a); clearTimeout(b); };
+  }, [many, items && items.length, every]);
+  const it = (items && items[i % (items.length || 1)]) || { family: "pay", glyph: "globe", tier: 1 };
+  useEffectBd(() => { if (onShow) onShow(it); }, [i, it.family, it.tier]);
+  const rot = turn === 1 ? 90 : turn === 2 ? -90 : 0;
+  return <span style={{ display: "inline-flex", perspective: size * 6 }}>
+    <span data-testid="flip-seal" data-family={it.family} style={{ display: "inline-flex", transform: `rotateY(${rot}deg)`, transition: turn === 2 ? "none" : "transform 0.26s ease-in-out" }}>
+      <GloobalSeal family={it.family} glyph={it.glyph} tier={it.tier} size={size} title={it.name ? `${it.title}: ${it.name}` : "badge"} />
+    </span>
+  </span>;
+}
+
+// One rule line: "4 of 10 countries" with a bar, or a yes/no.
+function BadgeNeed({ need, have, colour }) {
+  const v = Number(have[need.key]) || 0;
+  const done = v >= need.at;
+  const pct = Math.max(0, Math.min(100, (v / need.at) * 100));
+  const unit = need.key === "percent" ? "%" : "";
+  return <div style={{ padding: "8px 0" }}>
+    <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 10 }}>
+      <span style={{ display: "flex", alignItems: "center", gap: 8, minWidth: 0, fontSize: 13.5, fontWeight: 700, color: T.ink }}>
+        <span style={{ width: 20, height: 20, borderRadius: 10, background: done ? colour : "transparent", border: done ? "none" : `2px solid ${T.line || "#CBD5E1"}`, boxSizing: "border-box", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>{done ? <BdCheck size={12} color="#fff" strokeWidth={3} /> : null}</span>
+        <span style={{ minWidth: 0 }}>{bdNeedText(need)}</span>
+      </span>
+      {bdIsYesNo(need) ? null : <span style={{ fontSize: 12.5, fontWeight: 800, color: done ? colour : T.inkSoft, whiteSpace: "nowrap" }}>{done ? "Done" : `${bdNum(v)}${unit} / ${bdNum(need.at)}${unit}`}</span>}
+    </div>
+    {bdIsYesNo(need) ? null : <div style={{ height: 8, borderRadius: 4, background: T.surfaceSunk || T.surfaceAlt, marginTop: 7, marginLeft: 28, overflow: "hidden" }}><div style={{ width: `${Math.max(pct, v > 0 ? 3 : 0)}%`, height: "100%", borderRadius: 4, background: `linear-gradient(90deg, ${colour}AA, ${colour})`, transition: "width 0.6s ease" }} /></div>}
+  </div>;
+}
+
+// The four levels as a path: reached ones in colour, yours raised.
+function BadgeLadder({ id, f }) {
+  return <div style={{ position: "relative", display: "grid", gridTemplateColumns: "repeat(4, 1fr)", alignItems: "start", padding: "6px 0 2px" }}>
+    <div style={{ position: "absolute", left: "12.5%", right: "12.5%", top: 30, height: 4, borderRadius: 2, background: T.surfaceSunk || T.surfaceAlt }} />
+    <div style={{ position: "absolute", left: "12.5%", top: 30, height: 4, borderRadius: 2, width: `${Math.max(0, (f.tier - 1)) * 25}%`, background: `linear-gradient(90deg, ${gloobalSealColour(id, 1)}, ${gloobalSealColour(id, Math.max(1, f.tier))})` }} />
+    {f.levels.map((l) => {
+      const got = f.tier >= l.tier; const here = f.tier === l.tier;
+      return <div key={l.tier} style={{ position: "relative", display: "flex", flexDirection: "column", alignItems: "center", gap: 6, minWidth: 0 }}>
+        <span style={{ width: 64, height: 64, display: "flex", alignItems: "center", justifyContent: "center", borderRadius: "50%", background: here ? `${gloobalSealColour(id, l.tier)}1F` : "transparent" }}>
+          <GloobalSeal family={id} glyph={f.glyph} tier={l.tier} size={here ? 50 : 36} off={!got} />
+        </span>
+        <span style={{ fontSize: 12, fontWeight: 800, color: got ? gloobalSealColour(id, l.tier) : T.inkFaint, textAlign: "center", lineHeight: 1.2 }}>{f.names[l.tier - 1]}</span>
+      </div>;
+    })}
+  </div>;
+}
+
+function BadgeFamily({ id, f }) {
+  const next = f.levels.find((l) => l.tier === f.tier + 1);
+  const nextNeeds = next ? (next.all || next.any || []) : [];
+  const nextColour = next ? gloobalSealColour(id, next.tier) : gloobalSealColour(id, f.tier);
+  const colour = f.tier ? gloobalSealColour(id, f.tier) : T.inkSoft;
+  const name = f.tier ? f.names[f.tier - 1] : "Not yet";
+  const card = { background: T.surface, borderRadius: 22, boxShadow: T.shadowCard || "0 1px 2px rgba(0,0,0,0.06)", padding: 16, marginBottom: 12 };
+  return <div data-testid={`badge-family-${id}`}>
+    <div style={card}>
+      <div style={{ display: "flex", alignItems: "baseline", justifyContent: "space-between", gap: 10 }}>
+        <span style={{ fontSize: 12, fontWeight: 800, color: T.inkSoft, letterSpacing: 0.4, textTransform: "uppercase" }}>{f.title}</span>
+        <span style={{ fontSize: 12, fontWeight: 800, color: colour }}>{f.tier ? `Level ${f.tier} of 4` : "Not started"}</span>
+      </div>
+      <div style={{ fontSize: 24, fontWeight: 800, fontFamily: T.fontDisplay, color: colour, margin: "2px 0 8px" }}>{name}</div>
+      <BadgeLadder id={id} f={f} />
+    </div>
+
+    <div style={card}>
+      {next ? <>
+        <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 4 }}>
+          <GloobalSeal family={id} glyph={f.glyph} tier={next.tier} size={30} />
+          <div style={{ minWidth: 0 }}>
+            <div style={{ fontSize: 12, fontWeight: 800, color: T.inkSoft, textTransform: "uppercase", letterSpacing: 0.4 }}>Next level</div>
+            <div style={{ fontSize: 17, fontWeight: 800, color: nextColour, fontFamily: T.fontDisplay }}>{f.names[next.tier - 1]}{next.any && next.any.length > 1 ? <span style={{ fontSize: 12.5, color: T.inkSoft, fontWeight: 700, fontFamily: T.fontBody }}> · any one of these</span> : null}</div>
+          </div>
+        </div>
+        {f.pending && next.tier >= 2
+          ? <div style={{ fontSize: 13.5, color: T.inkSoft, lineHeight: 1.5, padding: "8px 0 2px" }}>Coming soon: payments for work will be counted here. Your Work card is ready for it.</div>
+          : nextNeeds.map((n) => <BadgeNeed key={n.key} need={n} have={f.have} colour={nextColour} />)}
+      </> : <div style={{ display: "flex", alignItems: "center", gap: 10, fontSize: 14, fontWeight: 700, color: colour }}><BdCheck size={18} strokeWidth={3} />Top level reached. The rules are checked again every month to keep it.</div>}
+    </div>
+
+    <div style={card}>
+      <div style={{ fontSize: 12, fontWeight: 800, color: T.inkSoft, textTransform: "uppercase", letterSpacing: 0.4, marginBottom: 4 }}>How each level is earned</div>
+      {f.levels.map((l, k) => {
+        const got = f.tier >= l.tier;
+        const needs = l.all || l.any || [];
+        const text = needs.length === 0 ? (id === "share" ? "Your shop gives back to customers with Creator Share" : "Your GLOOBAL ID is verified") : needs.map(bdNeedText).join(l.any ? "  or  " : " · ");
+        return <div key={l.tier} style={{ display: "flex", gap: 12, alignItems: "flex-start", padding: "10px 0", borderTop: k ? `1px solid ${T.line || "rgba(0,0,0,0.06)"}` : "none" }}>
+          <GloobalSeal family={id} glyph={f.glyph} tier={l.tier} size={28} off={!got} />
+          <div style={{ minWidth: 0, flex: 1 }}>
+            <div style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 14.5, fontWeight: 800, color: got ? gloobalSealColour(id, l.tier) : T.ink }}>{f.names[l.tier - 1]}{got ? <BdCheck size={14} strokeWidth={3} /> : <BdLock size={12} color={T.inkFaint} />}</div>
+            <div style={{ fontSize: 13, color: T.inkSoft, lineHeight: 1.45, marginTop: 1 }}>{text}</div>
+          </div>
+        </div>;
+      })}
+      <div style={{ display: "flex", gap: 8, alignItems: "flex-start", fontSize: 12, color: T.inkSoft, lineHeight: 1.5, marginTop: 8, padding: "10px 12px", borderRadius: 14, background: T.surfaceSunk || T.surfaceAlt }}><BdInfo size={14} style={{ flexShrink: 0, marginTop: 2 }} /><span>{f.not}</span></div>
+    </div>
+  </div>;
+}
+
+function GloobalBadgesScreen({ onClose }) {
+  const [data, setData] = useStateBd(null);
+  const [err, setErr] = useStateBd("");
+  const [pick, setPick] = useStateBd("");
+  const [shown, setShown] = useStateBd(null);
+  useEffectBd(() => {
+    let live = true;
+    gloobalBadgesApi.mine().then((r) => { if (live) setData(r.families || {}); }).catch((e) => { if (live) setErr((e && e.message) || "Couldn't load your badges."); });
+    return () => { live = false; };
+  }, []);
+  const fams = BD_ORDER.filter((k) => data && data[k]);
+  const mine = bdMine(data);
+  const sel = pick && data && data[pick] ? pick : fams[0];
+  const hue = shown ? gloobalSealColour(shown.family, shown.tier) : "#2563EB";
+  return gloobalMapPortal(<div data-testid="my-badges" style={{ position: "fixed", inset: 0, zIndex: 340, background: T.bg, display: "flex", flexDirection: "column", fontFamily: T.fontBody, overflow: "hidden" }}>
+    <UsedTop onBack={onClose} title="My badges" />
+    <div style={{ flex: 1, minHeight: 0, overflowY: "auto", padding: "2px 14px 28px" }}>
+      {err ? <div style={{ padding: 20, textAlign: "center", color: T.inkSoft, fontSize: 14 }}>{err}</div> : null}
+      {!data && !err ? <div style={{ padding: 30, textAlign: "center", color: T.inkSoft, fontSize: 14 }}>Loading…</div> : null}
+      {data && !fams.length ? <div style={{ padding: 30, textAlign: "center", color: T.inkSoft, fontSize: 14 }}>No badges to show yet.</div> : null}
+      {fams.length ? <>
+        <div data-testid="badges-hero" style={{ position: "relative", overflow: "hidden", borderRadius: 26, padding: "22px 18px 18px", marginBottom: 14, background: `linear-gradient(140deg, ${hue} 0%, ${hue}CC 55%, ${hue}88 100%)`, transition: "background 0.6s ease", color: "#fff" }}>
+          <div aria-hidden="true" style={{ position: "absolute", right: -40, top: -40, width: 180, height: 180, borderRadius: "50%", background: "rgba(255,255,255,0.12)" }} />
+          <div aria-hidden="true" style={{ position: "absolute", right: 40, bottom: -60, width: 140, height: 140, borderRadius: "50%", background: "rgba(255,255,255,0.08)" }} />
+          <div style={{ position: "relative", display: "flex", alignItems: "center", gap: 16 }}>
+            <span style={{ width: 92, height: 92, borderRadius: "50%", background: "rgba(255,255,255,0.95)", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0, boxShadow: "0 8px 24px rgba(0,0,0,0.18)" }}>
+              <GloobalFlipSeal items={mine} size={68} onShow={setShown} />
+            </span>
+            <div style={{ minWidth: 0 }}>
+              <div style={{ fontSize: 12, fontWeight: 800, letterSpacing: 0.5, textTransform: "uppercase", opacity: 0.85 }}>{shown ? shown.title : "Your badges"}</div>
+              <div style={{ fontSize: 26, fontWeight: 800, fontFamily: T.fontDisplay, lineHeight: 1.15 }}>{shown ? shown.name : ""}</div>
+              <div style={{ display: "flex", alignItems: "center", gap: 6, marginTop: 8 }}>{mine.map((m) => <span key={m.family} style={{ width: shown && shown.family === m.family ? 18 : 7, height: 7, borderRadius: 4, background: shown && shown.family === m.family ? "#fff" : "rgba(255,255,255,0.5)", transition: "width 0.3s ease" }} />)}<span style={{ fontSize: 12, fontWeight: 700, opacity: 0.9, marginLeft: 4 }}>{mine.length} badge{mine.length === 1 ? "" : "s"}</span></div>
+            </div>
+          </div>
+        </div>
+
+        <div role="tablist" aria-label="Badges" style={{ display: "grid", gridTemplateColumns: `repeat(${fams.length}, 1fr)`, gap: 8, marginBottom: 12 }}>
+          {fams.map((k) => {
+            const f = data[k]; const on = k === sel;
+            return <button key={k} role="tab" aria-selected={on} data-testid={`badge-tab-${k}`} onClick={() => setPick(k)} className="v2-tap" style={{ minWidth: 0, border: "none", borderRadius: 18, padding: "10px 4px 8px", cursor: "pointer", fontFamily: T.fontBody, display: "flex", flexDirection: "column", alignItems: "center", gap: 5, background: on ? T.surface : "transparent", boxShadow: on ? (T.shadowCard || "0 1px 3px rgba(0,0,0,0.08)") : "none", outline: on ? `2px solid ${f.tier ? gloobalSealColour(k, f.tier) : T.line}` : "none", outlineOffset: -2 }}>
+              <GloobalSeal family={k} glyph={f.glyph} tier={f.tier || 1} off={!f.tier} size={30} />
+              <span style={{ fontSize: 11.5, fontWeight: 800, color: on ? T.ink : T.inkSoft, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis", maxWidth: "100%" }}>{BD_SHORT[k]}</span>
+            </button>;
+          })}
+        </div>
+        <BadgeFamily key={sel} id={sel} f={data[sel]} />
+      </> : null}
+    </div>
+  </div>, document.body);
+}
+
+// The one way in: a round button at the top right of your GLOOBAL ID
+// (Profile → Personal details). It turns over through your badges, one
+// every 5 seconds; tap → My badges.
+function GloobalBadgesButton() {
+  const [open, setOpen] = useStateBd(false);
+  const [mine, setMine] = useStateBd([{ family: "pay", glyph: "globe", tier: 1 }]);
+  useEffectBd(() => {
+    let live = true;
+    gloobalBadgesApi.mine().then((r) => { const m = bdMine(r && r.families); if (live && m.length) setMine(m); }).catch(() => {});
+    return () => { live = false; };
+  }, [open]);
+  return <>
+    <button type="button" data-testid="id-my-badges" aria-label="My badges" onClick={() => setOpen(true)} className="v2-tap" style={{ marginLeft: "auto", width: NAV_BUTTON_SIZE, height: NAV_BUTTON_SIZE, borderRadius: "50%", border: "none", background: T.surface, boxShadow: T.shadowCard, display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer", flexShrink: 0, padding: 0 }}>
+      <GloobalFlipSeal items={mine} size={24} />
+    </button>
+    {open ? <GloobalBadgesScreen onClose={() => setOpen(false)} /> : null}
+  </>;
+}
+
+
 // src/features/used/used.jsx
 //
 // GLOOBAL बाज़ार · USED: neighbours selling their own second-hand things.
@@ -62289,7 +62520,7 @@ function DashboardScreen({ dialCountry, onLogout, onOpenSend, onPayCreator, onPa
     }}
   >
                   Paid
-                </button></div>}</div><div style={{ flex: 1, minHeight: 0, overflowY: "auto", padding: "6px 18px 30px" }}>{profileDetail === "Personal Details" && <PersonalDetailsScreen
+                </button></div>}{profileDetail === "Personal Details" && <GloobalBadgesButton />}</div><div style={{ flex: 1, minHeight: 0, overflowY: "auto", padding: "6px 18px 30px" }}>{profileDetail === "Personal Details" && <PersonalDetailsScreen
     myName={myName}
     mobileNumber={mobileNumber}
     dialCountry={dialCountry}
@@ -79735,7 +79966,10 @@ var socialApi = {
   // The heart: likes, comments and new followers for you.
   activity: () => socialHttp.get("/api/social/activity"),
   activityCount: () => socialHttp.get("/api/social/activity?count=1"),
-  activitySeen: () => socialHttp.post("/api/social/activity/seen", {})
+  activitySeen: () => socialHttp.post("/api/social/activity/seen", {}),
+  // Your social profiles, each off until you turn it on.
+  accounts: () => gloobalApiClient.get("/api/social/accounts"),
+  setOn: (as, on) => gloobalApiClient.post(`/api/social/on?as=${encodeURIComponent(as || "self")}`, { on })
 };
 // "now", "5m", "3h", "2d", or a date.
 function socialAgo(at) {
@@ -79922,11 +80156,70 @@ function SocialActivity({ photos, onBack, onProfile, onFollow, onSeen }) {
   </div>;
 }
 
+// A small on/off switch.
+function SocialSwitch({ on, busy, onChange, label, testid }) {
+  return <button type="button" role="switch" aria-checked={on} aria-label={label} data-testid={testid} disabled={busy} onClick={(e) => { e.stopPropagation(); onChange(!on); }} className="v2-tap" style={{ position: "relative", width: 50, height: 30, borderRadius: 15, border: "none", padding: 0, flexShrink: 0, cursor: busy ? "default" : "pointer", background: on ? (T.positive || "#16A34A") : (T.line || "#D6D3E0"), transition: "background 0.2s ease", opacity: busy ? 0.6 : 1 }}>
+    <span style={{ position: "absolute", top: 3, left: on ? 23 : 3, width: 24, height: 24, borderRadius: "50%", background: "#fff", boxShadow: "0 1px 3px rgba(0,0,0,0.25)", transition: "left 0.2s ease" }} />
+  </button>;
+}
+
+// Your social profiles: yourself, and each shop. Each one is off until you
+// turn it on; only an "on" one can be used to post, follow, like and comment.
+function SocialProfilesSheet({ me, list, face, photos, accounts, onUse, onSet, onOpenMine, onClose }) {
+  const [ask, setAsk] = useStateH40(null); // { f, on }
+  const [busy, setBusy] = useStateH40("");
+  const nameOf = (f) => (f.kind === "shop" ? (f.handle || f.name) : (f.name || me.name));
+  const go = async () => {
+    const { f, on } = ask; setBusy(f.as);
+    try { await onSet(f, on); setAsk(null); } catch (e) { /* toasted by onSet */ }
+    setBusy("");
+  };
+  const curOn = accounts && accounts[face.as] && accounts[face.as].on;
+  return <HellooSheet title="Your social profiles" onClose={onClose}>
+    <div style={{ fontSize: 13, color: T.inkSoft, lineHeight: 1.5, margin: "-4px 2px 14px" }}>Each one is separate: its own posts, followers and status. Turn on only the ones you want people to see. Your chats stay the same.</div>
+    <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+      {list.map((f) => {
+        const shop = f.kind === "shop";
+        const a = (accounts && accounts[f.as]) || null;
+        const on = Boolean(a && a.on);
+        const using = f.as === face.as;
+        const tint = shop ? T.accent : (T.positive || "#16A34A");
+        return <div key={f.as} data-testid={`social-as-${shop ? f.handle : "self"}`} role="button" tabIndex={0} aria-pressed={using} onClick={() => (on ? onUse(f) : setAsk({ f, on: true }))} className="v2-tap" style={{ position: "relative", display: "flex", alignItems: "center", gap: 12, padding: "14px 14px", borderRadius: 20, cursor: "pointer", background: HT.cardBg || T.surface, boxShadow: using ? `0 0 0 2px ${tint}` : (HT.cardShadow ?? T.shadowCard), transition: "box-shadow 0.2s ease" }}>
+          <span style={{ position: "relative", flexShrink: 0, opacity: on ? 1 : 0.55 }}>
+            {shop ? <SocialFace card={{ accountId: f.accountId, gloobalId: f.gloobalId, name: f.name, handle: f.handle, side: "shop" }} photos={photos} size={50} /> : <HellooMeAvatar me={me} size={50} />}
+            <span aria-hidden="true" style={{ position: "absolute", right: -2, bottom: -2, width: 20, height: 20, borderRadius: shop ? 7 : "50%", background: tint, border: `2px solid ${HT.cardBg || T.surface}`, display: "flex", alignItems: "center", justifyContent: "center" }}>{shop ? <HlStore size={11} color="#fff" /> : <HlUser size={11} color="#fff" />}</span>
+          </span>
+          <span style={{ flex: 1, minWidth: 0 }}>
+            <span style={{ display: "flex", alignItems: "center", gap: 6, minWidth: 0 }}>
+              <span style={{ fontSize: 15.5, fontWeight: 800, color: T.ink, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{nameOf(f)}</span>
+              {using && on ? <span style={{ flexShrink: 0, fontSize: 10.5, fontWeight: 800, color: tint, background: `${tint}1A`, padding: "2px 7px", borderRadius: 999 }}>Using</span> : null}
+            </span>
+            <span style={{ display: "block", fontSize: 12.5, color: T.inkSoft, marginTop: 2, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{shop ? "Shop" : "Personal"} · {a === null ? "…" : on ? `${socialCount(a.posts)} post${a.posts === 1 ? "" : "s"} · ${socialCount(a.followers)} follower${a.followers === 1 ? "" : "s"}` : "Off · nobody sees it"}</span>
+          </span>
+          <SocialSwitch on={on} busy={busy === f.as || a === null} label={`${nameOf(f)} on Social`} testid={`social-on-${shop ? f.handle : "self"}`} onChange={(v) => setAsk({ f, on: v })} />
+        </div>;
+      })}
+    </div>
+    <div style={{ height: 14 }} />
+    {curOn ? <span data-testid="social-my-profile" style={{ display: "flex" }}><HellooSecondary onClick={onOpenMine}>Open {face.kind === "shop" ? "this shop's" : "my"} profile</HellooSecondary></span> : null}
+    {ask ? <HellooSheet title={ask.on ? `Turn on ${nameOf(ask.f)}?` : `Turn off ${nameOf(ask.f)}?`} onClose={() => setAsk(null)} zIndex={70}>
+      <div data-testid="social-on-confirm" style={{ fontSize: 14, color: T.inkSoft, lineHeight: 1.55, marginBottom: 16 }}>{ask.on
+        ? "People on Helloo can find this profile, see its posts and status, and follow it. You can post, like and comment as it. Turn it off any time."
+        : "Its profile, posts and status are hidden from everyone, and you can't post or comment as it, until you turn it on again. Nothing is deleted."}</div>
+      <div style={{ display: "flex", gap: 10 }}><HellooSecondary onClick={() => setAsk(null)}>Not now</HellooSecondary><span data-testid="social-on-go" style={{ display: "flex", flex: 1 }}><HellooPrimary disabled={Boolean(busy)} color={ask.on ? (T.positive || "#16A34A") : (T.negative || "#DC2626")} onClick={go}>{busy ? "…" : ask.on ? "Turn on" : "Turn off"}</HellooPrimary></span></div>
+    </HellooSheet> : null}
+  </HellooSheet>;
+}
+
 function HellooSocialHome({ me, faces, photos, onCards, onOpenChat, onTip, onShopItem, onShop, onToast, composeTick }) {
   useGloobalViewPass();
   const myId = me.accountId || me.id || "";
   const [as, setAs] = useStateH40(() => socialFaceLoad(myId));
   const [who, setWho] = useStateH40(false);
+  // Which of your social profiles are on (null until known).
+  const [accounts, setAccounts] = useStateH40(null);
+  const loadAccounts = useCallbackH40(() => { socialApi.accounts().then((r) => setAccounts(r.accounts || {})).catch(() => {}); }, []);
+  useEffectH40(() => { loadAccounts(); }, [loadAccounts]);
   const list = (faces || []).length ? faces : [{ as: "self", kind: "self", accountId: myId, gloobalId: me.gloobalId, name: me.name }];
   const face = list.find((f) => f.as === as) || list[0];
   // A shop that is no longer yours: back to yourself.
@@ -80007,6 +80300,17 @@ function HellooSocialHome({ me, faces, photos, onCards, onOpenChat, onTip, onSho
   };
   const openMine = () => openProfile({ gloobalId: face.gloobalId || me.gloobalId, accountId: face.accountId || myId, name: face.name || me.name, side: face.kind === "shop" ? "shop" : "self" });
   const useAs = (f) => { setWho(false); if (f.as === as) return; socialFaceSave(myId, f.as); setFeed(null); setEx(null); setStories([]); setProfile(null); setOpen(null); setFollows({}); setAs(f.as); onToast(f.kind === "shop" ? `Social as ${f.name || "your shop"}` : "Social as yourself"); };
+  const isOff = Boolean(accounts && accounts[face.as] && !accounts[face.as].on);
+  const setOn = async (f, on) => {
+    try {
+      await socialApi.setOn(f.as, on);
+      setAccounts((m) => Object.assign({}, m, { [f.as]: Object.assign({}, (m && m[f.as]) || { posts: 0, followers: 0 }, { on }) }));
+      const name = f.kind === "shop" ? (f.handle || f.name) : "Your profile";
+      onToast(on ? `${name} is on Social` : `${name} is off · hidden from everyone`);
+      if (on && f.as !== face.as) useAs(f);
+      loadAccounts();
+    } catch (e) { onToast((e && e.message) || "Couldn't change that."); throw e; }
+  };
   const act = {
     toast: (t) => onToast(t),
     like: (post, on) => { patch(post.id, (p) => Object.assign({}, p, { liked: on, likes: Math.max(0, p.likes + (on ? 1 : -1)) })); socialApi.like(post.id, on).then((r) => patch(post.id, (p) => Object.assign({}, p, { liked: r.liked, likes: r.likes }))).catch(() => patch(post.id, (p) => Object.assign({}, p, { liked: !on, likes: Math.max(0, p.likes + (on ? -1 : 1)) }))); },
@@ -80032,11 +80336,11 @@ function HellooSocialHome({ me, faces, photos, onCards, onOpenChat, onTip, onSho
     setFeed((f) => [post, ...(f || [])]); onToast("Posted");
   };
 
-  const head = <div style={{ position: "sticky", top: 0, zIndex: 5, background: `${HT.screenBg && HT.screenBg.startsWith("#") ? HT.screenBg : T.bg}F2`, backdropFilter: "blur(14px)", WebkitBackdropFilter: "blur(14px)", padding: "calc(10px + env(safe-area-inset-top, 0px)) 16px 8px" }}><div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 10 }}><span style={{ display: "flex", alignItems: "baseline", gap: 14, minWidth: 0 }}>{[["feed", "For you"], ["explore", "Explore"]].map(([k, l]) => <button key={k} onClick={() => setView(k)} data-testid={`social-view-${k}`} aria-current={view === k ? "page" : undefined} className="v2-tap" style={{ border: "none", background: "none", padding: 0, cursor: "pointer", fontSize: view === k ? 22 : 17, fontWeight: 800, fontFamily: T.fontDisplay, color: view === k ? T.ink : T.inkFaint, letterSpacing: -0.4, whiteSpace: "nowrap" }}>{l}</button>)}</span><span style={{ display: "flex", gap: 8, alignItems: "center", flexShrink: 0 }}><button onClick={() => setActivity(true)} aria-label={unread ? `Activity · ${unread} new` : "Activity"} data-testid="social-heart" className="v2-tap" style={{ position: "relative", width: 40, height: 40, borderRadius: "50%", border: "none", background: "none", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", color: T.ink, flexShrink: 0 }}><SxHeart size={24} />{unread ? <span data-testid="social-heart-count" style={{ position: "absolute", top: 3, right: 1, minWidth: 18, height: 18, padding: "0 5px", borderRadius: 9, background: T.negative || "#E23F45", color: "#fff", fontSize: 10.5, fontWeight: 800, display: "flex", alignItems: "center", justifyContent: "center", border: `2px solid ${HT.screenBg && HT.screenBg.startsWith("#") ? HT.screenBg : T.bg}` }}>{unread > 9 ? "9+" : unread}</span> : null}</button><button onClick={() => (list.length > 1 ? setWho(true) : openMine())} aria-label={list.length > 1 ? "Social account" : "My posts"} data-testid="social-me" className="v2-tap" style={{ border: "none", background: list.length > 1 ? (HT.cardBg || T.surface) : "none", boxShadow: list.length > 1 ? (HT.cardShadow ?? T.shadowCard) : "none", borderRadius: 999, padding: list.length > 1 ? "3px 10px 3px 3px" : 0, cursor: "pointer", display: "flex", alignItems: "center", gap: 7, maxWidth: 150, fontFamily: T.fontBody }}>{face.kind === "shop" ? <span style={{ width: 32, height: 32, borderRadius: 11, background: T.accentSoft, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}><HlStore size={17} color={T.accent} /></span> : <HellooMeAvatar me={me} size={list.length > 1 ? 32 : 36} />}{list.length > 1 ? <><span style={{ minWidth: 0, fontSize: 12.5, fontWeight: 800, color: T.ink, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{face.kind === "shop" ? (face.handle || face.name) : "Personal"}</span><HlChevron size={14} color={T.inkFaint} style={{ transform: "rotate(90deg)", flexShrink: 0 }} /></> : null}</button></span></div></div>;
+  const head = <div style={{ position: "sticky", top: 0, zIndex: 5, background: `${HT.screenBg && HT.screenBg.startsWith("#") ? HT.screenBg : T.bg}F2`, backdropFilter: "blur(14px)", WebkitBackdropFilter: "blur(14px)", padding: "calc(10px + env(safe-area-inset-top, 0px)) 16px 8px" }}><div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 10 }}><span style={{ display: "flex", alignItems: "baseline", gap: 14, minWidth: 0 }}>{[["feed", "For you"], ["explore", "Explore"]].map(([k, l]) => <button key={k} onClick={() => setView(k)} data-testid={`social-view-${k}`} aria-current={view === k ? "page" : undefined} className="v2-tap" style={{ border: "none", background: "none", padding: 0, cursor: "pointer", fontSize: view === k ? 22 : 17, fontWeight: 800, fontFamily: T.fontDisplay, color: view === k ? T.ink : T.inkFaint, letterSpacing: -0.4, whiteSpace: "nowrap" }}>{l}</button>)}</span><span style={{ display: "flex", gap: 8, alignItems: "center", flexShrink: 0 }}><button onClick={() => setActivity(true)} aria-label={unread ? `Activity · ${unread} new` : "Activity"} data-testid="social-heart" className="v2-tap" style={{ position: "relative", width: 40, height: 40, borderRadius: "50%", border: "none", background: "none", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", color: T.ink, flexShrink: 0 }}><SxHeart size={24} />{unread ? <span data-testid="social-heart-count" style={{ position: "absolute", top: 3, right: 1, minWidth: 18, height: 18, padding: "0 5px", borderRadius: 9, background: T.negative || "#E23F45", color: "#fff", fontSize: 10.5, fontWeight: 800, display: "flex", alignItems: "center", justifyContent: "center", border: `2px solid ${HT.screenBg && HT.screenBg.startsWith("#") ? HT.screenBg : T.bg}` }}>{unread > 9 ? "9+" : unread}</span> : null}</button><button onClick={() => { loadAccounts(); setWho(true); }} aria-label="Your social profiles" data-testid="social-me" className="v2-tap" style={{ border: "none", background: list.length > 1 ? (HT.cardBg || T.surface) : "none", boxShadow: list.length > 1 ? (HT.cardShadow ?? T.shadowCard) : "none", borderRadius: 999, padding: list.length > 1 ? "3px 10px 3px 3px" : 0, cursor: "pointer", display: "flex", alignItems: "center", gap: 7, maxWidth: 150, fontFamily: T.fontBody }}>{face.kind === "shop" ? <span style={{ width: 32, height: 32, borderRadius: 11, background: T.accentSoft, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}><HlStore size={17} color={T.accent} /></span> : <HellooMeAvatar me={me} size={list.length > 1 ? 32 : 36} />}{list.length > 1 ? <><span style={{ minWidth: 0, fontSize: 12.5, fontWeight: 800, color: T.ink, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{face.kind === "shop" ? (face.handle || face.name) : "Personal"}</span><HlChevron size={14} color={T.inkFaint} style={{ transform: "rotate(90deg)", flexShrink: 0 }} /></> : null}</button></span></div></div>;
 
   // Before people's pictures open: the fingerprint / face check (GLOOBAL
   // features/viewpass), shown above everything while it is due.
-  const statusRow = <><GloobalSealedGate onSetup={() => { try { window.open("https://gloobalv3.netlify.app/", "_blank", "noopener"); } catch (e) { /* fine */ } }} /><SocialStatusRow people={stories} photos={photos} onAdd={() => setCompose("pick")} onOpen={(i) => setStory(i)} /></>;
+  const statusRow = <><GloobalSealedGate onSetup={() => { try { window.open("https://gloobalv3.netlify.app/", "_blank", "noopener"); } catch (e) { /* fine */ } }} /><SocialStatusRow people={stories} photos={photos} onAdd={() => (isOff ? setWho(true) : setCompose("pick"))} onOpen={(i) => setStory(i)} /></>;
   let body;
   if (view === "feed") {
     body = feed === null
@@ -80048,7 +80352,7 @@ function HellooSocialHome({ me, faces, photos, onCards, onOpenChat, onTip, onSho
     body = <SocialExplore ex={ex} see={see} tag={tag} onTag={setTag} onFilter={() => setFilter(true)} q={q} onQ={setQ} found={found} photos={photos} act={act} follows={follows} onOpen={setOpen} onToast={onToast} />;
   }
 
-  return <HellooScreen><div data-testid="social-home" onTouchStart={onSwipeStart} onTouchEnd={onSwipeEnd} style={{ flex: 1, minHeight: 0, overflowY: "auto", display: "block" }}>{head}{view === "feed" ? statusRow : null}<div key={view} className="social-swap" style={{ animation: "socialSwap 0.22s ease-out" }}>{body}</div></div>
+  return <HellooScreen><div data-testid="social-home" onTouchStart={onSwipeStart} onTouchEnd={onSwipeEnd} style={{ flex: 1, minHeight: 0, overflowY: "auto", display: "block" }}>{head}{view === "feed" ? statusRow : null}{isOff ? <div data-testid="social-off-banner" style={{ margin: "4px 14px 10px", padding: "12px 14px", borderRadius: 18, background: HT.cardBg || T.surface, boxShadow: HT.cardShadow ?? T.shadowCard, display: "flex", alignItems: "center", gap: 12 }}><span style={{ flex: 1, minWidth: 0 }}><span style={{ display: "block", fontSize: 14, fontWeight: 800, color: T.ink }}>{face.kind === "shop" ? `${face.handle || face.name} is off` : "Your social profile is off"}</span><span style={{ display: "block", fontSize: 12.5, color: T.inkSoft, marginTop: 2, lineHeight: 1.4 }}>You can look around. Turn it on to post, follow, like and comment.</span></span><button onClick={() => setWho(true)} data-testid="social-turn-on" className="v2-tap" style={{ flexShrink: 0, border: "none", borderRadius: 999, padding: "9px 14px", background: T.gradButton, color: HT.onAccent || "#fff", fontSize: 13, fontWeight: 800, cursor: "pointer", fontFamily: T.fontBody }}>Turn on</button></div> : null}<div key={view} className="social-swap" style={{ animation: "socialSwap 0.22s ease-out" }}>{body}</div></div>
     <style>{"@keyframes socialSwap{from{opacity:0.35;transform:translateX(" + (view === "explore" ? "18px" : "-18px") + ")}to{opacity:1;transform:none}}"}</style>
     {activity ? <SocialActivity photos={photos} onBack={() => { setActivity(false); countActivity(); }} onSeen={() => setUnread(0)} onProfile={(c) => { setActivity(false); openProfile(c); }} onFollow={(c, on) => act.follow(c, on)} /> : null}
     {profile ? <SocialProfile state={profile} me={me} photos={photos} act={act} onBack={() => setProfile(null)} onOpen={setOpen} onMessage={onOpenChat} onShop={onShop} onCompose={() => setCompose("post")} /> : null}
@@ -80059,7 +80363,7 @@ function HellooSocialHome({ me, faces, photos, onCards, onOpenChat, onTip, onSho
       : [[HlUser, "View profile", () => { const a = more.author; setMore(null); openProfile(a); }], [HlChat, "Message", () => { const a = more.author; setMore(null); onOpenChat(a); }], [HlFlag, "Report", () => { const id = more.id; setMore(null); socialApi.report(id, "").then(() => onToast("Reported · thank you")).catch(() => onToast("Couldn't report right now.")); }, true]]
     ).map(([Icon, title, fn, danger], i) => <HellooRow key={title} Icon={Icon} title={title} first={i === 0} onPress={fn} danger={danger} color={danger ? T.negative : T.accent} />)}</HellooCard></HellooSheet> : null}
     {story !== null && stories[story] ? <SocialStatusViewer people={stories} start={story} photos={photos} muted={muted} onMuted={setMuted} onClose={() => setStory(null)} onProfile={(c) => { setStory(null); openProfile(c); }} onDelete={(id) => { setStory(null); socialApi.remove(id).then(() => { loadStories(); onToast("Status removed"); }).catch(() => onToast("Couldn't remove it.")); }} /> : null}
-    {who ? <HellooSheet title="Social account" onClose={() => setWho(false)}><div style={{ fontSize: 12.5, color: T.inkSoft, lineHeight: 1.5, margin: "0 2px 12px" }}>Each one has its own posts, status and profile. Choosing here does not change who you are in chats.</div><HellooCard>{list.map((f, i) => { const on = f.as === face.as; const shop = f.kind === "shop"; return <button key={f.as} data-testid={`social-as-${shop ? f.handle : "self"}`} aria-pressed={on} onClick={() => useAs(f)} className="v2-tap" style={{ width: "100%", display: "flex", alignItems: "center", gap: 12, padding: "12px 14px", border: "none", borderTop: i ? `1px solid ${T.line}` : "none", background: "none", cursor: "pointer", textAlign: "left", fontFamily: T.fontBody }}><span style={{ width: 40, height: 40, borderRadius: shop ? 13 : "50%", background: shop ? T.accentSoft : T.surfaceAlt, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>{shop ? <HlStore size={19} color={T.accent} /> : <HlUser size={19} color={T.inkSoft} />}</span><span style={{ flex: 1, minWidth: 0 }}><span style={{ display: "block", fontSize: 14.5, fontWeight: 800, color: T.ink, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{shop ? (f.handle || f.name) : (f.name || me.name)}</span><span style={{ display: "block", fontSize: 12, color: T.inkSoft, marginTop: 1 }}>{shop ? "Shop" : "Personal"}</span></span><span aria-hidden="true" style={{ width: 22, height: 22, borderRadius: "50%", border: on ? "none" : `2px solid ${T.line}`, background: on ? T.accent : "transparent", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>{on && <HlCheck size={13} color="#fff" strokeWidth={3} />}</span></button>; })}</HellooCard><div style={{ height: 12 }} /><span data-testid="social-my-profile" style={{ display: "flex" }}><HellooSecondary onClick={() => { setWho(false); openMine(); }}>Open my profile</HellooSecondary></span></HellooSheet> : null}
+    {who ? <SocialProfilesSheet me={me} list={list} face={face} photos={photos} accounts={accounts} onUse={useAs} onSet={setOn} onOpenMine={() => { setWho(false); openMine(); }} onClose={() => setWho(false)} /> : null}
     {filter ? <SocialFilter see={see} tag={tag} tags={(ex && ex.tags) || []} onClose={() => setFilter(false)} onSave={(nextSee, nextTag) => { socialSeeWrite(nextSee); setSee(nextSee); setTag(nextTag); setFilter(false); onToast(nextSee.length ? "Saved · Explore shows what you picked" : "Explore shows everything"); }} /> : null}
     {compose === "pick" ? <HellooSheet label="Add" onClose={() => setCompose("")}><HellooCard><span data-testid="social-add-status"><HellooRow Icon={SxClock} title="Status" value="Gone after 24 hours" first onPress={() => setCompose("status")} color={T.accent} /></span><span data-testid="social-add-post"><HellooRow Icon={SxAddPic} title="Post" value="Stays on your profile" onPress={() => setCompose("post")} color={T.accent} /></span></HellooCard></HellooSheet> : null}
     {compose === "post" || compose === "status" ? <SocialComposer me={me} asName={face.kind === "shop" ? (face.handle || face.name) : (face.name || me.name)} status={compose === "status"} onClose={() => setCompose("")} onPosted={posted} onToast={onToast} /> : null}
