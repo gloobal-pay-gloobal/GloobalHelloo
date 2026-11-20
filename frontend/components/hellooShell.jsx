@@ -3,7 +3,7 @@
 // The furniture every Helloo screen shares: the top bar, the tab bar, a
 // bottom sheet, and a round icon button. Built on Gloobal's theme so a
 // Helloo screen and a Gloobal screen side by side look like one app.
-import { useState as useStateH1, useRef as useRefH1 } from "react";
+import { useState as useStateH1, useRef as useRefH1, useEffect as useEffectH1 } from "react";
 import {
   MessageCircle as HlChat, Phone as HlPhone, Video as HlVideo, User as HlUser, Users as HlUsers,
   Search as HlSearch, ScanLine as HlScan, Plus as HlPlus, MoreVertical as HlMore, Mic as HlMic,
@@ -63,6 +63,23 @@ function HellooSideRail({ active, onChange, badges = {}, onBazaar, onScan, socia
   // folds it again.
   const [unfolded, setUnfolded] = useStateH1(false);
   const drag = useRefH1(null);
+  // Out of the way while you do something else: scrolling anywhere or
+  // typing anywhere folds the column to its one corner button; it comes
+  // back a moment after the scrolling stops, or when the typing ends.
+  const [quiet, setQuiet] = useStateH1(false);
+  useEffectH1(() => {
+    let t = null;
+    const typing = () => { const el = document.activeElement; return Boolean(el && (el.tagName === "TEXTAREA" || (el.tagName === "INPUT" && !/^(checkbox|radio|button|range|submit|file)$/i.test(el.type || "")) || el.isContentEditable)); };
+    const settle = () => { clearTimeout(t); t = setTimeout(() => setQuiet(typing()), 1200); };
+    const onScroll = (e) => { if (e && e.target && e.target.closest && e.target.closest("[data-testid=helloo-rail]")) return; setQuiet(true); setUnfolded(false); settle(); };
+    const onFocus = () => { if (typing()) { clearTimeout(t); setQuiet(true); setUnfolded(false); } };
+    const onBlur = () => { setTimeout(() => { if (!typing()) settle(); }, 0); };
+    document.addEventListener("scroll", onScroll, true);
+    document.addEventListener("focusin", onFocus);
+    document.addEventListener("focusout", onBlur);
+    return () => { clearTimeout(t); document.removeEventListener("scroll", onScroll, true); document.removeEventListener("focusin", onFocus); document.removeEventListener("focusout", onBlur); };
+  }, []);
+  const folded = fold || quiet;
   const moved = useRefH1(false);
   const setSide = (v) => { hellooSaveRailSide(v); setSideOwn(v); if (onSide) onSide(v); };
   const round = (size, filled) => ({ position: "relative", width: size, height: size, borderRadius: "50%", border: filled ? "none" : (HT.cardBorder || `1px solid ${T.line}`), background: filled ? T.gradButton : (HT.cardBg || T.surface), boxShadow: filled ? (HT.buttonGlow || "0 10px 24px rgba(76,29,149,0.32)") : (HT.cardShadow ?? T.shadowCard), display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer", padding: 0, flexShrink: 0 });
@@ -88,8 +105,8 @@ function HellooSideRail({ active, onChange, badges = {}, onBazaar, onScan, socia
     if (moved.current) setTimeout(() => { moved.current = false; }, 0);
   };
   const pos = side === "left" ? { left: 16 } : { right: 16 };
-  if (fold && !unfolded) return <button onClick={() => setUnfolded(true)} data-testid="helloo-rail-fold" aria-label="Calls, messages and more" title="Menu" className="v2-tap" style={{ ...round(46, true), position: "absolute", ...pos, bottom: "calc(18px + env(safe-area-inset-bottom, 0px))", zIndex: 30 }}><HlGrip size={20} color={HT.onAccent || "#fff"} /></button>;
-  return <>{fold ? <div onClick={() => setUnfolded(false)} style={{ position: "absolute", inset: 0, zIndex: 29, background: "rgba(15,12,35,0.25)" }} /> : null}<nav aria-label="Main" data-testid="helloo-rail" data-side={side} onPointerDown={down} onPointerMove={move} onPointerUp={up} onPointerCancel={up} style={{ position: "absolute", ...pos, bottom: "calc(18px + env(safe-area-inset-bottom, 0px))", zIndex: 30, display: "flex", flexDirection: "column", alignItems: "center", gap: 9, transform: dx ? `translateX(${dx}px)` : "none", transition: dx ? "none" : "transform 0.22s ease", touchAction: "pan-y", userSelect: "none" }}>{onScan ? <button onClick={guard(onScan)} data-testid="helloo-rail-scan" aria-label="Scan a GLOOBAL QR" title="Scan" className="v2-tap" style={round(44, false)}><HlScan size={19} color={T.inkSoft} /></button> : null}{tab("calls", "Calls", HlPhone)}{tab("chats", "Messages", HlChat)}{social ? tab("social", "GLOOBAL Social", HlSocial) : null}{social ? tab("earn", "Ads & Earn", HlEarn) : null}{onBazaar ? <button onClick={guard(onBazaar)} data-testid="helloo-bazaar-button" aria-label="GLOOBAL बाज़ार: find a shop" title="GLOOBAL बाज़ार" className="v2-tap" style={round(44, false)}><HlStore size={19} color={T.inkSoft} /></button> : null}<button onClick={guard(onPlus)} data-testid="helloo-new-chat" aria-label={plusLabel} title={plusLabel} className="v2-tap" style={round(44, false)}><HlPlus size={21} strokeWidth={2.4} color={T.inkSoft} /></button></nav></>;
+  if (folded && !unfolded) return <button onClick={() => { setQuiet(false); setUnfolded(true); }} data-testid="helloo-rail-fold" data-quiet={quiet && !fold ? "1" : undefined} aria-label="Calls, messages and more" title="Menu" className="v2-tap" style={{ ...round(46, true), position: "absolute", ...pos, bottom: "calc(18px + env(safe-area-inset-bottom, 0px))", zIndex: 30 }}><HlGrip size={20} color={HT.onAccent || "#fff"} />{(badges.chats || 0) > 0 || badges.callsDot ? <span data-testid="helloo-rail-fold-dot" style={{ position: "absolute", top: -2, right: -2, minWidth: 18, height: 18, padding: "0 5px", borderRadius: 9, background: T.negative, color: "#fff", fontSize: 10.5, fontWeight: 800, display: "flex", alignItems: "center", justifyContent: "center", boxSizing: "border-box" }}>{(badges.chats || 0) > 0 ? (badges.chats > 99 ? "99+" : badges.chats) : ""}</span> : null}</button>;
+  return <>{fold && unfolded ? <div onClick={() => setUnfolded(false)} style={{ position: "absolute", inset: 0, zIndex: 29, background: "rgba(15,12,35,0.25)" }} /> : null}<nav aria-label="Main" data-testid="helloo-rail" data-side={side} onPointerDown={down} onPointerMove={move} onPointerUp={up} onPointerCancel={up} style={{ position: "absolute", ...pos, bottom: "calc(18px + env(safe-area-inset-bottom, 0px))", zIndex: 30, display: "flex", flexDirection: "column", alignItems: "center", gap: 9, transform: dx ? `translateX(${dx}px)` : "none", transition: dx ? "none" : "transform 0.22s ease", touchAction: "pan-y", userSelect: "none" }}>{onScan ? <button onClick={guard(onScan)} data-testid="helloo-rail-scan" aria-label="Scan a GLOOBAL QR" title="Scan" className="v2-tap" style={round(44, false)}><HlScan size={19} color={T.inkSoft} /></button> : null}{tab("calls", "Calls", HlPhone)}{tab("chats", "Messages", HlChat)}{social ? tab("social", "GLOOBAL Social", HlSocial) : null}{social ? tab("earn", "Ads & Earn", HlEarn) : null}{onBazaar ? <button onClick={guard(onBazaar)} data-testid="helloo-bazaar-button" aria-label="GLOOBAL बाज़ार: find a shop" title="GLOOBAL बाज़ार" className="v2-tap" style={round(44, false)}><HlStore size={19} color={T.inkSoft} /></button> : null}<button onClick={guard(onPlus)} data-testid="helloo-new-chat" aria-label={plusLabel} title={plusLabel} className="v2-tap" style={round(44, false)}><HlPlus size={21} strokeWidth={2.4} color={T.inkSoft} /></button></nav></>;
 }
 
 function HellooTabBar({ active, onChange, badges = {} }) {
