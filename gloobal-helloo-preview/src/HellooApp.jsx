@@ -271,6 +271,7 @@ import { Plus as MapPlus, Minus as MapMinus, LocateFixed as MapLocate, Store as 
 import { useState as useState66, useEffect as useEffect63, useRef as useRef37 } from "react";
 import { Navigation as BmNav, Copy as BmCopy, MapPin as BmPin, Store as BmStore, MessageSquare as BmChat, Wallet as BmPay, Star as BmStar, Search as BmFind, X as BmX } from "lucide-react";
 import { useState as useStateVp, useEffect as useEffectVp } from "react";
+import { Fingerprint as VpPrint, Lock as VpLock } from "lucide-react";
 import { useState as useStateUm, useEffect as useEffectUm, useRef as useRefUm, useCallback as useCallbackUm } from "react";
 import {
   Tag as UmTag, MapPin as UmPin, ShieldCheck as UmSafe, BadgeCheck as UmReal, Camera as UmCam, Handshake as UmDeal,
@@ -52682,24 +52683,46 @@ function BazaarMap({ center, placeName = "", radiusKm, shops = [], query = "", o
 // so nothing is ever asked for anonymously. Shared by GLOOBAL and Helloo
 // (Helloo hands over its own HTTP client with gloobalViewPassUse).
 // Pay QRs are the exception and do not come through here.
+//
+// A pass is given only within five minutes of the phone's own fingerprint /
+// face check (server/lib/viewCheck.js). Until then the server answers
+// "person_check", and screens show GloobalSealedGate: "Confirm it's you".
 
-var gloobalViewPass = { pass: "", exp: 0, wait: null, http: null, subs: new Set() };
+var gloobalViewPass = { pass: "", exp: 0, wait: null, http: null, subs: new Set(), needCheck: false };
+// A picture with no address yet (no pass) is a blank space, not a broken
+// image: hidden until its sealed address arrives.
+try {
+  if (typeof document !== "undefined" && !document.getElementById("gloobal-sealed-style")) {
+    const st = document.createElement("style"); st.id = "gloobal-sealed-style";
+    st.textContent = 'img[src=""],img:not([src]),video[src=""]{visibility:hidden}';
+    document.head.appendChild(st);
+  }
+} catch (e) { /* no document (tests) */ }
 
 // Which client asks for the pass (Helloo signs in with its own).
-function gloobalViewPassUse(http) { gloobalViewPass.http = http || null; gloobalViewPass.pass = ""; gloobalViewPass.exp = 0; }
+function gloobalViewPassUse(http) { gloobalViewPass.http = http || null; gloobalViewPass.pass = ""; gloobalViewPass.exp = 0; gloobalViewPass.needCheck = false; }
+var gloobalViewPassHttp = () => gloobalViewPass.http || (typeof gloobalApiClient !== "undefined" ? gloobalApiClient : null);
+var gloobalViewPassTell = () => gloobalViewPass.subs.forEach((f) => { try { f(gloobalViewPass.pass); } catch (e) { /* a screen gone */ } });
 
 async function gloobalViewPassRefresh() {
-  if (gloobalViewPass.pass && gloobalViewPass.exp - Date.now() > 2 * 60 * 1000) return gloobalViewPass.pass;
+  if (gloobalViewPass.pass && gloobalViewPass.exp - Date.now() > 30 * 1000) return gloobalViewPass.pass;
+  if (gloobalViewPass.pass && gloobalViewPass.exp <= Date.now()) { gloobalViewPass.pass = ""; gloobalViewPassTell(); }
   if (!gloobalViewPass.wait) {
-    const http = gloobalViewPass.http || (typeof gloobalApiClient !== "undefined" ? gloobalApiClient : null);
+    const http = gloobalViewPassHttp();
     gloobalViewPass.wait = (http ? http.get("/api/social/pass") : Promise.reject(new Error("no client")))
       .then((r) => {
         gloobalViewPass.pass = (r && r.pass) || "";
         gloobalViewPass.exp = r && r.expiresAt ? new Date(r.expiresAt).getTime() : 0;
-        gloobalViewPass.subs.forEach((f) => { try { f(gloobalViewPass.pass); } catch (e) { /* a screen gone */ } });
+        gloobalViewPass.needCheck = false;
+        gloobalViewPassTell();
         return gloobalViewPass.pass;
       })
-      .catch(() => "")
+      .catch((e) => {
+        // Not checked in the last five minutes: the screens ask for it.
+        const code = (e && e.body && e.body.code) || (e && e.code) || "";
+        if (code === "person_check" || (e && e.status === 403)) { gloobalViewPass.needCheck = true; gloobalViewPass.pass = ""; gloobalViewPassTell(); }
+        return "";
+      })
       .finally(() => { gloobalViewPass.wait = null; });
   }
   return gloobalViewPass.wait;
@@ -52729,6 +52752,52 @@ function useGloobalViewPass() {
     return () => { gloobalViewPass.subs.delete(sub); clearInterval(t); };
   }, []);
   return pass;
+}
+
+// The phone's fingerprint / face, then a fresh pass. → { ok } | { reason, setup? }
+async function gloobalViewCheckNow() {
+  const http = gloobalViewPassHttp();
+  if (!http) return { reason: "Sign in first." };
+  if (typeof gloobalWebAuthnAvailable === "function" && !gloobalWebAuthnAvailable()) return { reason: "This phone can't do fingerprint / Face ID here." };
+  try {
+    const options = await http.post("/api/view-check/options", {});
+    const credential = await navigator.credentials.get({ publicKey: gloobalDecodeRequestOptions(options) });
+    if (!credential) return { reason: "Cancelled." };
+    await http.post("/api/view-check/verify", { response: gloobalEncodeAuthenticationCredential(credential) });
+    gloobalViewPass.pass = ""; gloobalViewPass.exp = 0;
+    await gloobalViewPassRefresh();
+    return gloobalViewPass.pass ? { ok: true } : { reason: "Try again." };
+  } catch (e) {
+    const code = (e && e.body && e.body.code) || "";
+    if (code === "passkey_required") return { reason: "Fingerprint / Face ID isn't on for your GLOOBAL account yet.", setup: true };
+    if (e && e.name === "NotAllowedError") return { reason: "Cancelled or timed out. Try again." };
+    return { reason: (e && e.body && e.body.message) || (e && e.message) || "Couldn't check it. Try again." };
+  }
+}
+
+// Where people's pictures would be: shown while the person check is due.
+function GloobalSealedGate({ onSetup }) {
+  const pass = useGloobalViewPass();
+  const [busy, setBusy] = useStateVp(false);
+  const [msg, setMsg] = useStateVp(null);
+  if (pass || !gloobalViewPass.needCheck) return null;
+  const go = async () => { setBusy(true); setMsg(null); const r = await gloobalViewCheckNow(); setBusy(false); if (!r.ok) setMsg(r); };
+  // In GLOOBAL itself it can be turned on right here (the passkey belongs
+  // to GLOOBAL's site); Helloo sends the person to GLOOBAL (onSetup).
+  const turnOn = async () => {
+    setBusy(true);
+    const e = typeof gloobalEnrolBiometric === "function" ? await gloobalEnrolBiometric() : { ok: false, reason: "Open GLOOBAL to turn it on." };
+    if (!e.ok) { setBusy(false); setMsg({ reason: e.reason }); return; }
+    const r = await gloobalViewCheckNow(); setBusy(false); setMsg(r.ok ? null : r);
+  };
+  return <div data-testid="sealed-gate" style={{ margin: "8px 14px 10px", padding: "14px 14px 12px", borderRadius: 18, background: T.surface, boxShadow: T.shadowCard, display: "flex", flexDirection: "column", gap: 10, fontFamily: T.fontBody }}>
+    <div style={{ display: "flex", alignItems: "center", gap: 11 }}>
+      <span style={{ width: 38, height: 38, borderRadius: 12, background: T.accentSoft || T.surfaceSunk, color: T.accent, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}><VpLock size={18} /></span>
+      <span style={{ minWidth: 0 }}><span style={{ display: "block", fontSize: 14.5, fontWeight: 800, color: T.ink }}>Confirm it's you to see photos and videos</span><span style={{ display: "block", fontSize: 12, color: T.inkSoft, lineHeight: 1.4, marginTop: 2 }}>On GLOOBAL every view belongs to a real person. Good for 5 minutes.</span></span>
+    </div>
+    <button data-testid="sealed-gate-go" onClick={go} disabled={busy} className="v2-tap" style={{ height: 44, borderRadius: 14, border: "none", background: T.gradButton || T.accent, color: "#fff", fontSize: 14.5, fontWeight: 800, display: "flex", alignItems: "center", justifyContent: "center", gap: 8, cursor: busy ? "default" : "pointer", fontFamily: T.fontBody, opacity: busy ? 0.7 : 1 }}><VpPrint size={18} />{busy ? "Checking…" : "Fingerprint / Face ID"}</button>
+    {msg ? <div data-testid="sealed-gate-msg" style={{ fontSize: 12, color: T.inkSoft, lineHeight: 1.45, textAlign: "center" }}>{msg.reason}{msg.setup ? <> <button data-testid="sealed-gate-setup" onClick={onSetup || turnOn} style={{ border: "none", background: "none", padding: 0, color: T.accent, fontWeight: 800, fontSize: 12, cursor: "pointer", fontFamily: T.fontBody }}>{onSetup ? "Open GLOOBAL to turn it on" : "Turn it on"}</button></> : null}</div> : null}
+  </div>;
 }
 
 
@@ -52973,6 +53042,7 @@ function UsedMarket({ here, onHere, onClose, onPay, onChat }) {
   } else {
     body = <>
       <UsedTop onBack={onClose} title="Used" subtitle="Things people near you are selling" right={<button onClick={() => { setAt("mine"); loadMine(); }} data-testid="used-mine-button" className="v2-tap" style={{ position: "relative", height: 38, padding: "0 14px", borderRadius: 999, border: "none", background: T.surface, boxShadow: T.shadowCard, color: T.ink, fontSize: 12.5, fontWeight: 800, cursor: "pointer", fontFamily: T.fontBody }}>Mine{waiting ? <span style={{ position: "absolute", right: -3, top: -3, minWidth: 18, height: 18, borderRadius: 9, background: T.accent, color: "#fff", fontSize: 10.5, fontWeight: 800, display: "flex", alignItems: "center", justifyContent: "center" }}>{waiting}</span> : null}</button>} />
+      <div style={{ flexShrink: 0 }}><GloobalSealedGate /></div>
       <div style={{ padding: "0 16px 8px", flexShrink: 0 }}><label style={{ display: "flex", alignItems: "center", gap: 8, background: T.surface, border: `1px solid ${T.line}`, borderRadius: 999, padding: "10px 14px" }}><UmSearch size={17} color={T.inkFaint} /><input value={q} onChange={(e) => setQ(e.target.value.slice(0, 40))} data-testid="used-find" autoComplete="off" placeholder="Phone, cycle, sofa, books…" style={{ flex: 1, minWidth: 0, border: "none", outline: "none", background: "none", fontSize: 14, fontWeight: 700, color: T.ink, fontFamily: T.fontBody }} />{q ? <button onClick={() => setQ("")} aria-label="Clear" style={{ border: "none", background: "none", padding: 0, cursor: "pointer", display: "flex" }}><UmX size={16} color={T.inkFaint} /></button> : null}</label></div>
       <div style={{ display: "flex", alignItems: "center", gap: 8, overflowX: "auto", padding: "4px 16px 6px", scrollbarWidth: "none", flexShrink: 0 }}><UmPin size={16} color={T.accent} style={{ flexShrink: 0 }} />{USED_RADII.map((k) => <UsedChip key={k} on={km === k} disabled={locating} testid={`used-km-${k}`} onClick={() => pickKm(k)}>{k} km</UsedChip>)}<UsedChip on={!km} onClick={() => pickKm(0)} testid="used-km-all">Everywhere</UsedChip></div>
       <div style={{ display: "flex", gap: 8, overflowX: "auto", padding: "4px 16px 10px", scrollbarWidth: "none", flexShrink: 0 }}><UsedChip on={!cat} onClick={() => setCat("")}>✨ All</UsedChip>{USED_CATEGORIES.map(([k, e, l]) => <UsedChip key={k} on={cat === k} testid={`used-cat-${k}`} onClick={() => setCat(cat === k ? "" : k)}>{e} {l}</UsedChip>)}</div>
@@ -79765,7 +79835,9 @@ function HellooSocialHome({ me, faces, photos, onCards, onOpenChat, onTip, onSho
 
   const head = <div style={{ position: "sticky", top: 0, zIndex: 5, background: `${HT.screenBg && HT.screenBg.startsWith("#") ? HT.screenBg : T.bg}F2`, backdropFilter: "blur(14px)", WebkitBackdropFilter: "blur(14px)", padding: "calc(10px + env(safe-area-inset-top, 0px)) 16px 8px" }}><div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 10 }}><span style={{ display: "flex", alignItems: "baseline", gap: 14, minWidth: 0 }}>{[["feed", "For you"], ["explore", "Explore"]].map(([k, l]) => <button key={k} onClick={() => setView(k)} data-testid={`social-view-${k}`} aria-current={view === k ? "page" : undefined} className="v2-tap" style={{ border: "none", background: "none", padding: 0, cursor: "pointer", fontSize: view === k ? 22 : 17, fontWeight: 800, fontFamily: T.fontDisplay, color: view === k ? T.ink : T.inkFaint, letterSpacing: -0.4, whiteSpace: "nowrap" }}>{l}</button>)}</span><span style={{ display: "flex", gap: 8, alignItems: "center", flexShrink: 0 }}><button onClick={() => (list.length > 1 ? setWho(true) : openMine())} aria-label={list.length > 1 ? "Social account" : "My posts"} data-testid="social-me" className="v2-tap" style={{ border: "none", background: list.length > 1 ? (HT.cardBg || T.surface) : "none", boxShadow: list.length > 1 ? (HT.cardShadow ?? T.shadowCard) : "none", borderRadius: 999, padding: list.length > 1 ? "3px 10px 3px 3px" : 0, cursor: "pointer", display: "flex", alignItems: "center", gap: 7, maxWidth: 150, fontFamily: T.fontBody }}>{face.kind === "shop" ? <span style={{ width: 32, height: 32, borderRadius: 11, background: T.accentSoft, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}><HlStore size={17} color={T.accent} /></span> : <HellooMeAvatar me={me} size={list.length > 1 ? 32 : 36} />}{list.length > 1 ? <><span style={{ minWidth: 0, fontSize: 12.5, fontWeight: 800, color: T.ink, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{face.kind === "shop" ? (face.handle || face.name) : "Personal"}</span><HlChevron size={14} color={T.inkFaint} style={{ transform: "rotate(90deg)", flexShrink: 0 }} /></> : null}</button></span></div></div>;
 
-  const statusRow = <SocialStatusRow people={stories} photos={photos} onAdd={() => setCompose("pick")} onOpen={(i) => setStory(i)} />;
+  // Before people's pictures open: the fingerprint / face check (GLOOBAL
+  // features/viewpass), shown above everything while it is due.
+  const statusRow = <><GloobalSealedGate onSetup={() => { try { window.open("https://gloobalv3.netlify.app/", "_blank", "noopener"); } catch (e) { /* fine */ } }} /><SocialStatusRow people={stories} photos={photos} onAdd={() => setCompose("pick")} onOpen={(i) => setStory(i)} /></>;
   let body;
   if (view === "feed") {
     body = feed === null
@@ -80107,7 +80179,7 @@ function HellooAdsHome({ me, photos, onCards, onToast, onReceipt }) {
   const R = 54, C = 2 * Math.PI * R;
   const ad = next && next.ad;
   const capped = next && next.why === "cap";
-  return <HellooScreen><div data-testid="ads-home" style={{ flex: 1, minHeight: 0, overflowY: "auto", display: "block" }}>
+  return <HellooScreen><div data-testid="ads-home" style={{ flex: 1, minHeight: 0, overflowY: "auto", display: "block" }}><GloobalSealedGate onSetup={() => { try { window.open("https://gloobalv3.netlify.app/", "_blank", "noopener"); } catch (e) { /* fine */ } }} />
     <HellooTop big title="Ads & Earn" right={<button onClick={() => setMine(true)} data-testid="ads-advertise" className="v2-tap" style={{ height: 38, padding: "0 14px", borderRadius: 999, border: "none", background: HT.cardBg || T.surface, boxShadow: HT.cardShadow ?? T.shadowCard, color: T.ink, display: "flex", alignItems: "center", gap: 6, fontSize: 13, fontWeight: 800, cursor: "pointer", fontFamily: T.fontBody }}><AxHorn size={16} color={T.accent} />Advertise</button>} />
     <div style={{ padding: "0 16px 140px", display: "flex", flexDirection: "column", gap: 14 }}>
       <div style={{ borderRadius: 28, padding: "18px", background: "radial-gradient(120% 120% at 0% 0%, #34D399 0%, #059669 45%, #064E3B 100%)", color: "#fff", display: "flex", alignItems: "center", gap: 16 }}><svg width="128" height="128" viewBox="0 0 128 128" style={{ flexShrink: 0 }}><circle cx="64" cy="64" r={R} fill="none" stroke="rgba(255,255,255,0.22)" strokeWidth="11" /><circle cx="64" cy="64" r={R} fill="none" stroke="#fff" strokeWidth="11" strokeLinecap="round" strokeDasharray={`${C * pct} ${C}`} transform="rotate(-90 64 64)" /><text x="64" y="62" textAnchor="middle" fill="#fff" fontSize="28" fontWeight="800">{my.today.count}</text><text x="64" y="82" textAnchor="middle" fill="rgba(255,255,255,0.85)" fontSize="11" fontWeight="700">of {my.today.cap} today</text></svg><span style={{ minWidth: 0 }}><span style={{ display: "block", fontSize: 12.5, opacity: 0.85 }}>Earned today</span><span data-testid="ads-earned" style={{ display: "block", fontSize: 28, fontWeight: 800, fontFamily: T.fontDisplay, lineHeight: 1.1, marginTop: 2, whiteSpace: "nowrap" }}>+{hellooCelAmount(my.today.earned)}</span><span style={{ display: "block", fontSize: 13, fontWeight: 800, opacity: 0.9 }}>CEL | {sign}</span><span style={{ display: "block", fontSize: 12, opacity: 0.85, marginTop: 8, whiteSpace: "nowrap" }}>Last 30 days +{hellooCelAmount(my.month)}</span></span></div>
