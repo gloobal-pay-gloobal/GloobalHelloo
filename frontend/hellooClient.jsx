@@ -207,7 +207,7 @@ function hellooSnapFields(m) {
   const view = m.view || {};
   const mode = view.mode || "keep";
   const gone = Boolean(m.takenBack) || (mode === "once" && Boolean(view.opened)) || (mode === "day" && view.expiresAt && new Date(view.expiresAt).getTime() < Date.now());
-  return { viewMode: mode, opened: Boolean(view.opened), gone: Boolean(gone), takenBack: Boolean(m.takenBack), fx: m.fx || "", saved: Boolean(m.saved), canSave: mode === "keep" && view.save !== false && !(m.view && m.view.mode && view.save !== true), opens: Number(m.opens) || 0, lastOpenAt: m.lastOpenAt || null };
+  return { forwarded: Boolean(m.forwarded), noForward: Boolean(m.noForward), viewMode: mode, opened: Boolean(view.opened), gone: Boolean(gone), takenBack: Boolean(m.takenBack), fx: m.fx || "", saved: Boolean(m.saved), canSave: mode === "keep" && view.save !== false && !(m.view && m.view.mode && view.save !== true), opens: Number(m.opens) || 0, lastOpenAt: m.lastOpenAt || null };
 }
 function hellooPersonFrom(card, photos) {
   if (!card) return null;
@@ -274,6 +274,7 @@ function hellooBubbleFrom(m, meAccountId, theyReadAt, voiceState, names) {
   const mine = m.from === meAccountId || m.from === "me";
   const at = new Date(m.at || Date.now());
   const base = {
+    forwarded: Boolean(m.forwarded),
     id: m.id || m.clientId,
     clientId: m.clientId,
     from: mine ? "me" : "them",
@@ -308,7 +309,7 @@ function hellooBubbleFrom(m, meAccountId, theyReadAt, voiceState, names) {
   }
   if (m.kind === "voice") {
     const v = voiceState || {};
-    return Object.assign(base, { kind: "voice", seconds: Math.round((m.voice && m.voice.seconds) || 0), playing: Boolean(v.playing), progress: v.progress, onPlay: v.onPlay });
+    return Object.assign(base, { kind: "voice", forwarded: Boolean(m.forwarded), gone: Boolean(m.takenBack), takenBack: Boolean(m.takenBack), seconds: Math.round((m.voice && m.voice.seconds) || 0), playing: Boolean(v.playing), progress: v.progress, onPlay: v.onPlay });
   }
   if (m.kind === "payment" && m.payment && m.payment.purpose === "giveback") {
     const p = m.payment;

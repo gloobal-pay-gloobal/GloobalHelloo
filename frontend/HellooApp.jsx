@@ -124,6 +124,9 @@ function HellooRoot() {
   const [toast, setToast] = useStateH9("");
   // Something shared into Helloo from another app (screens/ShareIn.jsx).
   const [shareIn, setShareIn] = useStateH9(null);
+  // A message being passed on (Forward): it goes as a pointer to the one
+  // stored copy, never as new bytes (server: forwardOf).
+  const [forwardOf, setForwardOf] = useStateH9(null);
   // WhatsApp history kept on this phone (screens/WaImport.jsx): what the
   // open chat has, and whether it is being read.
   const [waInfo, setWaInfo] = useStateH9(null);
@@ -600,6 +603,19 @@ function HellooRoot() {
       setToast(`WhatsApp history imported · ${record.counts.messages.toLocaleString("en-IN")} messages`);
     } catch (err) {
       setToast((err && err.message) || "Couldn't import that chat");
+    }
+  };
+  // Forward: the server makes the new message point at the original.
+  const sendForward = async (row) => {
+    const m = forwardOf;
+    if (!m) return;
+    try {
+      await hellooApi.send(row.id, { clientId: hellooClientId(), forwardOf: m.id });
+      setForwardOf(null);
+      setToast(`Forwarded to ${(row.person && (row.person.handle || row.person.name)) || "the chat"}`);
+      refreshChats && refreshChats();
+    } catch (err) {
+      setToast((err && err.message) || "Couldn't forward that");
     }
   };
   const sendShareIn = async (row) => {
@@ -1620,7 +1636,7 @@ function HellooRoot() {
   const chatThemeNow = openId && !screen ? ((((chatRows || []).find((c) => c.id === openId)) || {}).theme || (threads[openId] && threads[openId].chat && threads[openId].chat.theme) || "") : "";
   const themeNow = chatThemeNow && hellooFindTheme(chatThemeNow) ? chatThemeNow : themeKey;
   if (shownThemeRef.current !== themeNow + "|" + hellooSideNow()) { applyHellooTheme(themeNow); shownThemeRef.current = themeNow + "|" + hellooSideNow(); }
-  const shell = (children) => <div style={{ position: "absolute", inset: 0, overflow: "hidden", background: T.bg }}>{callLayer}<div style={{ position: "absolute", left: 0, right: 0, bottom: 0, top: callBar ? "calc(48px + env(safe-area-inset-top, 0px))" : 0 }}>{children}</div>{gReceipt && user && typeof LedgerProvider === "function" ? <LedgerProvider userId={user.accountId || "me"} currency={user.currency || "INR"}><ReceiptModal receipt={gReceipt} onClose={() => setGReceipt(null)} /></LedgerProvider> : null}{callBar}{typeof PaymentFaceHost === "function" ? <PaymentFaceHost /> : null}{shareIn && shareIn.wa && signedIn ? <HellooWaImportSheet parsed={shareIn.wa} chats={(chatRows || []).map((c) => hellooChatRowFrom(c, photos))} onImport={importWa} onClose={() => setShareIn(null)} /> : null}{shareIn && !shareIn.wa && signedIn ? <HellooShareInSheet share={shareIn} chats={(chatRows || []).map((c) => hellooChatRowFrom(c, photos))} onSend={sendShareIn} onClose={() => setShareIn(null)} /> : null}{typeof BiometricPinFallbackModal === "function" ? <BiometricPinFallbackModal open={Boolean(pinFallback)} symbolId={user && user.symbolId} reason={pinFallback && pinFallback.reason} onResolve={resolvePinFallback} /> : null}{toast && <div role="status" style={{ position: "absolute", left: 16, right: 16, bottom: "calc(96px + env(safe-area-inset-bottom, 0px))", display: "flex", justifyContent: "center", zIndex: 300, pointerEvents: "none" }}><span style={{ background: T.ink, color: T.bg, borderRadius: 18, padding: "9px 16px", fontSize: 13, fontWeight: 700, fontFamily: T.fontBody, boxShadow: "0 8px 24px rgba(0,0,0,0.25)", textAlign: "center", maxWidth: "100%" }}>{toast}</span></div>}</div>;
+  const shell = (children) => <div style={{ position: "absolute", inset: 0, overflow: "hidden", background: T.bg }}>{callLayer}<div style={{ position: "absolute", left: 0, right: 0, bottom: 0, top: callBar ? "calc(48px + env(safe-area-inset-top, 0px))" : 0 }}>{children}</div>{gReceipt && user && typeof LedgerProvider === "function" ? <LedgerProvider userId={user.accountId || "me"} currency={user.currency || "INR"}><ReceiptModal receipt={gReceipt} onClose={() => setGReceipt(null)} /></LedgerProvider> : null}{callBar}{typeof PaymentFaceHost === "function" ? <PaymentFaceHost /> : null}{forwardOf && signedIn ? <HellooShareInSheet share={{ text: forwardOf.kind === "text" ? forwardOf.text : `${forwardOf.kind === "voice" ? "Voice note" : forwardOf.kind === "video" ? "Clip" : "Photo"}${forwardOf.text ? ` · ${forwardOf.text}` : ""}`, file: null }} chats={(chatRows || []).map((c) => hellooChatRowFrom(c, photos))} onSend={sendForward} onClose={() => setForwardOf(null)} /> : null}{shareIn && shareIn.wa && signedIn ? <HellooWaImportSheet parsed={shareIn.wa} chats={(chatRows || []).map((c) => hellooChatRowFrom(c, photos))} onImport={importWa} onClose={() => setShareIn(null)} /> : null}{shareIn && !shareIn.wa && signedIn ? <HellooShareInSheet share={shareIn} chats={(chatRows || []).map((c) => hellooChatRowFrom(c, photos))} onSend={sendShareIn} onClose={() => setShareIn(null)} /> : null}{typeof BiometricPinFallbackModal === "function" ? <BiometricPinFallbackModal open={Boolean(pinFallback)} symbolId={user && user.symbolId} reason={pinFallback && pinFallback.reason} onResolve={resolvePinFallback} /> : null}{toast && <div role="status" style={{ position: "absolute", left: 16, right: 16, bottom: "calc(96px + env(safe-area-inset-bottom, 0px))", display: "flex", justifyContent: "center", zIndex: 300, pointerEvents: "none" }}><span style={{ background: T.ink, color: T.bg, borderRadius: 18, padding: "9px 16px", fontSize: 13, fontWeight: 700, fontFamily: T.fontBody, boxShadow: "0 8px 24px rgba(0,0,0,0.25)", textAlign: "center", maxWidth: "100%" }}>{toast}</span></div>}</div>;
 
   // ── A call fills the screen — or, made small, a bar at the top ───────
   // The call's screen is always the first thing in the shell while there
@@ -1703,6 +1719,7 @@ function HellooRoot() {
       (held.kind === "text" || (held.kind === "photo" && held.text)) && [HlCopy, "Copy text", false, async () => { try { await navigator.clipboard.writeText(held.text); setToast("Copied"); } catch (e) { setToast("Could not copy"); } setHeld(null); }],
       !heldMine && held.paidText && [HlRupee, "Give back…", false, () => { setHeld(null); setGiveBack({ percent: 50, busy: false }); setSheet("giveback"); }],
       heldMine && (held.kind === "photo" || held.kind === "video") && !held.gone && held.id && [HlShield, "Take it back · gone for both", true, () => { const id = held.id; setHeld(null); hellooApi.takeBack(id).then(() => { setMediaUrls((all) => { const next = Object.assign({}, all); delete next[id]; return next; }); loadThread(openId); setToast("Taken back · it opens for nobody now"); }).catch((err) => setToast((err && err.message) || "Couldn't take it back")); }],
+      held.id && ["photo", "video", "voice", "text"].includes(held.kind) && !held.gone && (held.viewMode || "keep") === "keep" && (heldMine || !held.noForward) && [HlForward, "Forward", false, () => { setForwardOf(held); setHeld(null); }],
       [HlTrash, "Delete for me", true, () => deleteMessage(openId, held, false)],
       heldMine && heldFresh && held.kind !== "receipt" && held.kind !== "deleted" && [HlTrash, "Delete for everyone", true, () => deleteMessage(openId, held, true)]
     ].filter(Boolean) : [];

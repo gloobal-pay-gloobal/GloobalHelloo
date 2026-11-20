@@ -276,6 +276,12 @@ import {
   PackageCheck as UmSold, Search as UmSearch, X as UmX, MessageCircle as UmChat, Plus as UmPlus, Flag as UmFlag,
   LocateFixed as UmLocate, Trash2 as UmTrash, ImageOff as UmNoPhoto
 } from "lucide-react";
+import { useState as useStateMd, useEffect as useEffectMd, useCallback as useCallbackMd } from "react";
+import {
+  Image as MdPhoto, Video as MdVideo, Mic as MdVoice, FileText as MdDoc, ShoppingBag as MdShop, Megaphone as MdAd,
+  MessageCircle as MdChat, Users as MdPeople, Eye as MdSeen, Globe2 as MdWorld, Undo2 as MdTakeBack, Download as MdDownload,
+  Lock as MdLock, Ban as MdNoForward, ShieldCheck as MdKept, ChevronRight as MdNext, HardDrive as MdStore, Repeat2 as MdForward, RotateCcw as MdBringBack, Heart as MdLike
+} from "lucide-react";
 import { useState as useState62, useEffect as useEffect59, useRef as useRef35 } from "react";
 import {
   UtensilsCrossed as BzFood, ShoppingBasket as BzGrocery, Cake as BzSweets, Shirt as BzFashion, Scissors as BzBeauty,
@@ -52997,6 +53003,196 @@ function UsedSell({ here, onHere, onBack, onDone, say }) {
 }
 
 
+// src/features/mydata/myData.jsx
+//
+// MY DATA: everything a person has put into GLOOBAL, where each piece went,
+// who can still reach it — and one tap to take it back.
+//
+// The idea (the founder's): the internet is made of individual people's
+// data, and nobody can see their own part of it. On GLOOBAL each thing is
+// stored once and every share points at it (a Helloo forward opens the
+// original's one copy), so GLOOBAL can say how far each thing went, and
+// "Take back" closes every pointer at once. What it cannot reach, it says:
+// copies made by hand, and records the law makes GLOOBAL keep.
+// The server is server/lib/mydata.js. Opened from Profile → My data.
+
+var myDataApi = {
+  all: () => gloobalApiClient.get("/api/mydata"),
+  exportAll: () => gloobalApiClient.get("/api/mydata/export"),
+  takeBack: (type, id) => gloobalApiClient.post("/api/mydata/takeback", { type, id }),
+  bringBack: (type, id) => gloobalApiClient.post("/api/mydata/bringback", { type, id }),
+  takeBackAll: () => gloobalApiClient.post("/api/mydata/takeback-all", { confirm: "TAKE BACK" }),
+  noForward: (id, on) => gloobalApiClient.post(`/api/helloo/messages/${encodeURIComponent(id)}/noforward`, { on }),
+};
+var myDataSize = (n) => (n >= 1048576 ? `${(n / 1048576).toFixed(n >= 10485760 ? 0 : 1)} MB` : n >= 1024 ? `${Math.round(n / 1024)} KB` : `${n || 0} B`);
+var myDataDate = (d) => (d ? new Date(d).toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric" }) : "");
+
+var MY_DATA_KINDS = {
+  video: { Icon: MdVideo, tint: "#7C3AED", label: "Video" },
+  photo: { Icon: MdPhoto, tint: "#0EA5E9", label: "Photo" },
+  voice: { Icon: MdVoice, tint: "#F59E0B", label: "Voice note" },
+  doc: { Icon: MdDoc, tint: "#64748B", label: "Document" },
+  shop: { Icon: MdShop, tint: "#10B981", label: "Shop item" },
+  ad: { Icon: MdAd, tint: "#EF4444", label: "Ad" },
+};
+
+function MyDataThumb({ kind, size = 46 }) {
+  const k = MY_DATA_KINDS[kind] || MY_DATA_KINDS.doc;
+  return <span aria-hidden="true" style={{ width: size, height: size, borderRadius: 14, background: `${k.tint}1f`, color: k.tint, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}><k.Icon size={Math.round(size * 0.46)} /></span>;
+}
+function MyDataStat({ n, label, Icon }) {
+  return <div style={{ minWidth: 0, textAlign: "center" }}><div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 5, fontSize: 19, fontWeight: 800, fontFamily: T.fontDisplay, color: T.ink }}><Icon size={15} color={T.inkFaint} />{n}</div><div style={{ fontSize: 11, color: T.inkSoft, fontWeight: 700, marginTop: 2 }}>{label}</div></div>;
+}
+var myDataCard = { background: T.surface, borderRadius: 18, boxShadow: T.shadowCard || "0 1px 2px rgba(0,0,0,0.06)", overflow: "hidden" };
+var myDataReach = (it) => {
+  const r = it.reach || {};
+  if (it.type === "post") return [`Public · ${r.followers || 0} follower${r.followers === 1 ? "" : "s"}`, `${r.likes || 0} like${r.likes === 1 ? "" : "s"}`].join(" · ");
+  if (it.type === "used" || it.type === "ad") return `Public · ${(r.seen || 0).toLocaleString("en-IN")} view${r.seen === 1 ? "" : "s"}`;
+  return [`${r.chats} chat${r.chats > 1 ? "s" : ""}`, r.forwards ? `${r.forwards} forward${r.forwards > 1 ? "s" : ""}` : "", `opened ${r.seen || 0}×`].filter(Boolean).join(" · ");
+};
+
+function MyDataScreen({ onClose }) {
+  const [data, setData] = useStateMd(null);
+  const [err, setErr] = useStateMd("");
+  const [at, setAt] = useStateMd("home");
+  const [itemId, setItemId] = useStateMd("");
+  const [all, setAll] = useStateMd(false);
+  const [confirm, setConfirm] = useStateMd(null); // "all" | { item }
+  const [busy, setBusy] = useStateMd("");
+  const [gone, setGone] = useStateMd(0);
+  const [note, setNote] = useStateMd("");
+  const load = useCallbackMd(async () => {
+    try { const r = await myDataApi.all(); setData(r); setErr(""); } catch (e) { setErr((e && e.message) || "Couldn't load your data."); }
+  }, []);
+  useEffectMd(() => { load(); }, [load]);
+  useEffectMd(() => { if (!note) return undefined; const t = setTimeout(() => setNote(""), 2600); return () => clearTimeout(t); }, [note]);
+  const items = (data && data.items) || [];
+  const it = items.find((x) => x.type + x.id === itemId) || null;
+  const totals = (data && data.totals) || { things: 0, bytes: 0, people: 0, public: 0, live: 0 };
+  const live = items.filter((x) => !x.takenBack && !x.ended);
+
+  const takeAll = async () => {
+    setBusy("all");
+    try { const r = await myDataApi.takeBackAll(); setGone(r.takenBack || 0); setConfirm(null); await load(); } catch (e) { setNote((e && e.message) || "Couldn't take everything back."); }
+    setBusy("");
+  };
+  const takeOne = async (x) => {
+    setBusy("one");
+    try { await myDataApi.takeBack(x.type, x.id); setConfirm(null); setNote("Taken back"); await load(); } catch (e) { setNote((e && e.message) || "Couldn't take that back."); }
+    setBusy("");
+  };
+  const bringOne = async (x) => {
+    setBusy("bring");
+    try { await myDataApi.bringBack(x.type, x.id); setNote("Brought back"); await load(); } catch (e) { setNote((e && e.message) || "Couldn't bring that back."); }
+    setBusy("");
+  };
+  const toggleForward = async (x) => {
+    setBusy("fwd");
+    try { await myDataApi.noForward(x.id, !x.noForward); await load(); } catch (e) { setNote((e && e.message) || "Couldn't change that."); }
+    setBusy("");
+  };
+  const download = async () => {
+    setBusy("dl");
+    try {
+      const r = await myDataApi.exportAll();
+      const url = URL.createObjectURL(new Blob([JSON.stringify(r, null, 2)], { type: "application/json" }));
+      const a = document.createElement("a"); a.href = url; a.download = "gloobal-my-data.json"; document.body.appendChild(a); a.click(); a.remove();
+      setTimeout(() => URL.revokeObjectURL(url), 4000);
+    } catch (e) { setNote((e && e.message) || "Couldn't prepare your data."); }
+    setBusy("");
+  };
+  const section = (t) => <div style={{ fontSize: 12, fontWeight: 800, color: T.inkSoft, letterSpacing: 0.4, textTransform: "uppercase", margin: "18px 4px 8px" }}>{t}</div>;
+  const shown = all ? items : items.slice(0, 6);
+
+  const home = <>
+    <UsedTop onBack={onClose} title="My data" subtitle="Everything you've put into GLOOBAL, right now" />
+    <div style={{ flex: 1, minHeight: 0, overflowY: "auto", padding: "4px 14px 28px" }}>
+      {!data && !err ? <div style={{ textAlign: "center", color: T.inkFaint, fontSize: 13, marginTop: 40 }}>Opening your data…</div> : null}
+      {err ? <div style={{ ...myDataCard, padding: 16, fontSize: 13.5, color: T.inkSoft, textAlign: "center" }}>{err}<div style={{ marginTop: 10 }}><UsedChip onClick={load}>Try again</UsedChip></div></div> : null}
+      {data ? <>
+        {gone ? <div data-testid="mydata-gone" style={{ ...myDataCard, padding: "16px", marginBottom: 12, border: `1.5px solid ${T.positive || "#16A34A"}` }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 10 }}><span style={{ width: 36, height: 36, borderRadius: "50%", background: `${T.positive || "#16A34A"}1f`, color: T.positive || "#16A34A", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}><MdTakeBack size={18} /></span><div style={{ fontSize: 15, fontWeight: 800, color: T.ink }}>Everything is back with you</div></div>
+          <div style={{ fontSize: 12.5, color: T.inkSoft, lineHeight: 1.5, marginTop: 8 }}>{gone} thing{gone === 1 ? "" : "s"} taken back. Nobody else can open them now — not in chats, posts, forwards, ads or links.</div>
+        </div> : null}
+        <div style={{ ...myDataCard, padding: "14px 10px", marginBottom: 4 }}>
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(2, minmax(0, 1fr))", rowGap: 14 }}>
+            <MyDataStat n={totals.things} label="things you put in" Icon={MdStore} />
+            <MyDataStat n={myDataSize(totals.bytes)} label="stored once" Icon={MdLock} />
+            <MyDataStat n={totals.people} label="people can reach them" Icon={MdPeople} />
+            <MyDataStat n={totals.public} label="public right now" Icon={MdWorld} />
+          </div>
+        </div>
+        {section("Your things")}
+        {items.length ? <div style={myDataCard}>{shown.map((x, i) => <button key={x.type + x.id} data-testid="mydata-item" onClick={() => { setItemId(x.type + x.id); setAt("item"); }} className="v2-tap" style={{ width: "100%", display: "flex", alignItems: "center", gap: 12, padding: "11px 14px", border: "none", borderTop: i ? `1px solid ${T.line}` : "none", background: "none", textAlign: "left", cursor: "pointer", fontFamily: T.fontBody }}>
+          <MyDataThumb kind={x.kind} />
+          <span style={{ flex: 1, minWidth: 0 }}>
+            <span style={{ display: "block", fontSize: 14, fontWeight: 800, color: T.ink, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{x.title}</span>
+            <span style={{ display: "block", fontSize: 11.5, color: T.inkSoft, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis", marginTop: 1 }}>{x.where}</span>
+            <span style={{ display: "block", fontSize: 11.5, color: x.takenBack || x.ended ? T.inkFaint : T.accent, fontWeight: 700, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis", marginTop: 2 }}>{x.takenBack ? "Taken back · only you" : x.ended ? "Ended" : myDataReach(x)}</span>
+          </span>
+          <MdNext size={16} color={T.inkFaint} style={{ flexShrink: 0 }} />
+        </button>)}{items.length > 6 ? <button onClick={() => setAll(!all)} className="v2-tap" style={{ width: "100%", padding: "11px 14px", border: "none", borderTop: `1px solid ${T.line}`, background: "none", fontSize: 12.5, fontWeight: 800, color: T.accent, cursor: "pointer", fontFamily: T.fontBody }}>{all ? "Show fewer" : `See all ${items.length}`}</button> : null}</div>
+          : <div style={{ ...myDataCard, padding: 18, fontSize: 13, color: T.inkSoft, textAlign: "center", lineHeight: 1.5 }}>Nothing yet. Photos, clips and voice notes you send on Helloo, your posts, Used listings and ads will show here.</div>}
+        {section("What GLOOBAL keeps about you")}
+        <div style={myDataCard}>{(data.kept || []).map((k, i) => <div key={k.what} style={{ display: "flex", gap: 11, padding: "11px 14px", borderTop: i ? `1px solid ${T.line}` : "none" }}><MdKept size={17} color={T.inkFaint} style={{ flexShrink: 0, marginTop: 1 }} /><div style={{ minWidth: 0 }}><div style={{ fontSize: 13.5, fontWeight: 800, color: T.ink }}>{k.what}{k.value ? <span style={{ fontWeight: 700, color: T.inkSoft }}> · {k.value}</span> : null}</div><div style={{ fontSize: 12, color: T.inkSoft, lineHeight: 1.45, marginTop: 1 }}>{k.why}</div></div></div>)}</div>
+        <div style={{ display: "flex", flexDirection: "column", gap: 10, marginTop: 18 }}>
+          <UsedButton kind="secondary" Icon={MdDownload} disabled={busy === "dl"} onClick={download}>{busy === "dl" ? "Preparing…" : "Download the list of my data"}</UsedButton>
+          {live.length ? <UsedButton testid="mydata-take-all" Icon={MdTakeBack} color={T.negative || "#DC2626"} onClick={() => setConfirm("all")}>Take everything back</UsedButton> : null}
+        </div>
+        <div style={{ fontSize: 11.5, color: T.inkFaint, lineHeight: 1.5, textAlign: "center", margin: "12px 8px 0" }}>GLOOBAL stores each thing once. A forward opens the same copy, so taking something back closes it everywhere on GLOOBAL — except a copy someone made by hand, like a screenshot.</div>
+      </> : null}
+    </div>
+  </>;
+
+  const r = (it && it.reach) || {};
+  const rows = !it ? [] : it.type === "helloo"
+    ? [["You sent it to", r.direct && r.direct.length ? r.direct.join(", ") : "—", MdChat], ["They passed it on", r.forwards ? `${r.forwards} time${r.forwards > 1 ? "s" : ""}, into ${r.chats - 1} more chat${r.chats - 1 === 1 ? "" : "s"}` : "Not passed on", MdForward], ["Opened", `${r.seen || 0} time${r.seen === 1 ? "" : "s"}`, MdSeen]]
+    : it.type === "post"
+    ? [["Who can see it", `Anyone on GLOOBAL · ${r.followers || 0} follower${r.followers === 1 ? "" : "s"} see it first`, MdWorld], ["Liked", `${r.likes || 0} time${r.likes === 1 ? "" : "s"}`, MdLike], ["Comments", String(r.comments || 0), MdChat]]
+    : [["Who can see it", "Anyone on GLOOBAL", MdWorld], ["Viewed", `${(r.seen || 0).toLocaleString("en-IN")} time${r.seen === 1 ? "" : "s"}`, MdSeen]];
+  const detail = it ? <>
+    <UsedTop onBack={() => setAt("home")} title={(MY_DATA_KINDS[it.kind] || MY_DATA_KINDS.doc).label} subtitle={it.where} />
+    <div style={{ flex: 1, minHeight: 0, overflowY: "auto", padding: "4px 14px 28px" }}>
+      <div style={{ ...myDataCard, padding: 14, display: "flex", gap: 12, alignItems: "center", marginBottom: 4 }}>
+        <MyDataThumb kind={it.kind} size={62} />
+        <div style={{ minWidth: 0 }}><div style={{ fontSize: 16, fontWeight: 800, color: T.ink, wordBreak: "break-word" }}>{it.title}</div><div style={{ fontSize: 12, color: T.inkSoft, marginTop: 2 }}>{myDataDate(it.at)} · {myDataSize(it.bytes)} · stored once</div></div>
+      </div>
+      {it.takenBack ? <div data-testid="mydata-item-taken" style={{ ...myDataCard, padding: "12px 14px", marginTop: 12, fontSize: 13, color: T.inkSoft, lineHeight: 1.5 }}><b style={{ color: T.ink }}>Taken back.</b> {it.type === "helloo" ? "Deleted for good: it and every forward of it open for nobody." : "Only you can see it now."}</div> : null}
+      {section("How far it went")}
+      <div style={{ ...myDataCard, padding: "14px 16px" }}>
+        {rows.map(([k, v, Icon], i) => <div key={k} style={{ display: "flex", gap: 12, alignItems: "flex-start", paddingTop: i ? 12 : 0, marginTop: i ? 12 : 0, borderTop: i ? `1px solid ${T.line}` : "none" }}>
+          <Icon size={17} color={T.accent} style={{ flexShrink: 0, marginTop: 1 }} />
+          <div style={{ minWidth: 0 }}><div style={{ fontSize: 11.5, fontWeight: 800, color: T.inkSoft }}>{k}</div><div style={{ fontSize: 14, fontWeight: 700, color: T.ink, marginTop: 2, lineHeight: 1.4, wordBreak: "break-word" }}>{v}</div></div>
+        </div>)}
+        {it.type === "helloo" ? <div style={{ fontSize: 11.5, color: T.inkFaint, lineHeight: 1.45, marginTop: 12 }}>Who your friends sent it to is their business, so after the first step you see counts, not names.</div> : null}
+      </div>
+      {!it.takenBack && !it.ended ? <>
+        {it.type === "helloo" && it.kind !== "voice" && it.canStopForward ? <>{section("Your control")}<div style={{ ...myDataCard, padding: "12px 16px" }}>
+          <button data-testid="mydata-noforward" onClick={() => toggleForward(it)} disabled={busy === "fwd"} style={{ width: "100%", display: "flex", alignItems: "center", gap: 12, border: "none", background: "none", padding: 0, cursor: "pointer", fontFamily: T.fontBody, textAlign: "left" }}><MdNoForward size={17} color={T.inkSoft} /><span style={{ flex: 1, minWidth: 0 }}><span style={{ display: "block", fontSize: 14, fontWeight: 800, color: T.ink }}>Stop passing it on</span><span style={{ display: "block", fontSize: 11.5, color: T.inkSoft, marginTop: 1 }}>People who have it can't forward it any further.</span></span><span style={{ width: 42, height: 24, borderRadius: 12, background: it.noForward ? T.accent : T.line, position: "relative", flexShrink: 0 }}><span style={{ position: "absolute", top: 3, left: it.noForward ? 21 : 3, width: 18, height: 18, borderRadius: "50%", background: "#fff" }} /></span></button>
+        </div></> : null}
+        <div style={{ display: "flex", marginTop: 16 }}><UsedButton testid="mydata-take-one" Icon={MdTakeBack} color={T.negative || "#DC2626"} onClick={() => setConfirm({ item: it })}>Take this back</UsedButton></div>
+      </> : it.canBringBack ? <div style={{ display: "flex", marginTop: 16 }}><UsedButton testid="mydata-bring-back" Icon={MdBringBack} disabled={busy === "bring"} onClick={() => bringOne(it)}>Bring it back</UsedButton></div> : null}
+    </div>
+  </> : null;
+
+  const one = confirm && confirm.item;
+  return gloobalMapPortal(<div data-testid="my-data" style={{ position: "fixed", inset: 0, zIndex: 340, background: T.bg, display: "flex", flexDirection: "column", fontFamily: T.fontBody, overflow: "hidden" }}>
+    {at === "item" && detail ? detail : home}
+    {confirm === "all" ? <UsedSheet title="Take everything back?" onClose={() => setConfirm(null)}><div data-testid="mydata-confirm">
+      <div style={{ fontSize: 14, color: T.inkSoft, lineHeight: 1.5, marginBottom: 12 }}>All {live.length} thing{live.length === 1 ? "" : "s"} come back to you. Right away:</div>
+      {[["Every chat, post, forward and ad stops showing them", MdChat], [`${totals.people} ${totals.people === 1 ? "person" : "people"} in your chats can no longer open them`, MdPeople], ["Public posts and listings go private", MdWorld]].map(([t, Icon]) => <div key={t} style={{ display: "flex", gap: 10, alignItems: "flex-start", fontSize: 13.5, color: T.ink, fontWeight: 700, marginBottom: 9 }}><Icon size={16} color={T.accent} style={{ flexShrink: 0, marginTop: 2 }} />{t}</div>)}
+      <div style={{ background: T.surfaceSunk, borderRadius: 14, padding: "10px 12px", margin: "6px 0 12px", fontSize: 12, color: T.inkSoft, lineHeight: 1.5 }}><b style={{ color: T.ink }}>Gone for good:</b> chat photos, clips and voice notes. <b style={{ color: T.ink }}>You can bring back:</b> posts and Used listings. <b style={{ color: T.ink }}>Ads</b> end. <b style={{ color: T.ink }}>Not reachable:</b> copies made by hand (a screenshot or a download). <b style={{ color: T.ink }}>Still kept:</b> payment records and your identity check, as the law requires.</div>
+      <div style={{ display: "flex", gap: 10 }}><UsedButton kind="secondary" onClick={() => setConfirm(null)}>Not now</UsedButton><UsedButton testid="mydata-take-all-go" disabled={busy === "all"} color={T.negative || "#DC2626"} onClick={takeAll}>{busy === "all" ? "Taking back…" : "Take it all back"}</UsedButton></div>
+    </div></UsedSheet> : null}
+    {one ? <UsedSheet title="Take this back?" onClose={() => setConfirm(null)}><div data-testid="mydata-confirm-one">
+      <div style={{ fontSize: 14, color: T.inkSoft, lineHeight: 1.5, marginBottom: 14 }}>{one.type === "helloo" ? `It is deleted for good. ${one.reach.forwards ? `It and its ${one.reach.forwards} forward${one.reach.forwards > 1 ? "s" : ""} stop opening` : "It stops opening"} for everyone.` : one.type === "ad" ? "The ad ends now. It can't be restarted." : "Nobody but you can see it. You can bring it back later."}</div>
+      <div style={{ display: "flex", gap: 10 }}><UsedButton kind="secondary" onClick={() => setConfirm(null)}>Not now</UsedButton><UsedButton testid="mydata-take-one-go" disabled={busy === "one"} color={T.negative || "#DC2626"} onClick={() => takeOne(one)}>{busy === "one" ? "Taking back…" : "Take it back"}</UsedButton></div>
+    </div></UsedSheet> : null}
+    {note ? <div role="status" style={{ position: "absolute", left: 16, right: 16, bottom: "calc(24px + env(safe-area-inset-bottom, 0px))", display: "flex", justifyContent: "center", pointerEvents: "none" }}><span style={{ maxWidth: "100%", padding: "10px 16px", borderRadius: 999, background: T.ink, color: T.bg, fontSize: 13, fontWeight: 700 }}>{note}</span></div> : null}
+  </div>, document.body);
+}
+
+
 // src/features/bazaar/bazaar.jsx
 //
 // GLOOBAL बाज़ार ON PAY & SERVICES: FAMOUS CATEGORIES AND NEAR ME.
@@ -57713,6 +57909,8 @@ function DashboardScreen({ dialCountry, onLogout, onOpenSend, onPayCreator, onPa
   // (features/nearby/soundPayUi.jsx). The sheet it opens offers "Get paid"
   // (play my ID) and "Pay" (listen, on the Scan screen).
   const [showEarn, setShowEarn] = useState14(false);
+  // Profile → My data (features/mydata/myData.jsx).
+  const [showMyData, setShowMyData] = useState14(false);
   const requestCloseEarn = useBackClose(showEarn, () => setShowEarn(false));
   const requestCloseReceive = useBackClose(showReceive, () => setShowReceive(false));
   const [myShareRate, setMyShareRate] = useState14(1);
@@ -60555,13 +60753,13 @@ function DashboardScreen({ dialCountry, onLogout, onOpenSend, onPayCreator, onPa
        because there is already an "About" row in this list and two rows
        starting with that word is a menu nobody can scan. */
   }{PROFILE_ROWS.slice(0, 1)
-    .concat(["Creator Profile"], shareRole === "merchant" ? ["My shops"] : [], PROFILE_ROWS.slice(1, 4), ["Helloo", "Sound pay", "Complaints & reports"], PROFILE_ROWS.slice(4)).map((label, i) => {
+    .concat(["Creator Profile"], shareRole === "merchant" ? ["My shops"] : [], PROFILE_ROWS.slice(1, 4), ["My data", "Helloo", "Sound pay", "Complaints & reports"], PROFILE_ROWS.slice(4)).map((label, i) => {
     // The theme's own family, very faint: one soft tint per row instead of
     // the eight-colour stripe the shared list drew in every theme.
     const rowColor = gloobalFamilyColor(i);
     return <button
       key={label}
-      data-testid={label === "My shops" ? "profile-my-shops" : label === "Helloo" ? "profile-helloo" : undefined}
+      data-testid={label === "My shops" ? "profile-my-shops" : label === "Helloo" ? "profile-helloo" : label === "My data" ? "profile-my-data" : undefined}
       // "Notifications" is the one row with a real screen behind it — the
       // server-held list, rendered from App.jsx so a push click can open
       // the same sheet. The rest still open their placeholder detail view.
@@ -60576,6 +60774,8 @@ function DashboardScreen({ dialCountry, onLogout, onOpenSend, onPayCreator, onPa
         // Helloo, GLOOBAL's messenger, opens in its own app.
         : label === "Helloo"
           ? gloobalOpenHelloo("")
+        : label === "My data"
+          ? setShowMyData(true)
         : label === "Sound pay"
           ? setShowEarn(true)
         : label === "Complaints & reports"
@@ -60598,7 +60798,7 @@ function DashboardScreen({ dialCountry, onLogout, onOpenSend, onPayCreator, onPa
     ><span style={{ fontSize: 13.5, fontWeight: 600, color: T.ink }}>{label}</span><span style={{ display: "inline-flex", alignItems: "center", gap: 8 }}>{label === "My shops" && shopsInfo && shopsInfo.shops && <span
       data-testid="profile-my-shops-count"
       style={{ fontSize: 11.5, fontWeight: 800, color: T.inkFaint }}
-    >{`${shopsInfo.shops.length} of ${Number(shopsInfo.max) || 5}`}</span>}{label === "Helloo" && <GloobalHellooMark size={20} />}{label === "Sound pay" && <SoundPlayIcon size={16} color={T.inkFaint} />}{label === "Complaints & reports" && complaintsNeedingMe > 0 && <span
+    >{`${shopsInfo.shops.length} of ${Number(shopsInfo.max) || 5}`}</span>}{label === "Helloo" && <GloobalHellooMark size={20} />}{label === "My data" && <span style={{ fontSize: 12, fontWeight: 800, color: T.inkFaint }}>Take back</span>}{label === "Sound pay" && <SoundPlayIcon size={16} color={T.inkFaint} />}{label === "Complaints & reports" && complaintsNeedingMe > 0 && <span
       data-complaints-badge
       style={{ minWidth: 20, height: 20, borderRadius: 10, background: T.negative, color: "#fff", fontSize: 11, fontWeight: 800, display: "inline-flex", alignItems: "center", justifyContent: "center", padding: "0 6px" }}
     >{complaintsNeedingMe}</span>}<ChevronRightIcon /></span></button>;
@@ -61531,7 +61731,7 @@ function DashboardScreen({ dialCountry, onLogout, onOpenSend, onPayCreator, onPa
     summary={essentialsHeld} balance={bankBalance} ccyCode={ccyCode} lens={displayLens}
     onClose={requestCloseBalanceSplit}
     onOpenEssentials={() => { setShowBalanceSplit(false); setShowEssentials(true); }}
-  /></ScreenErrorBoundary>}{showEarn && <EarnSheet
+  /></ScreenErrorBoundary>}{showMyData && <MyDataScreen onClose={() => setShowMyData(false)} />}{showEarn && <EarnSheet
     gloobalId={myGloobalId}
     side={shareRole === "merchant" ? "shop" : "person"}
     currencySign={currencySuffix(collectionCurrency)}
@@ -78195,7 +78395,9 @@ function hellooGroupCalls(list) {
 function HellooBubble({ m, person, prevSame }) {
   const mine = m.from === "me";
   if (m.kind === "deleted") return <div data-helloo-msg={m.from} style={{ alignSelf: mine ? "flex-end" : "flex-start", maxWidth: "82%", marginTop: prevSame ? 2 : 8 }}><span style={{ display: "inline-flex", alignItems: "center", gap: 6, padding: "8px 12px", borderRadius: 16, border: `1px dashed ${T.line}`, color: T.inkFaint, fontSize: 13.5, fontStyle: "italic" }}><HlBan size={13} />{mine ? "You deleted this message" : "This message was deleted"}<span style={{ fontSize: 10, fontStyle: "normal", marginLeft: 4 }}>{hellooClockSec(m.at)}</span></span></div>;
-  const quote = m.replyTo ? <span style={{ display: "block", margin: m.kind === "photo" ? "0 0 4px" : "-2px -4px 6px", padding: "6px 9px", borderRadius: 10, borderLeft: `3px solid ${mine ? "rgba(255,255,255,0.8)" : T.accent}`, background: mine ? "rgba(255,255,255,0.16)" : T.surfaceAlt, fontSize: 12, lineHeight: 1.35 }}><span style={{ display: "block", fontWeight: 800, color: mine ? "#fff" : T.accent }}>{m.replyTo.who}</span><span style={{ display: "block", opacity: 0.85, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", maxWidth: 230 }}>{m.replyTo.preview}</span></span> : null;
+  const quoted = m.replyTo ? <span style={{ display: "block", margin: m.kind === "photo" ? "0 0 4px" : "-2px -4px 6px", padding: "6px 9px", borderRadius: 10, borderLeft: `3px solid ${mine ? "rgba(255,255,255,0.8)" : T.accent}`, background: mine ? "rgba(255,255,255,0.16)" : T.surfaceAlt, fontSize: 12, lineHeight: 1.35 }}><span style={{ display: "block", fontWeight: 800, color: mine ? "#fff" : T.accent }}>{m.replyTo.who}</span><span style={{ display: "block", opacity: 0.85, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", maxWidth: 230 }}>{m.replyTo.preview}</span></span> : null;
+  // Passed on from another chat: said, like WhatsApp, above the content.
+  const quote = m.forwarded ? <><span data-helloo-forwarded="1" style={{ display: "flex", alignItems: "center", gap: 4, margin: m.kind === "photo" ? "2px 6px 4px" : "-2px 0 4px", fontSize: 11, fontStyle: "italic", fontWeight: 700, opacity: 0.75 }}><HlForward size={11} />Forwarded</span>{quoted}</> : quoted;
   if (m.kind === "day") return <div style={{ alignSelf: "center", fontSize: 10.5, fontWeight: 800, letterSpacing: 0.6, textTransform: "uppercase", color: T.inkFaint, background: T.surfaceSunk, borderRadius: 999, padding: "4px 11px", margin: "6px 0" }}>{m.text}</div>;
   if (m.kind === "system") return <div style={{ alignSelf: "center", display: "inline-flex", alignItems: "center", gap: 6, fontSize: 11, fontWeight: 700, color: HT.free, background: HT.freeSoft, borderRadius: 999, padding: "5px 11px", margin: "4px 0 6px" }}><HlShield size={12} />{m.text}</div>;
   // A call is one quiet line in the middle of the chat, not a card: what
@@ -81153,7 +81355,7 @@ function hellooSnapFields(m) {
   const view = m.view || {};
   const mode = view.mode || "keep";
   const gone = Boolean(m.takenBack) || (mode === "once" && Boolean(view.opened)) || (mode === "day" && view.expiresAt && new Date(view.expiresAt).getTime() < Date.now());
-  return { viewMode: mode, opened: Boolean(view.opened), gone: Boolean(gone), takenBack: Boolean(m.takenBack), fx: m.fx || "", saved: Boolean(m.saved), canSave: mode === "keep" && view.save !== false && !(m.view && m.view.mode && view.save !== true), opens: Number(m.opens) || 0, lastOpenAt: m.lastOpenAt || null };
+  return { forwarded: Boolean(m.forwarded), noForward: Boolean(m.noForward), viewMode: mode, opened: Boolean(view.opened), gone: Boolean(gone), takenBack: Boolean(m.takenBack), fx: m.fx || "", saved: Boolean(m.saved), canSave: mode === "keep" && view.save !== false && !(m.view && m.view.mode && view.save !== true), opens: Number(m.opens) || 0, lastOpenAt: m.lastOpenAt || null };
 }
 function hellooPersonFrom(card, photos) {
   if (!card) return null;
@@ -81220,6 +81422,7 @@ function hellooBubbleFrom(m, meAccountId, theyReadAt, voiceState, names) {
   const mine = m.from === meAccountId || m.from === "me";
   const at = new Date(m.at || Date.now());
   const base = {
+    forwarded: Boolean(m.forwarded),
     id: m.id || m.clientId,
     clientId: m.clientId,
     from: mine ? "me" : "them",
@@ -81254,7 +81457,7 @@ function hellooBubbleFrom(m, meAccountId, theyReadAt, voiceState, names) {
   }
   if (m.kind === "voice") {
     const v = voiceState || {};
-    return Object.assign(base, { kind: "voice", seconds: Math.round((m.voice && m.voice.seconds) || 0), playing: Boolean(v.playing), progress: v.progress, onPlay: v.onPlay });
+    return Object.assign(base, { kind: "voice", forwarded: Boolean(m.forwarded), gone: Boolean(m.takenBack), takenBack: Boolean(m.takenBack), seconds: Math.round((m.voice && m.voice.seconds) || 0), playing: Boolean(v.playing), progress: v.progress, onPlay: v.onPlay });
   }
   if (m.kind === "payment" && m.payment && m.payment.purpose === "giveback") {
     const p = m.payment;
@@ -81772,6 +81975,9 @@ function HellooRoot() {
   const [toast, setToast] = useStateH9("");
   // Something shared into Helloo from another app (screens/ShareIn.jsx).
   const [shareIn, setShareIn] = useStateH9(null);
+  // A message being passed on (Forward): it goes as a pointer to the one
+  // stored copy, never as new bytes (server: forwardOf).
+  const [forwardOf, setForwardOf] = useStateH9(null);
   // WhatsApp history kept on this phone (screens/WaImport.jsx): what the
   // open chat has, and whether it is being read.
   const [waInfo, setWaInfo] = useStateH9(null);
@@ -82248,6 +82454,19 @@ function HellooRoot() {
       setToast(`WhatsApp history imported · ${record.counts.messages.toLocaleString("en-IN")} messages`);
     } catch (err) {
       setToast((err && err.message) || "Couldn't import that chat");
+    }
+  };
+  // Forward: the server makes the new message point at the original.
+  const sendForward = async (row) => {
+    const m = forwardOf;
+    if (!m) return;
+    try {
+      await hellooApi.send(row.id, { clientId: hellooClientId(), forwardOf: m.id });
+      setForwardOf(null);
+      setToast(`Forwarded to ${(row.person && (row.person.handle || row.person.name)) || "the chat"}`);
+      refreshChats && refreshChats();
+    } catch (err) {
+      setToast((err && err.message) || "Couldn't forward that");
     }
   };
   const sendShareIn = async (row) => {
@@ -83268,7 +83487,7 @@ function HellooRoot() {
   const chatThemeNow = openId && !screen ? ((((chatRows || []).find((c) => c.id === openId)) || {}).theme || (threads[openId] && threads[openId].chat && threads[openId].chat.theme) || "") : "";
   const themeNow = chatThemeNow && hellooFindTheme(chatThemeNow) ? chatThemeNow : themeKey;
   if (shownThemeRef.current !== themeNow + "|" + hellooSideNow()) { applyHellooTheme(themeNow); shownThemeRef.current = themeNow + "|" + hellooSideNow(); }
-  const shell = (children) => <div style={{ position: "absolute", inset: 0, overflow: "hidden", background: T.bg }}>{callLayer}<div style={{ position: "absolute", left: 0, right: 0, bottom: 0, top: callBar ? "calc(48px + env(safe-area-inset-top, 0px))" : 0 }}>{children}</div>{gReceipt && user && typeof LedgerProvider === "function" ? <LedgerProvider userId={user.accountId || "me"} currency={user.currency || "INR"}><ReceiptModal receipt={gReceipt} onClose={() => setGReceipt(null)} /></LedgerProvider> : null}{callBar}{typeof PaymentFaceHost === "function" ? <PaymentFaceHost /> : null}{shareIn && shareIn.wa && signedIn ? <HellooWaImportSheet parsed={shareIn.wa} chats={(chatRows || []).map((c) => hellooChatRowFrom(c, photos))} onImport={importWa} onClose={() => setShareIn(null)} /> : null}{shareIn && !shareIn.wa && signedIn ? <HellooShareInSheet share={shareIn} chats={(chatRows || []).map((c) => hellooChatRowFrom(c, photos))} onSend={sendShareIn} onClose={() => setShareIn(null)} /> : null}{typeof BiometricPinFallbackModal === "function" ? <BiometricPinFallbackModal open={Boolean(pinFallback)} symbolId={user && user.symbolId} reason={pinFallback && pinFallback.reason} onResolve={resolvePinFallback} /> : null}{toast && <div role="status" style={{ position: "absolute", left: 16, right: 16, bottom: "calc(96px + env(safe-area-inset-bottom, 0px))", display: "flex", justifyContent: "center", zIndex: 300, pointerEvents: "none" }}><span style={{ background: T.ink, color: T.bg, borderRadius: 18, padding: "9px 16px", fontSize: 13, fontWeight: 700, fontFamily: T.fontBody, boxShadow: "0 8px 24px rgba(0,0,0,0.25)", textAlign: "center", maxWidth: "100%" }}>{toast}</span></div>}</div>;
+  const shell = (children) => <div style={{ position: "absolute", inset: 0, overflow: "hidden", background: T.bg }}>{callLayer}<div style={{ position: "absolute", left: 0, right: 0, bottom: 0, top: callBar ? "calc(48px + env(safe-area-inset-top, 0px))" : 0 }}>{children}</div>{gReceipt && user && typeof LedgerProvider === "function" ? <LedgerProvider userId={user.accountId || "me"} currency={user.currency || "INR"}><ReceiptModal receipt={gReceipt} onClose={() => setGReceipt(null)} /></LedgerProvider> : null}{callBar}{typeof PaymentFaceHost === "function" ? <PaymentFaceHost /> : null}{forwardOf && signedIn ? <HellooShareInSheet share={{ text: forwardOf.kind === "text" ? forwardOf.text : `${forwardOf.kind === "voice" ? "Voice note" : forwardOf.kind === "video" ? "Clip" : "Photo"}${forwardOf.text ? ` · ${forwardOf.text}` : ""}`, file: null }} chats={(chatRows || []).map((c) => hellooChatRowFrom(c, photos))} onSend={sendForward} onClose={() => setForwardOf(null)} /> : null}{shareIn && shareIn.wa && signedIn ? <HellooWaImportSheet parsed={shareIn.wa} chats={(chatRows || []).map((c) => hellooChatRowFrom(c, photos))} onImport={importWa} onClose={() => setShareIn(null)} /> : null}{shareIn && !shareIn.wa && signedIn ? <HellooShareInSheet share={shareIn} chats={(chatRows || []).map((c) => hellooChatRowFrom(c, photos))} onSend={sendShareIn} onClose={() => setShareIn(null)} /> : null}{typeof BiometricPinFallbackModal === "function" ? <BiometricPinFallbackModal open={Boolean(pinFallback)} symbolId={user && user.symbolId} reason={pinFallback && pinFallback.reason} onResolve={resolvePinFallback} /> : null}{toast && <div role="status" style={{ position: "absolute", left: 16, right: 16, bottom: "calc(96px + env(safe-area-inset-bottom, 0px))", display: "flex", justifyContent: "center", zIndex: 300, pointerEvents: "none" }}><span style={{ background: T.ink, color: T.bg, borderRadius: 18, padding: "9px 16px", fontSize: 13, fontWeight: 700, fontFamily: T.fontBody, boxShadow: "0 8px 24px rgba(0,0,0,0.25)", textAlign: "center", maxWidth: "100%" }}>{toast}</span></div>}</div>;
 
   // ── A call fills the screen — or, made small, a bar at the top ───────
   // The call's screen is always the first thing in the shell while there
@@ -83351,6 +83570,7 @@ function HellooRoot() {
       (held.kind === "text" || (held.kind === "photo" && held.text)) && [HlCopy, "Copy text", false, async () => { try { await navigator.clipboard.writeText(held.text); setToast("Copied"); } catch (e) { setToast("Could not copy"); } setHeld(null); }],
       !heldMine && held.paidText && [HlRupee, "Give back…", false, () => { setHeld(null); setGiveBack({ percent: 50, busy: false }); setSheet("giveback"); }],
       heldMine && (held.kind === "photo" || held.kind === "video") && !held.gone && held.id && [HlShield, "Take it back · gone for both", true, () => { const id = held.id; setHeld(null); hellooApi.takeBack(id).then(() => { setMediaUrls((all) => { const next = Object.assign({}, all); delete next[id]; return next; }); loadThread(openId); setToast("Taken back · it opens for nobody now"); }).catch((err) => setToast((err && err.message) || "Couldn't take it back")); }],
+      held.id && ["photo", "video", "voice", "text"].includes(held.kind) && !held.gone && (held.viewMode || "keep") === "keep" && (heldMine || !held.noForward) && [HlForward, "Forward", false, () => { setForwardOf(held); setHeld(null); }],
       [HlTrash, "Delete for me", true, () => deleteMessage(openId, held, false)],
       heldMine && heldFresh && held.kind !== "receipt" && held.kind !== "deleted" && [HlTrash, "Delete for everyone", true, () => deleteMessage(openId, held, true)]
     ].filter(Boolean) : [];
