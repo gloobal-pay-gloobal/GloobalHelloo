@@ -84,6 +84,8 @@ var hellooApi = {
   saveShow: (show) => hellooHttp.put("/api/helloo/faces/show", { show }),
   // Take somebody out of your contacts until you pay or chat again.
   hideContact: (accountId, hidden) => hellooHttp.post("/api/helloo/contacts/hide", { accountId, hidden }),
+  // Saved for you as a person: it shows on your personal side and every shop.
+  saveContact: (accountId, saved, name) => hellooHttp.post("/api/helloo/contacts/save", Object.assign({ accountId, saved }, typeof name === "string" ? { name } : {})),
   // A private chat both keep: release it once for them (your PIN), and
   // open one released for you (your PIN, within ten minutes).
   releaseChat: (chatId, pin) => hellooHttp.post(`/api/helloo/chats/${encodeURIComponent(chatId)}/release`, { pin }),
@@ -219,6 +221,9 @@ function hellooPersonFrom(card, photos) {
     gloobalId: card.gloobalId,
     name: card.name || card.gloobalId || "",
     handle: card.handle || null,
+    // Saved by you (on any of your sides), and your own name for them.
+    saved: Boolean(card.saved),
+    savedName: card.savedName || "",
     // The verified badge's colour: 1 Verified, 2 Rising, 3 Star, 4 Icon.
     badge: Number(card.badge) || 1,
     // A shop's calling hours ({ mode, from, to, open }); null for a person.
