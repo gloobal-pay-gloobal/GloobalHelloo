@@ -340,6 +340,13 @@ function HellooRoot() {
   // ── Navigation ───────────────────────────────────────────────────────
   const [tab, setTab] = useStateH9("chats");
   const [socialCompose, setSocialCompose] = useStateH9(0);
+  // A post tapped in a chat opens in Social.
+  const [socialOpenPost, setSocialOpenPost] = useStateH9("");
+  useEffectH9(() => {
+    const go = (e) => { const id = e && e.detail; if (!id) return; setOpenId(null); setSheet(null); setScreen(null); setTab("social"); setSocialOpenPost(String(id)); };
+    window.addEventListener("helloo:open-post", go);
+    return () => window.removeEventListener("helloo:open-post", go);
+  }, []);
   const [dialSaving, setDialSaving] = useStateH9(false);
   const [openId, setOpenId] = useStateH9(null);
   const [screen, setScreen] = useStateH9(null);
@@ -761,6 +768,7 @@ function HellooRoot() {
     const optimistic = Object.assign({ clientId, from: meId, at: new Date().toISOString(), chatId },
       body.kind === "voice" ? { kind: "voice", voice: { seconds: body.seconds } }
         : body.kind === "text" ? { kind: "text", text: body.text }
+          : body.kind === "post" ? { kind: "post", post: body.preview || { id: body.postId } }
           : body.kind === "sticker" ? { kind: "sticker", sticker: Object.assign({ id: body.stickerId }, body.stickerId === "mine" && body.mine ? body.mine : {}) }
           : body.kind === "video" ? { kind: "video", text: body.text || "", video: { seconds: body.seconds, width: body.width, height: body.height }, view: { mode: body.view || "keep", save: Boolean(body.allowSave) }, fx: body.fx || "", localSrc: body.localSrc }
           : body.kind === "photo" ? { kind: "photo", text: body.text || "", photo: { width: body.width, height: body.height }, view: { mode: body.view || "keep", save: Boolean(body.allowSave) }, fx: body.fx || "", localSrc: body.localSrc }
@@ -769,6 +777,7 @@ function HellooRoot() {
     const wire = Object.assign({}, body);
     delete wire.localSrc;
     delete wire.replyPreview;
+    delete wire.preview;
     if (body.kind !== "payment" && body.kind !== "order") {
       setThreads((all) => Object.assign({}, all, { [chatId]: Object.assign({ messages: [] }, all[chatId], { messages: mergeMessages((all[chatId] || { messages: [] }).messages, [optimistic]) }) }));
     }
@@ -1752,7 +1761,7 @@ function HellooRoot() {
       // under its own name; what you choose for it is whether its paid
       // messages may show on Home.
       hellooIsBusiness(person)
-        ? [HlBellOff, rowNow && rowNow.offHome ? "Show on home" : "Hide from home", false, null, () => { setSheet(null); if (rowNow) { setPrefs(openId, { offHome: !rowNow.offHome }); setToast(rowNow.offHome ? "Its paid messages show on home again" : "Kept off home · find it by typing its name"); } }]
+        ? [HlHomeIcon, "Show on home", false, "Its paid messages", (on) => { if (rowNow) { setPrefs(openId, { offHome: !on }); setToast(on ? "Its paid messages show on home again" : "Kept off home · find it by typing its name"); } }, !(rowNow && rowNow.offHome)]
         : fresh ? null : [HlPencil, rowNow && rowNow.private ? "Private chat · change name" : rowNow && rowNow.savedName ? "Change name · make private" : "Name this chat · make private", false, null, () => { if (rowNow) openNameEdit(rowNow); }],
       // Both keep it private and they forgot their name: let them see it once.
       ...(!fresh && rowNow && rowNow.private && !hellooIsBusiness(person) ? [[HlLock, rowNow.releaseState ? `Release once for them · ${rowNow.releaseState.state === "opened" ? "opened" : rowNow.releaseState.state === "waiting" ? "waiting" : "ended"}` : "Release once for them", false, null, () => { setRelease({ chatId: openId, pin: "", busy: false, error: "", mode: "give" }); setSheet("release"); }]] : []),
@@ -1763,14 +1772,19 @@ function HellooRoot() {
       person.gloobalId ? [HlWallet, "Payment history", false, null, () => openPayHistory(person)] : null,
       // This chat's own colours: it recolours behind the picker as you tap.
       [HlPalette, "Chat colours", false, null, () => setSheet("chat-theme")],
-      [HlBellOff, muted ? "Unmute notifications" : "Mute notifications", false, null, () => { setSheet(null); setPrefs(openId, { muted: !muted }); setToast(muted ? "Notifications on for this chat" : "Muted · no notifications from this chat"); }],
+      [muted ? HlBellOff : HlBell, "Notifications", false, muted ? "Muted" : "On for this chat", (on) => { setPrefs(openId, { muted: !on }); setToast(on ? "Notifications on for this chat" : "Muted · no notifications from this chat"); }, !muted],
+      // Private: turning it on asks for its name (typed twice — there is no
+      // recovery); turning it off is one flip.
+      ...(!fresh && rowNow && !hellooIsBusiness(person) ? [[HlLock, "Private chat", false, rowNow.private ? "Opens only by its name" : "Off", (on) => { if (on) openNameEdit(Object.assign({}, rowNow, { private: true })); else { setPrefs(openId, { private: false }); setToast("Not private any more · it shows in your chats"); } }, Boolean(rowNow.private)]] : []),
+      // Saved for you as a person: on your personal side and every shop.
+      ...(person.accountId && person.accountId !== meId ? [[HlUserPlus, "Saved contact", false, "On all your profiles", (on) => saveContact(Object.assign({}, person, { saved: !on }), on), contacts.some((c) => c.accountId === person.accountId && c.saved)]] : []),
       // Who can reach me, just for this person: Free, Pays per message, Never.
       ...(!hellooIsBusiness(person) && !iBlocked ? [[HlRupee, "Who can reach me", false, null, () => { loadPersonReach(person.accountId); setSheet("reach-person"); }]] : []),
       // An account that is both a person and a shop can move a chat to
       // its other side; the other person then sees that side's name.
       ...(primaryFace && hellooFaceNow.as && meId === user.accountId && rowNow ? [[primaryFace && rowNow.side === "self" ? HlStore : HlUser, rowNow.side === "self" ? `Move to ${primaryFace.name}` : "Move to Personal", false, null, () => { setSheet(null); moveSide(openId, rowNow.side === "self" ? "shop" : "self"); }]] : []),
       [HlTrash, "Clear chat", false, null, () => { setSheet("confirm-clear"); }],
-      [HlBan, iBlocked ? `Unblock ${firstName}` : `Block ${firstName}`, !iBlocked, null, () => { setSheet(null); setBlock(person, !iBlocked); }]
+      [HlBan, `Block ${firstName}`, true, iBlocked ? "Blocked" : "They can message you", (on) => setBlock(person, on), Boolean(iBlocked)]
     ];
     const card = reachCards[person.accountId];
     const rule = card && card.rule;
@@ -1844,8 +1858,8 @@ function HellooRoot() {
     const allowed = allowedIds.has(person.accountId);
     if (watchAsk) return shell(<><HellooScreen style={{ background: HT.chatBg || HT.wash }} /><HellooWatchWarning me={me} onClose={() => setWatchAsk(null)} onAgree={() => { const go = watchAsk.go; hellooWatchAgree(meId); setWatchAsk(null); go(); }} /></>);
     return shell(<HellooContactScreen media={person.handle ? null : mediaState} mediaFilter={mediaFilter} onMediaFilter={setMediaFilter} shop={person.handle ? (shopCards[person.gloobalId] || null) : null} onMenu={person.handle && !iBlocked ? () => { setScreen(null); openMenu(person); } : undefined} person={Object.assign({}, person, { id: person.gloobalId, online: Boolean(!iBlocked && pres && pres.online) })} status={status} together={tog} currency={me.currency} shops={hellooIsBusiness(person) ? null : (personShops[person.accountId] || []).map((c) => { const sp = hellooPersonFrom(c, photos); return { person: Object.assign({}, sp, { handle: c.handle }), shop: shopCards[c.gloobalId] || null }; })} onShop={(sp) => openChatWith(sp.accountId, true)} reach={tog && tog.reachMode ? tog : null} reachBusy={reachBusy} onReach={hellooIsBusiness(person) || iBlocked ? undefined : (mode, price) => setPersonReach(person.accountId, mode, price)} onSaveReview={person.handle ? (stars, text) => GloobalApi.saveCreatorReview(person.gloobalId, { stars, text }).then(() => { loadShopCard(person); setToast("Thanks — your feedback is in"); }) : undefined} onBack={closeProfile} onMessage={() => setScreen(null)} onCall={!iBlocked ? () => startCall(person, false) : undefined} onVideo={!iBlocked ? () => startCall(person, true) : undefined} onPay={person.gloobalId ? () => { setScreen(null); setPay({ amount: "", note: "", busy: false, error: "" }); setSheet("pay"); } : undefined} groups={[
-      [[HlRupee, allowed ? "Reaches you free" : "Pays your price to reach you", allowed ? "Allowed" : (myReach && myReach.people.price ? hellooMoneyText(myReach.people.price, myReach.currency) : "Free"), () => hellooApi.allow(person.accountId, !allowed).then(() => { refreshMyReach(); setToast(allowed ? `${firstName} pays your price again` : `${firstName} reaches you free`); }).catch((err) => setToast(err.message)), false, HT.free], [HlBellOff, muted ? "Unmute notifications" : "Mute notifications", muted ? "Muted" : "Off", () => setPrefs(openId, { muted: !muted }), false, T.inkSoft], [HlWallet, "Payments between you", tog ? String(tog.money.toThem.n + tog.money.toMe.n) : "", () => window.open(HELLOO_GLOOBAL_SITE, "_blank", "noopener"), false, "#0B7A57"]],
-      [[HlTrash, "Clear chat", "", () => { setScreen(null); setSheet("confirm-clear"); }, false, T.inkSoft], [HlBan, iBlocked ? `Unblock ${firstName}` : `Block ${firstName}`, "", () => setBlock(person, !iBlocked), !iBlocked]]
+      [[HlRupee, "Reaches you free", allowed ? "Allowed" : (myReach && myReach.people.price ? `Pays ${hellooMoneyText(myReach.people.price, myReach.currency)}` : "Your price is free"), (on) => hellooApi.allow(person.accountId, on).then(() => { refreshMyReach(); setToast(on ? `${firstName} reaches you free` : `${firstName} pays your price again`); }).catch((err) => setToast(err.message)), false, HT.free, Boolean(allowed)], [muted ? HlBellOff : HlBell, "Notifications", muted ? "Muted" : "On for this chat", (on) => setPrefs(openId, { muted: !on }), false, T.accent, !muted], ...(person.accountId && person.accountId !== meId ? [[HlUserPlus, "Saved contact", "On all your profiles", (on) => saveContact(Object.assign({}, person, { saved: !on }), on), false, HT.free, contacts.some((c) => c.accountId === person.accountId && c.saved)]] : []), [HlWallet, "Payments between you", tog ? String(tog.money.toThem.n + tog.money.toMe.n) : "", () => window.open(HELLOO_GLOOBAL_SITE, "_blank", "noopener"), false, "#0B7A57"]],
+      [[HlTrash, "Clear chat", "", () => { setScreen(null); setSheet("confirm-clear"); }, false, T.inkSoft], [HlBan, `Block ${firstName}`, iBlocked ? "Blocked" : "They can message you", (on) => setBlock(person, on), true, undefined, Boolean(iBlocked)]]
     ].map((rows, g) => (g === 0 && !hellooIsBusiness(person) ? rows.slice(1) : rows))} />);
   }
 
@@ -2000,12 +2014,12 @@ function HellooRoot() {
     {tab === "chats" && <HellooChatsScreen unreadChats={rows.filter((c) => c.unread > 0 && !c.private)} onBazaar={() => setScreen("bazaar")} paidCards={paidCards} me={me} chats={shownRows} query={query} onSearch={setQuery} filter={filter} onFilter={setFilter} onOpen={(c) => openChat(c.id)} onHold={(c) => setHeldChat(c)} onStart={() => setSheet("start")} onScan={() => setScreen("scan")} onMore={() => setSheet("more")} onMe={() => setScreen("me")} onContacts={() => { setContactQuery(""); refreshContacts(); setScreen("contacts"); }} onAdd={() => setSheet("add")} banner={<>{faceBanner}{banner}</>} empty={empty} requests={asks.map((a) => ({ id: a.id, person: hellooPersonFrom(a.person, photos), text: a.text }))} onRequests={() => { refreshAsks(); setScreen("requests"); }} />}
     {heldChat && <HellooChatActions chat={heldChat} onClose={() => setHeldChat(null)} items={[
       hellooIsBusiness(heldChat.person)
-        ? [HlBellOff, heldChat.offHome ? "Show on home" : "Hide from home", false, () => { setPrefs(heldChat.id, { offHome: !heldChat.offHome }); setHeldChat(null); }]
+        ? [HlHomeIcon, "Show on home", false, (on) => setPrefs(heldChat.id, { offHome: !on }), !((chatRows || []).find((c) => c.id === heldChat.id) || heldChat).offHome, "Its paid messages"]
         : [HlPencil, heldChat.private ? "Private chat · change name" : "Name this chat · make private", false, () => { const c = heldChat; setHeldChat(null); openNameEdit(c); }],
-      [HlPinIcon, heldChat.pinned ? "Unpin" : "Pin to top", false, () => { setPrefs(heldChat.id, { pinned: !heldChat.pinned }); setHeldChat(null); }],
+      [HlPinIcon, "Pinned to top", false, (on) => setPrefs(heldChat.id, { pinned: on }), Boolean(((chatRows || []).find((c) => c.id === heldChat.id) || heldChat).pinned)],
       // Opens the chat with its colours picker over it, so a tap shows itself.
       [HlPalette, "Chat colours", false, () => { const c = heldChat; setHeldChat(null); openChat(c.id); setTimeout(() => setSheet("chat-theme"), 0); }],
-      [HlBellOff, heldChat.muted ? "Unmute" : "Mute", false, () => { setPrefs(heldChat.id, { muted: !heldChat.muted }); setHeldChat(null); }],
+      [((chatRows || []).find((c) => c.id === heldChat.id) || heldChat).muted ? HlBellOff : HlBell, "Notifications", false, (on) => setPrefs(heldChat.id, { muted: !on }), !((chatRows || []).find((c) => c.id === heldChat.id) || heldChat).muted, ((chatRows || []).find((c) => c.id === heldChat.id) || heldChat).muted ? "Muted" : "On for this chat"],
       heldChat.unread > 0 && [HlCheckCheck, "Mark as read", false, () => { markRead(heldChat.id); setHeldChat(null); }],
       [HlTrash, "Delete chat", true, () => { const id = heldChat.id; setHeldChat(null); setSheet({ confirmDelete: id }); }]
     ].filter(Boolean)} />}
@@ -2017,7 +2031,10 @@ function HellooRoot() {
       [HlBan, "Blocked people", () => { setSheet(null); refreshBlocked(); setScreen("blocked"); }],
       [HlPalette, "Colours", () => { setSheet(null); setScreen("theme"); }]
     ].filter(Boolean).map(([Icon, title, onPress], i) => <HellooRow key={title} Icon={Icon} title={title} first={i === 0} onPress={onPress} />)}</HellooCard></HellooSheet>}
-    {tab === "social" && <HellooSocialHome me={me} faces={faces} photos={photos} composeTick={socialCompose} onPhoto={(key, data) => setPhotos((ph) => Object.assign({}, ph, { [key]: data }))} onCards={askPhotos} onToast={setToast}
+    {tab === "social" && <HellooSocialHome me={me} faces={faces} photos={photos} composeTick={socialCompose}
+      chats={(chatRows || []).filter((c) => c.person && c.person.accountId && !c.private && !c.group).slice(0, 30).map((c) => ({ id: c.id, person: hellooPersonFrom(c.person, photos), savedName: c.savedName || "" }))}
+      onSendPost={(chatId, post) => Promise.resolve(sendMessage(chatId, { kind: "post", postId: post.id, preview: { id: post.id, author: post.author.handle || post.author.name, caption: (post.caption || "").slice(0, 100), media: (post.media || [])[0] || null } }))}
+      openPost={socialOpenPost} onPostOpened={() => setSocialOpenPost("")} onPhoto={(key, data) => setPhotos((ph) => Object.assign({}, ph, { [key]: data }))} onCards={askPhotos} onToast={setToast}
       onOpenChat={(card, draft) => openChatWith(card.gloobalId, false, false, card.side === "self" ? "self" : undefined, draft)}
       onCall={(card) => startCall(hellooPersonFrom(card, photos), false)}
       onTip={(card) => payGloobalId(card.gloobalId)}

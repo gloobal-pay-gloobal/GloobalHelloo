@@ -9,7 +9,7 @@ import {
   Search as HlSearch, ScanLine as HlScan, Plus as HlPlus, MoreVertical as HlMore, Mic as HlMic,
   Paperclip as HlClip, Image as HlImage, Camera as HlCamera, FileText as HlDoc, MapPin as HlPin,
   Contact as HlContact, Eye as HlEye, EyeOff as HlEyeOff, Check as HlCheck, CheckCheck as HlCheckCheck, Play as HlPlay, Store as HlStore,
-  Copy as HlCopy, QrCode as HlQr, Bell as HlBell, Shield as HlShield, Palette as HlPalette, Ban as HlBan,
+  Copy as HlCopy, QrCode as HlQr, Bell as HlBell, Home as HlHomeIcon, Shield as HlShield, Palette as HlPalette, Ban as HlBan,
   HardDrive as HlDrive, LogOut as HlLogOut, ChevronRight as HlChevron, ChevronLeft as HlChevronLeft, CalendarSearch as HlCalendar, X as HlX, Delete as HlDelete, ArrowLeft as HlBack,
   PhoneIncoming as HlIn, PhoneOutgoing as HlOut, PhoneMissed as HlMissed, MicOff as HlMicOff,
   Volume2 as HlSpeaker, VideoOff as HlVideoOff, Minimize2 as HlMin, PhoneOff as HlEnd, Reply as HlReply,
@@ -233,6 +233,22 @@ function HellooPeriodPill({ value, onClear, onOpen }) {
   return <span data-testid="helloo-period-pill" style={{ display: "inline-flex", alignItems: "center", gap: 6, padding: "4px 4px 4px 11px", borderRadius: 999, background: T.accentSoft, color: T.accent, fontSize: 12.5, fontWeight: 800, whiteSpace: "nowrap" }}><button onClick={onOpen} style={{ border: "none", background: "none", padding: 0, color: T.accent, fontWeight: 800, fontSize: 12.5, fontFamily: T.fontBody, cursor: "pointer", display: "inline-flex", alignItems: "center", gap: 5 }}><HlCalendar size={14} color={T.accent} />{hellooPeriodLabel(value)}</button><button onClick={onClear} aria-label="Show everything" className="v2-tap" style={{ width: 22, height: 22, borderRadius: "50%", border: "none", background: T.accent, color: "#fff", display: "inline-flex", alignItems: "center", justifyContent: "center", cursor: "pointer", padding: 0 }}><HlX size={12} color="#fff" /></button></span>;
 }
 
+// An on/off switch, and a row that carries one. Anything that is simply on
+// or off (notifications, saved, private, pinned, blocked) is a switch you
+// flip in place, not a row you tap and wait for.
+function HellooSwitch({ on, busy = false, onChange, label, testid, color }) {
+  return <button type="button" role="switch" aria-checked={Boolean(on)} aria-label={label} data-testid={testid} disabled={busy} onClick={(e) => { e.stopPropagation(); if (onChange) onChange(!on); }} className="v2-tap" style={{ position: "relative", width: 50, height: 30, borderRadius: 15, border: "none", padding: 0, flexShrink: 0, cursor: busy ? "default" : "pointer", background: on ? (color || T.positive || "#16A34A") : (T.line || "#D6D3E0"), transition: "background 0.2s ease", opacity: busy ? 0.6 : 1 }}>
+    <span style={{ position: "absolute", top: 3, left: on ? 23 : 3, width: 24, height: 24, borderRadius: "50%", background: "#fff", boxShadow: "0 1px 3px rgba(0,0,0,0.25)", transition: "left 0.2s ease" }} />
+  </button>;
+}
+function HellooToggleRow({ Icon, color = T.accent, title, note, on, onChange, busy = false, danger = false, first = false, testid }) {
+  const c = danger ? T.negative : color;
+  return <div role="group" aria-label={typeof title === "string" ? title : undefined} onClick={() => { if (!busy && onChange) onChange(!on); }} className="v2-tap" style={{ width: "100%", boxSizing: "border-box", display: "flex", alignItems: "center", gap: 13, padding: "11px 16px", borderTop: first ? "none" : `1px solid ${T.line}`, cursor: "pointer", fontFamily: T.fontBody }}>
+    <span style={{ width: 38, height: 38, borderRadius: 12, background: c + "1A", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}><Icon size={18} color={c} /></span>
+    <span style={{ flex: 1, minWidth: 0 }}><span style={{ display: "block", fontSize: 14, fontWeight: 700, color: T.ink, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{title}</span>{note ? <span style={{ display: "block", fontSize: 12, color: T.inkSoft, marginTop: 1, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{note}</span> : null}</span>
+    <HellooSwitch on={on} busy={busy} onChange={onChange} label={typeof title === "string" ? title : "Switch"} testid={testid} color={danger ? T.negative : undefined} />
+  </div>;
+}
 function HellooRow({ Icon, color = T.accent, title, value, onPress, danger = false, first = false }) {
   return <button onClick={onPress} className="v2-tap" style={{ width: "100%", display: "flex", alignItems: "center", gap: 13, padding: "13px 16px", border: "none", borderTop: first ? "none" : `1px solid ${T.line}`, background: "none", cursor: "pointer", textAlign: "left", fontFamily: T.fontBody }}><span style={{ width: 38, height: 38, borderRadius: 12, background: (danger ? T.negative : color) + "1A", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}><Icon size={18} color={danger ? T.negative : color} /></span><span style={{ flex: "0 1 auto", minWidth: 0, fontSize: 14, fontWeight: 700, color: danger ? T.negative : T.ink, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{title}</span><span style={{ flex: "1 1 0", minWidth: 0, fontSize: 12.5, color: T.inkSoft, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis", textAlign: "right" }}>{value || ""}</span><HlChevron size={16} color={T.inkFaint} /></button>;
 }

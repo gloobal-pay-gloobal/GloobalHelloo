@@ -121,6 +121,7 @@ function hellooPreviewOf(m) {
   if (m.kind === "voice") return `Voice note · ${Math.round((m.voice && m.voice.seconds) || m.seconds || 0)}s`;
   if (m.kind === "photo") return m.text ? `Photo · ${m.text}` : "Photo";
   if (m.kind === "sticker") return "Sticker";
+  if (m.kind === "post") return m.post && m.post.author ? `Shared a post by ${m.post.author}` : "Shared a post";
   if (m.kind === "video") return m.text ? `Video · ${m.text}` : "Video";
   if (m.kind === "payment") return "Payment on GLOOBAL";
   if (m.kind === "order") { const n = ((m.order && m.order.items) || []).reduce((t, l) => t + (Number(l.qty) || 0), 0); return `Order · ${n} ${n === 1 ? "thing" : "things"}`; }
@@ -299,6 +300,7 @@ function hellooBubbleFrom(m, meAccountId, theyReadAt, voiceState, names) {
   base.source = m;
   if (m.paid && m.paid.amount) { base.paidText = hellooMoneyText(m.paid.amount, m.paid.currency); base.earnedText = hellooEarnedText(m.paid.amount, m.paid.currency); }
   if (m.kind === "deleted") return Object.assign(base, { kind: "deleted" });
+  if (m.kind === "post") return Object.assign(base, { kind: "post", post: m.post || {} });
   if (m.kind === "sticker") return Object.assign(base, { kind: "sticker", stickerId: (m.sticker && m.sticker.id) || "", stickerMine: m.sticker && m.sticker.id === "mine" ? { mood: m.sticker.mood, cup: m.sticker.cup, prop: m.sticker.prop, words: m.sticker.words } : null });
   if (m.kind === "call") {
     const c = m.call || {};
