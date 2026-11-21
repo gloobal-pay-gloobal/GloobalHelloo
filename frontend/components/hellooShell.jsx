@@ -10,7 +10,7 @@ import {
   Paperclip as HlClip, Image as HlImage, Camera as HlCamera, FileText as HlDoc, MapPin as HlPin,
   Contact as HlContact, Eye as HlEye, EyeOff as HlEyeOff, Check as HlCheck, CheckCheck as HlCheckCheck, Play as HlPlay, Store as HlStore,
   Copy as HlCopy, QrCode as HlQr, Bell as HlBell, Shield as HlShield, Palette as HlPalette, Ban as HlBan,
-  HardDrive as HlDrive, LogOut as HlLogOut, ChevronRight as HlChevron, ChevronLeft as HlChevronLeft, CalendarSearch as HlCalendar, X as HlX, ArrowLeft as HlBack,
+  HardDrive as HlDrive, LogOut as HlLogOut, ChevronRight as HlChevron, ChevronLeft as HlChevronLeft, CalendarSearch as HlCalendar, X as HlX, Delete as HlDelete, ArrowLeft as HlBack,
   PhoneIncoming as HlIn, PhoneOutgoing as HlOut, PhoneMissed as HlMissed, MicOff as HlMicOff,
   Volume2 as HlSpeaker, VideoOff as HlVideoOff, Minimize2 as HlMin, PhoneOff as HlEnd, Reply as HlReply,
   Forward as HlForward, ArrowRight as HlArrowRight, Star as HlStar, Trash2 as HlTrash, Pin as HlPinIcon, BellOff as HlBellOff,
