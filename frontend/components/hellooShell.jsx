@@ -309,6 +309,13 @@ function HellooBadge({ tier = 1, size = "1em", title }) {
   </svg>;
 }
 
+// A name and its badge, for any line that shows who someone is. Long
+// names end in "…" and the badge always stays in view.
+function HellooNameB({ p, label, size = "0.95em" }) {
+  const t = label != null ? label : hellooName(p);
+  return <span style={{ display: "inline-flex", alignItems: "center", gap: 5, minWidth: 0, maxWidth: "100%", verticalAlign: "bottom" }}><span style={{ minWidth: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{t}</span>{p && !p.group && !p.me ? <HellooBadge tier={p.badge || 1} size={size} /> : null}</span>;
+}
+
 // A name with GLOOBAL's verified mark: the account exists, the name is the
 // one on it.
 function HellooVerifiedName({ person, size = 15 }) {

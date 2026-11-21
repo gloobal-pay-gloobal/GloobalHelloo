@@ -218,7 +218,7 @@ function HellooWaHistoryScreen({ chatId, person, onBack, onRemoved }) {
       <NavBackButton onClick={onBack} />
       <HellooAvatar person={person} size={38} flag={false} />
       <div style={{ flex: 1, minWidth: 0 }}>
-        <div style={{ fontSize: 15.5, fontWeight: 800, color: T.ink, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{person.handle || person.name}</div>
+        <div style={{ fontSize: 15.5, fontWeight: 800, color: T.ink, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}><HellooNameB p={person} label={person.handle || person.name} /></div>
         <div style={{ display: "flex", alignItems: "center", gap: 5, fontSize: 11.5, color: T.inkSoft }}><HellooWaBadge size={13} />WhatsApp history{rec ? ` · ${hellooWaDate(rec.messages[0].at)} – ${hellooWaDate(rec.messages[rec.messages.length - 1].at)}` : ""}</div>
       </div>
     </div>
