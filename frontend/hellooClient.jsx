@@ -294,7 +294,7 @@ function hellooBubbleFrom(m, meAccountId, theyReadAt, voiceState, names) {
   base.source = m;
   if (m.paid && m.paid.amount) { base.paidText = hellooMoneyText(m.paid.amount, m.paid.currency); base.earnedText = hellooEarnedText(m.paid.amount, m.paid.currency); }
   if (m.kind === "deleted") return Object.assign(base, { kind: "deleted" });
-  if (m.kind === "sticker") return Object.assign(base, { kind: "sticker", stickerId: (m.sticker && m.sticker.id) || "" });
+  if (m.kind === "sticker") return Object.assign(base, { kind: "sticker", stickerId: (m.sticker && m.sticker.id) || "", stickerMine: m.sticker && m.sticker.id === "mine" ? { mood: m.sticker.mood, cup: m.sticker.cup, prop: m.sticker.prop, words: m.sticker.words } : null });
   if (m.kind === "call") {
     const c = m.call || {};
     const v = voiceState || {};
