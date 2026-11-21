@@ -13,6 +13,60 @@ import { useState as useStateH12, useRef as useRefH12 } from "react";
 // and its handle for a name. Soft rings leave the picture while it rings
 // and it breathes once the call is live. The controls are one small bar
 // and a red dot.
+// ── A PAID CALL ─────────────────────────────────────────────────────────
+// Someone who charges for calls (a creator: "call me, 1.00 a minute"). It
+// is billed per second from when they pick up, from your GLOOBAL balance —
+// the same money Ads & Earn pays into. Before it rings you see what you
+// have and how long that lets you talk. Nothing is lent: at zero it does
+// not ring, and it ends by itself when the balance is used up.
+var hellooCallCost = (seconds, perMinute) => Math.round((Math.max(0, seconds) * perMinute) / 60 * 100) / 100;
+function hellooTalkTime(seconds) {
+  const s = Math.max(0, Math.floor(seconds));
+  const m = Math.floor(s / 60); const r = s % 60;
+  if (m >= 60) return "1 hour";
+  if (!m) return `${r} sec`;
+  return r ? `${m} min ${r} sec` : `${m} min`;
+}
+function HellooPaidCallSheet({ person, video = false, perMinute, currency, wallet = null, busy = false, onCall, onEarn, onClose }) {
+  const first = person.handle || (person.name || "").split(" ")[0] || "They";
+  const w = wallet || { balance: 0, seconds: 0, sameMoney: true };
+  const empty = !(w.seconds >= 1);
+  const other = w.sameMoney === false;
+  const capped = w.seconds >= 3600;
+  const fill = Math.max(empty ? 0 : 0.04, Math.min(1, w.seconds / 3600));
+  const line = (Icon, text, color) => <div style={{ display: "flex", alignItems: "flex-start", gap: 9, fontSize: 12.5, color: T.inkSoft, lineHeight: 1.45 }}><Icon size={15} color={color || T.inkFaint} style={{ flexShrink: 0, marginTop: 1 }} /><span>{text}</span></div>;
+  return <HellooSheet title={video ? "Paid video call" : "Paid call"} onClose={busy ? undefined : onClose}><div data-testid="helloo-paidcall" style={{ fontFamily: T.fontBody }}>
+    <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+      <HellooAvatar person={person} size={52} />
+      <span style={{ flex: 1, minWidth: 0 }}><span style={{ display: "block", fontSize: 16, fontWeight: 800, color: T.ink }}><HellooNameB p={person} /></span><span style={{ display: "block", fontSize: 12.5, color: T.inkSoft, marginTop: 2 }}>takes paid calls</span></span>
+      <span data-testid="helloo-paidcall-rate" style={{ textAlign: "right", flexShrink: 0 }}><span style={{ display: "block", fontSize: 19, fontWeight: 900, fontFamily: T.fontDisplay, color: T.ink, whiteSpace: "nowrap" }}>{hellooMoneyText(perMinute, currency)}</span><span style={{ display: "block", fontSize: 11.5, fontWeight: 800, color: T.inkSoft }}>a minute</span></span>
+    </div>
+    <div data-testid="helloo-paidcall-wallet" style={{ marginTop: 16, padding: 14, borderRadius: 18, background: empty || other ? "#FEF3C7" : T.surfaceAlt }}>
+      <div style={{ display: "flex", alignItems: "baseline", justifyContent: "space-between", gap: 10 }}>
+        <span style={{ fontSize: 12, fontWeight: 800, color: T.inkSoft, letterSpacing: 0.4, textTransform: "uppercase" }}>Your balance</span>
+        <span data-testid="helloo-paidcall-balance" style={{ fontSize: 17, fontWeight: 900, fontFamily: T.fontDisplay, color: T.ink, whiteSpace: "nowrap" }}>{hellooMoneyText(w.balance, w.currency || currency)}</span>
+      </div>
+      {other ? <div style={{ marginTop: 8, fontSize: 13.5, fontWeight: 800, color: "#92400E", lineHeight: 1.4 }}>Paid calls work between people with the same money for now.</div>
+        : empty ? <div data-testid="helloo-paidcall-empty" style={{ marginTop: 8, fontSize: 13.5, fontWeight: 800, color: "#92400E", lineHeight: 1.4 }}>Your balance is empty, so this call can't connect.</div>
+        : <>
+          <div style={{ marginTop: 10, fontSize: 12.5, fontWeight: 700, color: T.inkSoft }}>You can talk for up to</div>
+          <div data-testid="helloo-paidcall-time" style={{ fontSize: 24, fontWeight: 900, fontFamily: T.fontDisplay, color: T.ink, lineHeight: 1.15 }}>{hellooTalkTime(w.seconds)}</div>
+          <div aria-hidden="true" style={{ marginTop: 10, height: 6, borderRadius: 3, background: "rgba(23,19,43,0.08)", overflow: "hidden" }}><div style={{ width: `${fill * 100}%`, height: "100%", borderRadius: 3, background: HT.free }} /></div>
+          {capped ? <div style={{ marginTop: 6, fontSize: 11.5, color: T.inkFaint }}>One call can run up to an hour.</div> : null}
+        </>}
+    </div>
+    <div style={{ display: "flex", flexDirection: "column", gap: 7, margin: "14px 2px 16px" }}>
+      {line(HlTimer, `Billed per second from when ${first} picks up — 10 sec is ${hellooMoneyText(hellooCallCost(10, perMinute), currency)}.`, HT.free)}
+      {line(HlLock, "Ends by itself when your balance runs out. Nothing is borrowed, nothing is owed later.")}
+      {line(HlPhone, "Not answered or declined? Nothing is charged.")}
+    </div>
+    {empty || other
+      ? <span data-testid="helloo-paidcall-earn" style={{ display: "flex" }}><HellooPrimary onClick={onEarn} Icon={HlRupee}>Earn with Ads & Earn</HellooPrimary></span>
+      : <span data-testid="helloo-paidcall-pay" style={{ display: "flex" }}><HellooPrimary onClick={onCall} disabled={busy} Icon={video ? HlVideo : HlPhone}>{busy ? "Calling…" : "Call · billed per second"}</HellooPrimary></span>}
+    {empty ? <div style={{ marginTop: 10, textAlign: "center", fontSize: 12, color: T.inkFaint }}>Or add money to your GLOOBAL balance.</div> : null}
+  </div></HellooSheet>;
+}
+
 // ── REPLY WITH A MESSAGE ────────────────────────────────────────────────
 // When a call comes and you can't pick up: decline it with a line instead.
 // Four quick replies, yours to rewrite ("Ruk ja bhai, bas 5 min"), kept on
@@ -51,13 +105,24 @@ function HellooCallReplySheet({ me, person, onSend, onClose }) {
   </div></HellooSheet>;
 }
 
-function HellooCallScreen({ me = null, onReply, person, video = false, state = "ringing", seconds = 0, muted = false, speaker = false, cameraOff = false, onMute, onSpeaker, onCamera, onFlip, onEnd, onMinimise, onChat, onShop, meter = null, localVideoRef, remoteVideoRef, remoteAudioRef, incoming = false, onAccept, note = "", paid = false }) {
+function HellooCallScreen({ paidCall = null, me = null, onReply, person, video = false, state = "ringing", seconds = 0, muted = false, speaker = false, cameraOff = false, onMute, onSpeaker, onCamera, onFlip, onEnd, onMinimise, onChat, onShop, meter = null, localVideoRef, remoteVideoRef, remoteAudioRef, incoming = false, onAccept, note = "", paid = false }) {
   const live = state === "live";
   const [replying, setReplying] = useStateH12(false);
   const showVideo = video && (live || state === "connecting");
   const shop = hellooIsBusiness(person);
   const INK = "#17132B"; const SOFT = "rgba(23,19,43,0.56)"; const PAPER = "#F6F4FF";
   const ink = showVideo ? "#fff" : INK; const soft = showVideo ? "rgba(255,255,255,0.78)" : SOFT;
+  // A paid call: the rate, and once live what it has cost so far — and for
+  // the caller, the time their balance has left.
+  const paidMax = paidCall && paidCall.maxSeconds ? paidCall.maxSeconds : 0;
+  const paidRan = live ? Math.min(seconds, paidMax || seconds) : 0;
+  const paidSoFar = paidCall ? hellooCallCost(paidRan, paidCall.perMinute) : 0;
+  const paidLeft = Math.max(0, paidMax - paidRan);
+  const paidLow = paidCall && live && !incoming && paidLeft <= 30;
+  const paidClock = (n) => `${Math.floor(n / 60)}:${String(n % 60).padStart(2, "0")}`;
+  const paidPill = paidCall && paidCall.perMinute ? <div data-testid="helloo-call-paid" style={{ display: "inline-flex", alignItems: "center", gap: 7, marginTop: 10, padding: "7px 12px", borderRadius: 999, background: paidLow ? "#F59E0B" : showVideo ? "rgba(255,255,255,0.18)" : "#fff", color: paidLow ? "#fff" : ink, boxShadow: showVideo || paidLow ? "none" : "0 6px 18px rgba(60,40,140,0.10)", fontSize: 13, fontWeight: 800, fontVariantNumeric: "tabular-nums", fontFamily: T.fontBody, backdropFilter: showVideo ? "blur(10px)" : undefined, maxWidth: "100%", boxSizing: "border-box" }}><HlRupee size={14} color={paidLow ? "#fff" : (showVideo ? "#fff" : HT.free)} style={{ flexShrink: 0 }} /><span>{incoming
+      ? (live ? `Paid call · you've earned ${hellooMoneyText(paidSoFar, paidCall.currency)}` : `Paid call · ${hellooMoneyText(paidCall.perMinute, paidCall.currency)}/min to you`)
+      : (live ? `${hellooMoneyText(paidSoFar, paidCall.currency)} · ${paidClock(paidLeft)} left` : `${hellooMoneyText(paidCall.perMinute, paidCall.currency)}/min · up to ${hellooTalkTime(paidMax)}`)}</span></div> : null;
   const status = incoming && state === "ringing" ? `Incoming ${video ? "video" : "voice"} call` : state === "ringing" ? (video ? "Video calling…" : "Calling…") : state === "connecting" ? "Connecting…" : state === "ended" ? "Call ended" : hellooDuration(seconds);
   // The one picture: photo or logo, else the emoji, else the first letters
   // on the person's own colour.
@@ -74,7 +139,7 @@ function HellooCallScreen({ me = null, onReply, person, video = false, state = "
     {showVideo && <span aria-hidden="true" style={{ position: "absolute", left: 0, right: 0, bottom: 0, height: 210, background: "linear-gradient(rgba(0,0,0,0), rgba(0,0,0,0.55))", zIndex: 1 }} />}
     {video && <video ref={localVideoRef} autoPlay playsInline muted data-testid="helloo-call-self" style={{ position: "absolute", right: 18, bottom: "calc(118px + env(safe-area-inset-bottom, 0px))", width: 104, height: 104, objectFit: "cover", borderRadius: "50%", background: "#111", border: "3px solid #fff", boxShadow: "0 10px 28px rgba(0,0,0,0.45)", transform: "scaleX(-1)", zIndex: 3, display: cameraOff || !showVideo ? "none" : "block" }} />}
     <div style={{ position: "relative", zIndex: 2, display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12, padding: "calc(14px + env(safe-area-inset-top, 0px)) 18px 0 24px" }}><div data-testid="helloo-call-name" style={{ flex: 1, minWidth: 0, fontSize: showVideo ? 22 : 34, fontWeight: 800, fontFamily: T.fontDisplay, letterSpacing: showVideo ? -0.4 : -1, lineHeight: 1.08, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}><span style={{ display: "inline-flex", alignItems: "center", gap: 8, maxWidth: "100%", minWidth: 0 }}><span style={{ minWidth: 0, overflow: "hidden", textOverflow: "ellipsis" }}>{shop ? <CreatorHandleText handle={person.handle} icon={false} color={ink} /> : hellooName(person)}</span>{!person.group ? <HellooBadge tier={person.badge || 1} size={showVideo ? 20 : 26} /> : null}</span></div><button onClick={onMinimise} aria-label="Minimise" data-testid="helloo-call-flag" title={person.country ? `${person.country} · tap to make the call small` : "Make the call small"} className="v2-tap" style={{ position: "relative", width: 44, height: 44, flexShrink: 0, borderRadius: "50%", border: "none", padding: 0, background: showVideo ? "rgba(255,255,255,0.9)" : "#fff", display: "flex", alignItems: "center", justifyContent: "center", boxShadow: "0 2px 10px rgba(23,19,43,0.14)", cursor: "pointer" }}>{person.flag ? <FlagEmoji flag={person.flag} size={32} shape="circle" border="none" /> : <HlDown size={20} color={INK} />}{person.flag ? <span aria-hidden="true" style={{ position: "absolute", right: -3, bottom: -3, width: 20, height: 20, borderRadius: "50%", background: INK, border: "2px solid #fff", display: "flex", alignItems: "center", justifyContent: "center" }}><HlDown size={12} color="#fff" strokeWidth={3} /></span> : null}</button></div>
-    <div style={{ position: "relative", zIndex: 2, padding: showVideo ? "4px 20px 0" : "6px 24px 0" }}><div style={{ display: "flex", alignItems: "center", gap: 7, fontSize: 13, color: soft, marginTop: 2, fontWeight: 600 }}>{shop ? "Shop" : null}</div><div data-testid="helloo-call-status" style={{ marginTop: showVideo ? 4 : 14, fontSize: live ? (showVideo ? 17 : 30) : 15, fontWeight: live ? 800 : 700, fontFamily: live ? T.fontDisplay : T.fontBody, letterSpacing: live ? -0.5 : 0, color: live ? (showVideo ? "#fff" : HT.free) : soft, fontVariantNumeric: "tabular-nums" }}>{status}</div></div>
+    <div style={{ position: "relative", zIndex: 2, padding: showVideo ? "4px 20px 0" : "6px 24px 0" }}><div style={{ display: "flex", alignItems: "center", gap: 7, fontSize: 13, color: soft, marginTop: 2, fontWeight: 600 }}>{shop ? "Shop" : null}</div><div data-testid="helloo-call-status" style={{ marginTop: showVideo ? 4 : 14, fontSize: live ? (showVideo ? 17 : 30) : 15, fontWeight: live ? 800 : 700, fontFamily: live ? T.fontDisplay : T.fontBody, letterSpacing: live ? -0.5 : 0, color: live ? (showVideo ? "#fff" : HT.free) : soft, fontVariantNumeric: "tabular-nums" }}>{status}</div>{paidPill}</div>
     <div style={{ position: "relative", zIndex: 2, flex: 1, minHeight: 0, display: "flex", alignItems: "center", justifyContent: "center" }}>{!showVideo && <span style={{ position: "relative", display: "inline-flex", animation: live ? "hlBreathe 2.8s ease-in-out infinite" : "none" }}>{state === "ringing" && ring(0)}{state === "ringing" && ring(0.7)}{state === "ringing" && ring(1.4)}{picture}</span>}<style>{"@keyframes hlCallRing{0%{transform:scale(1);opacity:.5}100%{transform:scale(1.55);opacity:0}}@keyframes hlBreathe{0%,100%{transform:scale(1)}50%{transform:scale(1.03)}}@media (prefers-reduced-motion: reduce){[data-testid=helloo-call-picture]{animation:none}}"}</style></div>
     <div style={{ position: "relative", zIndex: 2, padding: "0 20px calc(26px + env(safe-area-inset-bottom, 0px))", display: "flex", flexDirection: "column", gap: 18 }}>{meter}<div data-testid="helloo-call-lock" style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 6, fontSize: 12, fontWeight: 800, color: soft, letterSpacing: 0.2 }}><HlLock size={13} color={soft} />Helloo · {paid ? "paid" : "free"}</div>{incoming && state === "ringing"
       ? <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", padding: "0 14px" }}>{round(HlEnd, "Decline", T.negative, onEnd, "Decline")}{onReply ? <button onClick={() => setReplying(true)} aria-label="Reply with message" data-testid="helloo-call-reply-open" className="v2-tap" style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 8, border: "none", background: "none", cursor: "pointer", color: soft, fontFamily: T.fontBody, fontSize: 12, fontWeight: 700 }}><span style={{ width: 56, height: 56, marginTop: 6, borderRadius: "50%", background: "#fff", boxShadow: "0 8px 22px rgba(60,40,140,0.14)", display: "flex", alignItems: "center", justifyContent: "center" }}><HlChat size={23} color={T.accent} /></span>Message</button> : null}{round(video ? HlVideo : HlPhone, "Answer", "#0B9E6B", onAccept, "Answer")}</div>

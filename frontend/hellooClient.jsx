@@ -96,7 +96,8 @@ var hellooApi = {
   answerAsk: (id, action, price) => hellooHttp.post(`/api/helloo/asks/${encodeURIComponent(id)}`, price ? { action, price } : { action }),
   earnings: (month) => hellooHttp.get(`/api/helloo/earnings${month ? `?month=${encodeURIComponent(month)}` : ""}`),
   together: (accountId) => hellooHttp.get(`/api/helloo/people/${encodeURIComponent(accountId)}/together`),
-  startCall: (to, video, face) => hellooHttp.post("/api/helloo/calls", face ? { to, video: Boolean(video), face } : { to, video: Boolean(video) }),
+  // paid: { minutes, reachRef } for a call someone charges for.
+  startCall: (to, video, face, paid) => hellooHttp.post("/api/helloo/calls", Object.assign({ to, video: Boolean(video) }, face ? { face } : {}, paid || {})),
   calls: () => hellooHttp.get("/api/helloo/calls"),
   activeCall: () => hellooHttp.get("/api/helloo/calls/active"),
   callAction: (id, action) => hellooHttp.post(`/api/helloo/calls/${encodeURIComponent(id)}/${action}`, {})
