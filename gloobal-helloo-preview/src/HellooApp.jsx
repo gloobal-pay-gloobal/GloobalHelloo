@@ -78918,8 +78918,47 @@ function HellooHold({ onHold, align, children }) {
 // and its handle for a name. Soft rings leave the picture while it rings
 // and it breathes once the call is live. The controls are one small bar
 // and a red dot.
-function HellooCallScreen({ person, video = false, state = "ringing", seconds = 0, muted = false, speaker = false, cameraOff = false, onMute, onSpeaker, onCamera, onFlip, onEnd, onMinimise, onChat, onShop, meter = null, localVideoRef, remoteVideoRef, remoteAudioRef, incoming = false, onAccept, note = "", paid = false }) {
+// ── REPLY WITH A MESSAGE ────────────────────────────────────────────────
+// When a call comes and you can't pick up: decline it with a line instead.
+// Four quick replies, yours to rewrite ("Ruk ja bhai, bas 5 min"), kept on
+// this phone for your account — and Custom, to type one just for now.
+var HELLOO_CALL_REPLIES = ["Sorry, I can't talk right now.", "Can't talk now. Please text me.", "I'm on my way.", "In a meeting. Call you later."];
+var HELLOO_CALL_REPLY_MAX = 80;
+function hellooCallRepliesLoad(accountId) {
+  try { const v = JSON.parse(localStorage.getItem("helloo.callReplies." + (accountId || "")) || "null"); if (Array.isArray(v) && v.length === 4) return v.map((t, i) => (typeof t === "string" && t.trim() ? t.trim().slice(0, HELLOO_CALL_REPLY_MAX) : HELLOO_CALL_REPLIES[i])); } catch (e) { /* private window */ }
+  return HELLOO_CALL_REPLIES.slice();
+}
+function hellooCallRepliesSave(accountId, list) { try { localStorage.setItem("helloo.callReplies." + (accountId || ""), JSON.stringify(list)); } catch (e) { /* private window */ } }
+function HellooCallReplySheet({ me, person, onSend, onClose }) {
+  const mine = (me && me.accountId) || "";
+  const [list, setList] = useStateH12(() => hellooCallRepliesLoad(mine));
+  const [mode, setMode] = useStateH12("pick"); // pick | custom | edit
+  const [text, setText] = useStateH12("");
+  const [draft, setDraft] = useStateH12(list);
+  const who = person.handle || (person.name || "").split(" ")[0] || "them";
+  const row = { width: "100%", display: "flex", alignItems: "center", gap: 10, padding: "14px 16px", border: "none", borderTop: `1px solid ${T.line}`, background: "none", cursor: "pointer", textAlign: "left", fontFamily: T.fontBody, fontSize: 15, fontWeight: 600, color: T.ink };
+  const field = { flex: 1, minWidth: 0, height: 46, borderRadius: 14, border: `1.5px solid ${T.line}`, background: T.surface, color: T.ink, fontSize: 15, fontFamily: T.fontBody, padding: "0 14px", outline: "none", boxSizing: "border-box" };
+  if (mode === "edit") return <HellooSheet title="Your quick replies" label="Edit quick replies" zIndex={210} onClose={() => setMode("pick")}><div data-testid="helloo-call-reply-edit" style={{ display: "flex", flexDirection: "column", gap: 10, fontFamily: T.fontBody }}>
+    <div style={{ fontSize: 12.5, color: T.inkSoft, lineHeight: 1.45 }}>Four lines you can send with one tap when you can't pick up. Write them your way.</div>
+    {draft.map((t, i) => <label key={i} style={{ display: "flex", alignItems: "center", gap: 10 }}><span style={{ width: 22, textAlign: "center", fontSize: 13, fontWeight: 800, color: T.inkFaint }}>{i + 1}</span><input value={t} maxLength={HELLOO_CALL_REPLY_MAX} onChange={(e) => setDraft((d) => d.map((x, k) => (k === i ? e.target.value : x)))} placeholder={HELLOO_CALL_REPLIES[i]} aria-label={`Quick reply ${i + 1}`} data-testid={`helloo-call-reply-edit-${i}`} style={field} /></label>)}
+    <span data-testid="helloo-call-reply-save" style={{ display: "flex", marginTop: 4 }}><HellooPrimary onClick={() => { const next = draft.map((t, i) => (t.trim() ? t.trim().slice(0, HELLOO_CALL_REPLY_MAX) : HELLOO_CALL_REPLIES[i])); hellooCallRepliesSave(mine, next); setList(next); setDraft(next); setMode("pick"); }}>Save</HellooPrimary></span>
+    <HellooSecondary onClick={() => { setDraft(HELLOO_CALL_REPLIES.slice()); }}>Put the usual four back</HellooSecondary>
+  </div></HellooSheet>;
+  return <HellooSheet title="Reply with message" zIndex={210} onClose={onClose}><div data-testid="helloo-call-reply" style={{ fontFamily: T.fontBody }}>
+    <div style={{ fontSize: 12.5, color: T.inkSoft, margin: "0 2px 10px" }}>The call is declined and {who} gets your message.</div>
+    <HellooCard>
+      {list.map((t, i) => <button key={i} onClick={() => onSend(t)} data-testid="helloo-call-reply-option" className="v2-tap" style={Object.assign({}, row, i === 0 ? { borderTop: "none" } : {})}><span style={{ flex: 1, minWidth: 0, overflowWrap: "anywhere" }}>{t}</span><HlSend size={16} color={T.inkFaint} style={{ flexShrink: 0 }} /></button>)}
+      {mode === "custom"
+        ? <div style={{ display: "flex", alignItems: "center", gap: 8, padding: "10px 12px", borderTop: `1px solid ${T.line}` }}><input autoFocus value={text} maxLength={HELLOO_CALL_REPLY_MAX} onChange={(e) => setText(e.target.value)} onKeyDown={(e) => { if (e.key === "Enter" && text.trim()) onSend(text.trim()); }} placeholder="Type a message" aria-label="Custom message" data-testid="helloo-call-reply-custom-input" style={field} /><button onClick={() => text.trim() && onSend(text.trim())} disabled={!text.trim()} aria-label="Send message" data-testid="helloo-call-reply-custom-send" className="v2-tap" style={{ width: 46, height: 46, borderRadius: "50%", border: "none", background: text.trim() ? T.gradButton : T.gradButtonDisabled, display: "flex", alignItems: "center", justifyContent: "center", cursor: text.trim() ? "pointer" : "default", flexShrink: 0 }}><HlSend size={18} color="#fff" /></button></div>
+        : <button onClick={() => setMode("custom")} data-testid="helloo-call-reply-custom" className="v2-tap" style={row}><span style={{ flex: 1 }}>Custom</span><HlPencil size={16} color={T.inkFaint} /></button>}
+    </HellooCard>
+    <button onClick={() => { setDraft(list); setMode("edit"); }} data-testid="helloo-call-reply-edit-open" className="v2-tap" style={{ width: "100%", marginTop: 12, height: 44, borderRadius: 14, border: "none", background: T.surfaceAlt, color: T.accent, fontSize: 14, fontWeight: 800, cursor: "pointer", fontFamily: T.fontBody }}>Edit my four quick replies</button>
+  </div></HellooSheet>;
+}
+
+function HellooCallScreen({ me = null, onReply, person, video = false, state = "ringing", seconds = 0, muted = false, speaker = false, cameraOff = false, onMute, onSpeaker, onCamera, onFlip, onEnd, onMinimise, onChat, onShop, meter = null, localVideoRef, remoteVideoRef, remoteAudioRef, incoming = false, onAccept, note = "", paid = false }) {
   const live = state === "live";
+  const [replying, setReplying] = useStateH12(false);
   const showVideo = video && (live || state === "connecting");
   const shop = hellooIsBusiness(person);
   const INK = "#17132B"; const SOFT = "rgba(23,19,43,0.56)"; const PAPER = "#F6F4FF";
@@ -78943,9 +78982,9 @@ function HellooCallScreen({ person, video = false, state = "ringing", seconds = 
     <div style={{ position: "relative", zIndex: 2, padding: showVideo ? "4px 20px 0" : "6px 24px 0" }}><div style={{ display: "flex", alignItems: "center", gap: 7, fontSize: 13, color: soft, marginTop: 2, fontWeight: 600 }}>{shop ? "Shop" : null}</div><div data-testid="helloo-call-status" style={{ marginTop: showVideo ? 4 : 14, fontSize: live ? (showVideo ? 17 : 30) : 15, fontWeight: live ? 800 : 700, fontFamily: live ? T.fontDisplay : T.fontBody, letterSpacing: live ? -0.5 : 0, color: live ? (showVideo ? "#fff" : HT.free) : soft, fontVariantNumeric: "tabular-nums" }}>{status}</div></div>
     <div style={{ position: "relative", zIndex: 2, flex: 1, minHeight: 0, display: "flex", alignItems: "center", justifyContent: "center" }}>{!showVideo && <span style={{ position: "relative", display: "inline-flex", animation: live ? "hlBreathe 2.8s ease-in-out infinite" : "none" }}>{state === "ringing" && ring(0)}{state === "ringing" && ring(0.7)}{state === "ringing" && ring(1.4)}{picture}</span>}<style>{"@keyframes hlCallRing{0%{transform:scale(1);opacity:.5}100%{transform:scale(1.55);opacity:0}}@keyframes hlBreathe{0%,100%{transform:scale(1)}50%{transform:scale(1.03)}}@media (prefers-reduced-motion: reduce){[data-testid=helloo-call-picture]{animation:none}}"}</style></div>
     <div style={{ position: "relative", zIndex: 2, padding: "0 20px calc(26px + env(safe-area-inset-bottom, 0px))", display: "flex", flexDirection: "column", gap: 18 }}>{meter}<div data-testid="helloo-call-lock" style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 6, fontSize: 12, fontWeight: 800, color: soft, letterSpacing: 0.2 }}><HlLock size={13} color={soft} />Helloo · {paid ? "paid" : "free"}</div>{incoming && state === "ringing"
-      ? <div style={{ display: "flex", justifyContent: "space-between", padding: "0 26px" }}>{round(HlEnd, "Decline", T.negative, onEnd, "Decline")}{round(video ? HlVideo : HlPhone, "Answer", "#0B9E6B", onAccept, "Answer")}</div>
+      ? <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", padding: "0 14px" }}>{round(HlEnd, "Decline", T.negative, onEnd, "Decline")}{onReply ? <button onClick={() => setReplying(true)} aria-label="Reply with message" data-testid="helloo-call-reply-open" className="v2-tap" style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 8, border: "none", background: "none", cursor: "pointer", color: soft, fontFamily: T.fontBody, fontSize: 12, fontWeight: 700 }}><span style={{ width: 56, height: 56, marginTop: 6, borderRadius: "50%", background: "#fff", boxShadow: "0 8px 22px rgba(60,40,140,0.14)", display: "flex", alignItems: "center", justifyContent: "center" }}><HlChat size={23} color={T.accent} /></span>Message</button> : null}{round(video ? HlVideo : HlPhone, "Answer", "#0B9E6B", onAccept, "Answer")}</div>
       : <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 14 }}><div role="toolbar" aria-label="Call controls" style={{ display: "flex", alignItems: "center", gap: 4, padding: 6, borderRadius: 999, background: showVideo ? "rgba(20,16,40,0.55)" : "#fff", backdropFilter: showVideo ? "blur(14px)" : undefined, WebkitBackdropFilter: showVideo ? "blur(14px)" : undefined, boxShadow: showVideo ? "none" : "0 8px 24px rgba(60,40,140,0.10)" }}>{tool(muted ? HlMicOff : HlMic, muted ? "Unmute" : "Mute", muted, onMute)}{video ? tool(cameraOff ? HlVideoOff : HlVideo, cameraOff ? "Camera on" : "Camera off", cameraOff, onCamera) : tool(HlSpeaker, "Speaker", speaker, onSpeaker)}{video && tool(HlRetry, "Flip", false, onFlip)}{tool(HlChat, "Chat", false, onChat)}</div><button onClick={onEnd} aria-label="End" className="v2-tap" style={{ width: 64, height: 64, borderRadius: "50%", border: "none", background: T.negative, display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer", flexShrink: 0, boxShadow: "0 12px 28px rgba(220,38,38,0.38)" }}><HlEnd size={26} color="#fff" /></button></div>}</div>
-  </HellooScreen>;
+  {replying && incoming && state === "ringing" && onReply ? <HellooCallReplySheet me={me} person={person} onClose={() => setReplying(false)} onSend={(t) => { setReplying(false); onReply(t); }} /> : null}</HellooScreen>;
 }
 
 // Rings over whatever is open. Push wakes the app when it is closed.
@@ -84296,6 +84335,20 @@ function HellooRoot() {
     endCallLocally(c.state === "live" ? "ended" : action === "decline" ? "declined" : "cancelled");
     hellooApi.callAction(c.id, action).catch(() => {});
   };
+  // Can't pick up: decline, and the caller gets a line from you in the chat.
+  const replyToCall = async (text) => {
+    const c = callRef.current;
+    const line = String(text || "").replace(/\s+/g, " ").trim().slice(0, 80);
+    if (!c || !line) return;
+    const who = c.person; let chatId = c.chatId;
+    hangUp();
+    try {
+      if (!chatId) { const r = await hellooApi.open(who.accountId); chatId = r && r.chat && r.chat.id; if (r && r.chat) setChatRows((rowsNow) => [r.chat, ...(rowsNow || []).filter((x) => x.id !== r.chat.id)]); }
+      if (!chatId) throw new Error("Couldn't open the chat.");
+      const sent = await sendMessage(chatId, { kind: "text", text: line });
+      if (sent) setToast(`Declined · sent "${line.length > 28 ? line.slice(0, 28) + "…" : line}"`);
+    } catch (err) { setToast((err && err.message) || "Declined · the message could not be sent"); }
+  };
   const toggleMute = () => { const s = localRef.current; if (!s) return; setCall((c) => { const muted = !c.muted; s.getAudioTracks().forEach((t) => { t.enabled = !muted; }); return Object.assign({}, c, { muted }); }); };
   const toggleCamera = () => { const s = localRef.current; if (!s) return; setCall((c) => { const off = !c.cameraOff; s.getVideoTracks().forEach((t) => { t.enabled = !off; }); return Object.assign({}, c, { cameraOff: off }); }); };
   const toggleSpeaker = () => setCall((c) => (c ? Object.assign({}, c, { speaker: !c.speaker }) : c));
@@ -84461,7 +84514,7 @@ function HellooRoot() {
   // is a call, so it is never re-made (and never cut off) by moving between
   // full and small.
   const callBar = call && me && callMin ? <button data-testid="helloo-call-bar" onClick={() => setCallMin(false)} className="v2-tap" style={{ position: "absolute", top: 0, left: 0, right: 0, height: "calc(48px + env(safe-area-inset-top, 0px))", paddingTop: "env(safe-area-inset-top, 0px)", boxSizing: "border-box", zIndex: 280, display: "flex", alignItems: "center", justifyContent: "center", gap: 8, border: "none", background: "#0B9E6B", color: "#fff", fontFamily: T.fontBody, fontSize: 13.5, fontWeight: 800, cursor: "pointer", whiteSpace: "nowrap", overflow: "hidden" }}><HlPhone size={15} color="#fff" /><span>{call.state === "live" ? hellooDuration(call.seconds) : call.state === "ringing" ? (call.direction === "in" ? "Incoming call" : "Calling…") : "Connecting…"}</span><span style={{ opacity: 0.85, maxWidth: 140, overflow: "hidden", textOverflow: "ellipsis" }}>· {call.person.handle || hellooName(call.person)}</span><span style={{ opacity: 0.85 }}>· Back to call</span></button> : null;
-  const callLayer = call && me ? <div key="helloo-call" style={callMin ? { display: "none" } : { position: "absolute", inset: 0, zIndex: 200 }}><HellooCallScreen person={call.person} paid={Boolean(call.paid)} video={call.video} state={call.state} seconds={call.seconds} muted={call.muted} cameraOff={call.cameraOff} speaker={call.speaker} incoming={call.direction === "in"} onAccept={answerCall} onEnd={hangUp} onMute={toggleMute} onCamera={toggleCamera} onSpeaker={toggleSpeaker} onFlip={flipCamera} onMinimise={() => setCallMin(true)} onChat={() => { if (call.chatId) { setCallMin(true); setScreen(null); openChat(call.chatId); } }} onShop={hellooIsBusiness(call.person) && call.person.gloobalId ? () => { const shopPerson = call.person; setCallMin(true); setScreen(null); Promise.resolve(openChatWith(shopPerson.accountId)).then(() => openMenu(shopPerson)); } : undefined} localVideoRef={localVideoRef} remoteVideoRef={remoteVideoRef} remoteAudioRef={remoteAudioRef} /></div> : null;
+  const callLayer = call && me ? <div key="helloo-call" style={callMin ? { display: "none" } : { position: "absolute", inset: 0, zIndex: 200 }}><HellooCallScreen person={call.person} paid={Boolean(call.paid)} video={call.video} state={call.state} seconds={call.seconds} muted={call.muted} cameraOff={call.cameraOff} speaker={call.speaker} incoming={call.direction === "in"} me={me} onReply={call.direction === "in" && call.state === "ringing" ? replyToCall : undefined} onAccept={answerCall} onEnd={hangUp} onMute={toggleMute} onCamera={toggleCamera} onSpeaker={toggleSpeaker} onFlip={flipCamera} onMinimise={() => setCallMin(true)} onChat={() => { if (call.chatId) { setCallMin(true); setScreen(null); openChat(call.chatId); } }} onShop={hellooIsBusiness(call.person) && call.person.gloobalId ? () => { const shopPerson = call.person; setCallMin(true); setScreen(null); Promise.resolve(openChatWith(shopPerson.accountId)).then(() => openMenu(shopPerson)); } : undefined} localVideoRef={localVideoRef} remoteVideoRef={remoteVideoRef} remoteAudioRef={remoteAudioRef} /></div> : null;
   if (locked && signedIn && me && !call) return shell(<HellooScreen><div data-testid="helloo-locked" style={{ flex: 1, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: 14, padding: "0 32px", textAlign: "center" }}><span style={{ fontSize: 30 }}><HellooWordmark /></span><span style={{ width: 72, height: 72, borderRadius: "50%", background: T.accentSoft, display: "flex", alignItems: "center", justifyContent: "center", marginTop: 8 }}><HlFinger size={34} color={T.accent} /></span><div style={{ fontSize: 18, fontWeight: 800, fontFamily: T.fontDisplay, color: T.ink }}>Locked</div><div style={{ fontSize: 13.5, color: T.inkSoft, lineHeight: 1.45 }}>{lockNote || "Your chats are locked after five minutes away. Open with your fingerprint, Face ID or GLOOBAL PIN."}</div><div style={{ width: "100%", maxWidth: 300, marginTop: 8, display: "flex", flexDirection: "column", gap: 10 }}><HellooPrimary Icon={HlFinger} onClick={unlock} disabled={unlocking}>{unlocking ? "Checking…" : "Unlock"}</HellooPrimary><HellooSecondary Icon={HlLogOut} onClick={() => { setLocked(false); signOut("Signed out"); }}>Sign out</HellooSecondary></div></div></HellooScreen>);
   if (call && me && !callMin) return shell(null);
 
