@@ -90,6 +90,8 @@ import {
   Ear as DialSoundOnIcon,
   EarOff as DialSoundOffIcon
 } from "lucide-react";
+import { useEffect as useEffect102, useRef as useRef102, useState as useState102 } from "react";
+import { Lock as PinLock, Eye as PinEye, EyeOff as PinEyeOff, Delete as PinDelete, ChevronLeft as PinBack } from "lucide-react";
 import { useState as useState89, useEffect as useEffect85, useRef as useRef48 } from "react";
 import React, { useState as useState7, useEffect as useEffect7, useRef as useRef5 } from "react";
 import { RefreshCw } from "lucide-react";
@@ -14582,118 +14584,10 @@ function CountryPickerScreen({ topCountries, countries, search, onSearch, onSele
   ><FlagEmoji flag={c.flag} size={30} radius={9} dropShadow={`drop-shadow(0 1px 3px rgba(${T.accentDeepRgb},0.12))`} /><span style={{ flex: 1, fontSize: 14, color: T.ink, fontWeight: 600 }}>{c.name}</span><span style={{ fontSize: 13, color: T.inkFaint, fontWeight: 600 }}>{c.dialCode}</span></button>)}</div>}</div></div>;
 }
 function PinScreen({ value, length, onChange, onSubmit, onBack, revealed, onToggleReveal, busy }) {
-  const complete = value.length === length;
+  // The shared PIN screen (components/inputs/pinPanel.jsx).
   return <div
-    style={{
-      position: "fixed",
-      inset: 0,
-      zIndex: 100,
-      background: T.bg,
-      display: "flex",
-      flexDirection: "column",
-      fontFamily: T.fontBody
-    }}
-  >{
-    /* Back — same floating circular control (40x40, ChevronLeft) used on
-       every other step of the auth flow (phone/OTP/Secure ID/Referral),
-       so PIN doesn't break the pattern with its own boxed header bar. */
-  }<NavBackButton onClick={onBack} style={{
-      position: "absolute",
-      top: "calc(18px + env(safe-area-inset-top, 0px))",
-      left: "calc(18px + env(safe-area-inset-left, 0px))",
-      zIndex: 25
-     }} /><div
-    style={{
-      flex: 1,
-      minHeight: 0,
-      display: "flex",
-      flexDirection: "column",
-      alignItems: "center",
-      justifyContent: "flex-start",
-      gap: 24,
-      padding: "72px 24px 40px",
-      // Vertical scroll only, and only when the dial pad genuinely does
-      // not fit. overflow-x is pinned to hidden rather than left at its
-      // `visible` default because CSS promotes a `visible` axis to
-      // `auto` whenever the other axis is not visible — which is what
-      // painted a horizontal scrollbar track (the dark line) under the
-      // PIN row. Every control on this card sits inside the card's own
-      // width, so clipping the x axis removes nothing.
-      overflowY: "auto",
-      overflowX: "hidden",
-      WebkitOverflowScrolling: "touch"
-    }}
-  ><div
-    style={{
-      position: "relative",
-      width: "100%",
-      display: "flex",
-      alignItems: "center",
-      justifyContent: "center",
-      padding: "22px 14px",
-      borderRadius: T.radiusLg,
-      boxShadow: T.shadowFloat,
-      border: `1px solid ${T.line}`,
-      background: T.surface,
-      boxSizing: "border-box",
-      overflow: "visible"
-    }}
-  >{
-    /* Corner badge — same treatment as the Secure ID / Referral ID /
-       OTP cards, so the PIN card reads as part of the same family. */
-  }<span
-    style={{
-      position: "absolute",
-      top: -11,
-      left: 16,
-      background: T.surface,
-      border: `1px solid ${T.line}`,
-      borderRadius: 7,
-      padding: "3px 9px",
-      fontSize: 10,
-      fontWeight: 800,
-      letterSpacing: 0.4,
-      textTransform: "uppercase",
-      color: T.accent,
-      boxShadow: T.shadowCard
-    }}
-  >
-            PIN
-          </span>{
-    /* Eye toggle: mask/reveal the PIN — same icon and placement as
-       the Secure ID / Referral ID / OTP eye buttons. */
-  }<button
-    onClick={onToggleReveal}
-    aria-label={revealed ? "Hide PIN" : "Show PIN"}
-    className="v2-tap"
-    style={{
-      position: "absolute",
-      top: -11,
-      right: 16,
-      width: 24,
-      height: 24,
-      borderRadius: "50%",
-      border: `1px solid ${T.line}`,
-      background: T.surface,
-      display: "flex",
-      alignItems: "center",
-      justifyContent: "center",
-      cursor: "pointer",
-      boxShadow: T.shadowCard
-    }}
-  ><MaskEyeIcon open={revealed} color={T.inkSoft} /></button><SymbolChipRow length={length} value={value} masked={!revealed} boxSize={34} justify="center" /></div><PhoneDialPad
-    value={value}
-    onChange={onChange}
-    minLength={length}
-    maxLength={length}
-    onSubmit={onSubmit}
-    // The six boxes above ARE the value. The pad used to print it again
-    // underneath as plain text, which is how a masked PIN stayed legible
-    // whatever the eye said.
-    showValue={false}
-    autoSubmit
-    busy={busy}
-  /></div></div>;
+    style={{ position: "fixed", inset: 0, zIndex: 100, background: T.bg, display: "flex", flexDirection: "column", fontFamily: T.fontBody, padding: "calc(14px + env(safe-area-inset-top, 0px)) 18px calc(22px + env(safe-area-inset-bottom, 0px))", boxSizing: "border-box", overflowY: "auto" }}
+  ><GloobalPinPanel title="Choose your PIN" note="6 digits you'll use to sign in and to confirm payments. Don't share it." length={length} value={value} onChange={onChange} onSubmit={onSubmit} onBack={onBack} revealed={revealed} onToggleReveal={onToggleReveal} busy={busy} /></div>;
 }
 // ── SAYING WHAT THE WAIT IS ─────────────────────────────────────────────
 //
@@ -14712,138 +14606,13 @@ function PinScreen({ value, length, onChange, onSubmit, onBack, revealed, onTogg
 // a known 40-second wait from looking like a fault: the time is the same and
 // the person knows what it is, which is the difference between waiting and
 // wondering whether to force-quit.
-function LoginAuthScreen({ value, length, onChange, onSubmit, onBack, revealed, onToggleReveal, waking, busy }) {
+function LoginAuthScreen({ value, length, onChange, onSubmit, onBack, revealed, onToggleReveal, waking, busy, error = "", note = "Welcome back. Your 6-digit GLOOBAL PIN.", extra = null }) {
+  // The shared PIN screen. `waking` says why a sign-in is slow: the API
+  // on Render's free plan sleeps after ~15 minutes, and the first request
+  // pays 20–50 seconds to wake it. Saying so turns waiting into knowing.
   return <div
-    style={{
-      position: "fixed",
-      inset: 0,
-      zIndex: 100,
-      background: T.bg,
-      display: "flex",
-      flexDirection: "column",
-      fontFamily: T.fontBody
-    }}
-  >{
-    /* Back — same floating circular control (40x40, ChevronLeft) used on
-       every other step of the auth flow (phone/OTP/Secure ID/Referral),
-       so this step doesn't break the pattern with its own boxed header
-       bar. */
-  }<NavBackButton onClick={onBack} style={{
-      position: "absolute",
-      top: "calc(18px + env(safe-area-inset-top, 0px))",
-      left: "calc(18px + env(safe-area-inset-left, 0px))",
-      zIndex: 25
-     }} /><div
-    style={{
-      flex: 1,
-      minHeight: 0,
-      display: "flex",
-      flexDirection: "column",
-      alignItems: "center",
-      justifyContent: "flex-start",
-      gap: 24,
-      padding: "72px 24px 40px",
-      // Vertical scroll only, and only when the dial pad genuinely does
-      // not fit. overflow-x is pinned to hidden rather than left at its
-      // `visible` default because CSS promotes a `visible` axis to
-      // `auto` whenever the other axis is not visible — which is what
-      // painted a horizontal scrollbar track (the dark line) under the
-      // PIN row. Every control on this card sits inside the card's own
-      // width, so clipping the x axis removes nothing.
-      overflowY: "auto",
-      overflowX: "hidden",
-      WebkitOverflowScrolling: "touch"
-    }}
-  ><div
-    style={{
-      position: "relative",
-      width: "100%",
-      display: "flex",
-      alignItems: "center",
-      justifyContent: "center",
-      padding: "22px 14px",
-      borderRadius: T.radiusLg,
-      boxShadow: T.shadowFloat,
-      border: `1px solid ${T.line}`,
-      background: T.surface,
-      boxSizing: "border-box",
-      overflow: "visible"
-    }}
-  >{
-    /* Corner badge and eye toggle — same treatment as the Secure ID
-       / Referral ID / OTP / PIN cards. */
-  }<span
-    style={{
-      position: "absolute",
-      top: -11,
-      left: 16,
-      background: T.surface,
-      border: `1px solid ${T.line}`,
-      borderRadius: 7,
-      padding: "3px 9px",
-      fontSize: 10,
-      fontWeight: 800,
-      letterSpacing: 0.4,
-      textTransform: "uppercase",
-      color: T.accent,
-      boxShadow: T.shadowCard
-    }}
-  >
-            PIN
-          </span><button
-    onClick={onToggleReveal}
-    aria-label={revealed ? "Hide PIN" : "Show PIN"}
-    className="v2-tap"
-    style={{
-      position: "absolute",
-      top: -11,
-      right: 16,
-      width: 24,
-      height: 24,
-      borderRadius: "50%",
-      border: `1px solid ${T.line}`,
-      background: T.surface,
-      display: "flex",
-      alignItems: "center",
-      justifyContent: "center",
-      cursor: "pointer",
-      boxShadow: T.shadowCard
-    }}
-  ><MaskEyeIcon open={revealed} color={T.inkSoft} /></button><SymbolChipRow length={length} value={value} masked={!revealed} boxSize={34} justify="center" /></div>{waking && <div
-    // role="status" rather than an alert: this is reassurance, not a
-    // problem, and a screen reader should mention it without interrupting
-    // whatever it was reading.
-    role="status"
-    aria-live="polite"
-    data-testid="login-waking"
-    style={{
-      marginTop: 14,
-      padding: "10px 14px",
-      borderRadius: T.radiusLg,
-      background: T.accentSoft,
-      color: T.accent,
-      fontSize: 12,
-      fontWeight: 700,
-      lineHeight: 1.45,
-      textAlign: "center"
-    }}
-  >
-    {/* The dash is interpolated, not written as \u2014 in the text: a
-        backslash escape inside JSX TEXT is not an escape, it is six
-        literal characters, and the banner read "Waking the server \u2014
-        this can take..." on screen. Caught by reading the rendered text
-        back out of a browser rather than by looking at the source. */}
-    Waking the server {"\u2014"} this can take up to a minute the first time today.
-  </div>}<PhoneDialPad
-    value={value}
-    onChange={onChange}
-    minLength={length}
-    maxLength={length}
-    onSubmit={onSubmit}
-    showValue={false}
-    autoSubmit
-    busy={busy}
-  /></div></div>;
+    style={{ position: "fixed", inset: 0, zIndex: 100, background: T.bg, display: "flex", flexDirection: "column", fontFamily: T.fontBody, padding: "calc(14px + env(safe-area-inset-top, 0px)) 18px calc(22px + env(safe-area-inset-bottom, 0px))", boxSizing: "border-box", overflowY: "auto" }}
+  ><GloobalPinPanel title="Enter your PIN" note={note} length={length} value={value} onChange={onChange} onSubmit={onSubmit} onBack={onBack} revealed={revealed} onToggleReveal={onToggleReveal} busy={busy} error={error} footer={waking ? <div role="status" aria-live="polite" data-testid="login-waking" style={{ marginTop: 4, padding: "10px 14px", borderRadius: T.radiusLg, background: T.accentSoft, color: T.accent, fontSize: 12, fontWeight: 700, lineHeight: 1.45, textAlign: "center", maxWidth: 320 }}>Waking the server {"\u2014"} this can take up to a minute the first time today.</div> : extra} /></div>;
 }
 // `notice` carries whatever the real device check had to say — no sensor
 // on this device, a declined prompt, a timed-out one. It is shown on this
@@ -15134,101 +14903,11 @@ function BiometricPinFallbackModal({ open, symbolId, reason, onResolve }) {
     }
   };
   return <div
-    style={{
-      position: "fixed",
-      inset: 0,
-      // Above BiometricVerifyScreen (600), which is usually what is on
-      // screen when this opens.
-      zIndex: 620,
-      background: T.bg,
-      display: "flex",
-      flexDirection: "column",
-      fontFamily: T.fontBody
-    }}
+    style={{ position: "fixed", inset: 0, zIndex: 620, background: T.bg, display: "flex", flexDirection: "column", fontFamily: T.fontBody, padding: "calc(14px + env(safe-area-inset-top, 0px)) 18px calc(22px + env(safe-area-inset-bottom, 0px))", boxSizing: "border-box", overflowY: "auto" }}
     role="dialog"
     aria-modal="true"
     aria-label="Confirm with your PIN"
-  ><button
-    onClick={requestCancel}
-    aria-label="Cancel"
-    className="v2-tap"
-    style={{
-      position: "absolute",
-      top: "calc(18px + env(safe-area-inset-top, 0px))",
-      left: "calc(18px + env(safe-area-inset-left, 0px))",
-      width: 40,
-      height: 40,
-      borderRadius: "50%",
-      border: `1px solid ${T.line}`,
-      background: T.surface,
-      color: T.ink,
-      display: "flex",
-      alignItems: "center",
-      justifyContent: "center",
-      cursor: "pointer",
-      boxShadow: T.shadowCard,
-      zIndex: 25
-    }}
-  ><ChevronLeft size={20} /></button><div
-    style={{
-      flex: 1,
-      minHeight: 0,
-      display: "flex",
-      flexDirection: "column",
-      alignItems: "center",
-      justifyContent: "flex-start",
-      gap: 18,
-      padding: "72px 24px 40px",
-      overflowY: "auto",
-      overflowX: "hidden",
-      WebkitOverflowScrolling: "touch"
-    }}
-  ><span style={{ fontSize: 12.5, fontWeight: 700, color: T.inkSoft, textAlign: "center", lineHeight: 1.45, maxWidth: 300 }}>{reason || "Confirm it's you with your PIN."}</span><div
-    style={{
-      position: "relative",
-      width: "100%",
-      display: "flex",
-      alignItems: "center",
-      justifyContent: "center",
-      padding: "22px 14px",
-      borderRadius: T.radiusLg,
-      boxShadow: T.shadowFloat,
-      border: `1px solid ${T.line}`,
-      background: T.surface,
-      boxSizing: "border-box",
-      overflow: "visible"
-    }}
-  ><span
-    style={{
-      position: "absolute",
-      top: -11,
-      left: 16,
-      background: T.surface,
-      border: `1px solid ${T.line}`,
-      borderRadius: 7,
-      padding: "3px 9px",
-      fontSize: 10,
-      fontWeight: 800,
-      letterSpacing: 0.4,
-      textTransform: "uppercase",
-      color: T.accent,
-      boxShadow: T.shadowCard
-    }}
-  >
-        PIN
-      </span><SymbolChipRow length={PIN_LENGTH} value={pin} masked boxSize={34} justify="center" /></div>{error && <div role="alert" style={{ fontSize: 12, fontWeight: 700, color: T.negative, textAlign: "center" }}>{error}</div>}<PhoneDialPad
-    value={pin}
-    onChange={setPin}
-    minLength={PIN_LENGTH}
-    maxLength={PIN_LENGTH}
-    onSubmit={submit}
-    // Same rule as the two auth screens: the boxes above are the value,
-    // and a PIN printed under the pad is a PIN anybody standing behind
-    // you can read.
-    showValue={false}
-    autoSubmit
-    busy={checking}
-  /></div></div>;
+  ><GloobalPinPanel title="Confirm it's you" note={reason ? (() => { const r = String(reason).replace(/^confirm (it's|it’s) you( with your PIN)?\s*/i, ""); return r ? r.charAt(0).toUpperCase() + r.slice(1) : "Enter your PIN to continue."; })() : "Enter your PIN to continue."} length={PIN_LENGTH} value={pin} onChange={(v) => { setError(null); setPin(v); }} onSubmit={submit} onBack={requestCancel} backLabel="Cancel" busy={checking} error={error || ""} /></div>;
 }
 
 
@@ -16490,6 +16169,81 @@ function PhoneDialPad({ value, onChange, minLength = 0, maxLength, onSubmit, mas
 
 
 
+// src/components/inputs/pinPanel.jsx
+//
+// THE ONE PIN SCREEN. Every place that asks for the 6-digit PIN — making
+// it, signing in (GLOOBAL and Helloo), confirming it's you for the
+// balance, and confirming a payment — draws this, so the PIN looks and
+// works the same everywhere: a lock, what it's for, six dots, round keys.
+//
+// It sends itself once the sixth digit lands (never twice for the same
+// six), shakes and clears on a wrong PIN, and shows "Checking…" while it
+// waits.
+
+function GloobalPinPanel({ title = "Enter your PIN", note = "", length = 6, value = "", onChange, onSubmit, busy = false, error = "", revealed = false, onToggleReveal, onBack, backLabel = "Back", top = null, footer = null, compact = false, testid }) {
+  // Send once on the sixth digit; a deletion makes the next six a new answer.
+  const sent = useRef102("");
+  useEffect102(() => {
+    if (!onSubmit) return;
+    if (value.length !== length) { if (value.length < length) sent.current = ""; return; }
+    if (sent.current === value) return;
+    sent.current = value;
+    onSubmit();
+  }, [value, length, onSubmit]);
+  // A wrong PIN: shake the dots.
+  const [shake, setShake] = useState102(0);
+  useEffect102(() => { if (error) setShake((n) => n + 1); }, [error]);
+  const press = (k) => {
+    if (busy || !onChange) return;
+    if (k === "del") onChange(value.slice(0, -1));
+    else if (value.length < length) onChange(value + k);
+  };
+  // A keyboard works too (laptops).
+  useEffect102(() => {
+    const onKey = (e) => {
+      if (e.target && /input|textarea/i.test(e.target.tagName)) return;
+      if (/^[0-9]$/.test(e.key)) press(e.key);
+      else if (e.key === "Backspace") press("del");
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  });
+  const bad = Boolean(error);
+  const keySize = compact ? 62 : 70;
+  const key = (k) => <button key={k} type="button" onClick={() => press(k)} disabled={busy} aria-label={k === "del" ? "Delete" : `Digit ${k}`} data-testid={k === "del" ? "pin-delete" : undefined} className="v2-tap" style={{ justifySelf: "center", width: keySize, height: keySize, borderRadius: "50%", border: "none", background: k === "del" ? "transparent" : T.surfaceAlt, color: T.ink, fontSize: compact ? 24 : 27, fontWeight: 700, fontFamily: T.fontDisplay, display: "flex", alignItems: "center", justifyContent: "center", cursor: busy ? "default" : "pointer", padding: 0, opacity: busy && k !== "del" ? 0.55 : 1 }}>{k === "del" ? <PinDelete size={25} color={T.inkSoft} /> : k}</button>;
+  return <div data-testid={testid || "gloobal-pin"} style={{ width: "100%", flex: 1, minHeight: 0, display: "flex", flexDirection: "column", alignItems: "center", fontFamily: T.fontBody, boxSizing: "border-box" }}>
+    <style>{"@keyframes gpinShake{0%,100%{transform:translateX(0)}20%{transform:translateX(-9px)}40%{transform:translateX(8px)}60%{transform:translateX(-6px)}80%{transform:translateX(4px)}}@keyframes gpinPop{0%{transform:scale(.6)}70%{transform:scale(1.15)}100%{transform:scale(1)}}@keyframes gpinSpin{to{transform:rotate(360deg)}}"}</style>
+    {onBack || onToggleReveal ? <div style={{ width: "100%", display: "flex", alignItems: "center", justifyContent: "space-between", minHeight: 44, flexShrink: 0 }}>
+      {onBack ? <button type="button" onClick={onBack} aria-label={backLabel} className="v2-tap" style={{ width: 44, height: 44, borderRadius: "50%", border: "none", background: T.surfaceAlt, display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer", padding: 0 }}><PinBack size={22} color={T.ink} /></button> : <span />}
+      {onToggleReveal ? <button type="button" onClick={onToggleReveal} aria-label={revealed ? "Hide PIN" : "Show PIN"} className="v2-tap" style={{ width: 44, height: 44, borderRadius: "50%", border: "none", background: "transparent", display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer", padding: 0 }}>{revealed ? <PinEyeOff size={21} color={T.inkSoft} /> : <PinEye size={21} color={T.inkSoft} />}</button> : null}
+    </div> : null}
+    <div style={{ flex: compact ? "0 0 6px" : 1, minHeight: 0 }} />
+    <span style={{ width: compact ? 48 : 58, height: compact ? 48 : 58, borderRadius: "50%", background: bad ? `${T.negative}18` : T.accentSoft, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0, transition: "background 0.2s ease" }}><PinLock size={compact ? 21 : 25} color={bad ? T.negative : T.accent} /></span>
+    <div style={{ marginTop: 14, fontSize: compact ? 19 : 21, fontWeight: 900, fontFamily: T.fontDisplay, color: T.ink, textAlign: "center", letterSpacing: -0.3, lineHeight: 1.2 }}>{title}</div>
+    {note ? <div style={{ marginTop: 6, fontSize: 13.5, fontWeight: 600, color: T.inkSoft, textAlign: "center", lineHeight: 1.45, maxWidth: 300 }}>{note}</div> : null}
+    {top ? <div style={{ marginTop: 12, width: "100%", display: "flex", justifyContent: "center" }}>{top}</div> : null}
+    {/* Six dots: filled as you type, the next one ringed. */}
+    <div key={shake} role="status" aria-live="polite" aria-label={busy ? "Checking your PIN" : `${value.length} of ${length} digits`} data-testid="pin-dots" style={{ display: "flex", gap: 14, marginTop: compact ? 20 : 26, minHeight: 22, alignItems: "center", animation: shake ? "gpinShake 0.42s ease" : "none" }}>
+      {Array.from({ length }).map((_, i) => {
+        const ch = value[i]; const next = i === value.length && !busy;
+        const c = bad ? T.negative : T.accent;
+        return revealed && ch
+          ? <span key={i} style={{ width: 18, textAlign: "center", fontSize: 21, fontWeight: 800, color: c, fontFamily: T.fontDisplay, animation: "gpinPop 0.18s ease" }}>{ch}</span>
+          : <span key={i} style={{ width: 16, height: 16, borderRadius: "50%", boxSizing: "border-box", background: ch ? c : "transparent", border: ch ? "none" : `2px solid ${next ? c : T.line}`, animation: ch ? "gpinPop 0.18s ease" : "none", transition: "border-color 0.15s ease" }} />;
+      })}
+    </div>
+    <div style={{ minHeight: 22, marginTop: 10, display: "flex", alignItems: "center", gap: 7, fontSize: 12.5, fontWeight: 700, color: bad ? T.negative : T.inkSoft, textAlign: "center", lineHeight: 1.4, maxWidth: 300 }} role={bad ? "alert" : undefined}>
+      {busy ? <><span style={{ width: 13, height: 13, borderRadius: "50%", border: `2px solid ${T.line}`, borderTopColor: T.accent, animation: "gpinSpin 0.8s linear infinite" }} />Checking…</> : error || ""}
+    </div>
+    {footer}
+    <div style={{ flex: compact ? "0 0 12px" : 1.3, minHeight: 0 }} />
+    <div data-testid="pin-keys" style={{ width: "100%", maxWidth: compact ? 270 : 300, display: "grid", gridTemplateColumns: "repeat(3, 1fr)", rowGap: compact ? 10 : 14, flexShrink: 0 }}>
+      {["1", "2", "3", "4", "5", "6", "7", "8", "9"].map(key)}<span />{key("0")}{key("del")}
+    </div>
+  </div>;
+}
+
+
 // src/components/inputs/amountPad.jsx
 //
 // ── OUR OWN NUMBER PAD FOR EVERY AMOUNT (0229) ──────────────────────────────
@@ -16772,30 +16526,13 @@ function PayPinModal({ open, onClose, amountLabel, onVerified }) {
     };
   }, [pin]);
   if (!open) return null;
+  // The shared PIN screen, with the amount on top.
   return <div
-    style={{ position: "fixed", inset: 0, zIndex: 520, background: "rgba(15,12,35,0.55)", display: "flex", alignItems: "center", justifyContent: "center", padding: 20 }}
+    style={{ position: "fixed", inset: 0, zIndex: 520, background: T.bg, display: "flex", flexDirection: "column", fontFamily: T.fontBody, padding: "calc(14px + env(safe-area-inset-top, 0px)) 18px calc(22px + env(safe-area-inset-bottom, 0px))", boxSizing: "border-box", overflowY: "auto" }}
     role="dialog"
     aria-modal="true"
     aria-label="Enter your PIN to confirm payment"
-  ><div style={{ width: "100%", maxWidth: 360, background: T.bg, borderRadius: T.radiusXl, padding: "26px 22px 24px", position: "relative" }}><button
-    onClick={onClose}
-    aria-label="Cancel"
-    className="v2-tap"
-    style={{ position: "absolute", top: 14, right: 14, width: 32, height: 32, borderRadius: "50%", border: "none", background: T.surfaceAlt, display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer" }}
-  ><X4 size={16} color={T.inkFaint} /></button><div style={{ width: 44, height: 44, borderRadius: "50%", background: T.accentSoft, display: "flex", alignItems: "center", justifyContent: "center", marginBottom: 12 }}><Lock size={20} color={T.accent} /></div><h3 style={{ fontSize: 17, fontWeight: 800, color: T.ink, fontFamily: T.fontDisplay, margin: "0 0 4px" }}>
-        Enter PIN
-      </h3>{amountLabel && <div style={{ borderRadius: T.radiusMd, border: `1px solid ${T.line}`, background: T.surfaceAlt, padding: "12px 16px", textAlign: "center", margin: "14px 0 4px", fontSize: 20, fontWeight: 800, color: T.negative, fontFamily: T.fontDisplay }}>{amountLabel}</div>}{
-    /* The backend's own message rather than a flat "Incorrect": it
-       distinguishes a wrong PIN from a locked one, and that difference
-       matters to whoever is holding the phone. */
-  }{pinError && <div role="alert" style={{ fontSize: 12, color: T.negative, fontWeight: 700, textAlign: "center", marginTop: 6, lineHeight: 1.4 }}>{pinError}</div>}<div style={{ marginTop: 14 }}><PhoneDialPad
-    value={pin}
-    onChange={setPin}
-    minLength={6}
-    maxLength={6}
-    masked={!pinRevealed}
-    onToggleMask={() => setPinRevealed((v) => !v)}
-  /></div></div></div>;
+  ><GloobalPinPanel testid="pay-pin" title="Confirm payment" note="Enter your PIN to send" value={pin} onChange={(v) => { if (errorTimer.current) { clearTimeout(errorTimer.current); errorTimer.current = null; } setPinError(null); setPin(v); }} busy={checking} error={pinError || ""} revealed={pinRevealed} onToggleReveal={() => setPinRevealed((v) => !v)} onBack={onClose} backLabel="Cancel" top={amountLabel ? <span data-testid="pay-pin-amount" style={{ display: "inline-flex", padding: "10px 18px", borderRadius: 999, background: T.surface, boxShadow: T.shadowCard, fontSize: 22, fontWeight: 800, color: T.ink, fontFamily: T.fontDisplay }}>{amountLabel}</span> : null} /></div>;
 }
 // ── Profile photo sizing (shared: registration here, Dashboard's change) ──
 //
@@ -78761,7 +78498,9 @@ function HellooIdScreen({ value, onChange, status, onBack, onNext, mode = "id", 
 // this is, who is signing in, and what to do when it is forgotten. Drawn
 // over the pad's empty lower part; only the link takes a tap.
 function HellooPinNote({ who }) {
-  return <div data-testid="helloo-pin-note" style={{ position: "fixed", left: 0, right: 0, bottom: "calc(26px + env(safe-area-inset-bottom, 0px))", zIndex: 101, padding: "0 28px", textAlign: "center", pointerEvents: "none", fontFamily: T.fontBody }}><div style={{ fontSize: 15, fontWeight: 800, color: T.ink }}>Your <GloobalWordmark /> PIN</div><div style={{ fontSize: 12.5, color: T.inkSoft, lineHeight: 1.45, marginTop: 4 }}>The same PIN you pay with. GLOOBAL checks it; it is not kept on this phone.</div>{who && <div style={{ marginTop: 8, fontSize: 12.5, fontWeight: 700, color: T.inkSoft }}>Signing in as {who}</div>}<div style={{ marginTop: 8, fontSize: 12.5, color: T.inkSoft }}>Forgot it? <a href={HELLOO_GLOOBAL_SIGNUP} target="_blank" rel="noopener" style={{ color: T.accent, fontWeight: 800, textDecoration: "none", pointerEvents: "auto" }}>Reset it in <GloobalWordmark /></a></div></div>;
+  // Under the PIN dots (the shared PIN screen's footer): who is signing in,
+  // and where to reset a forgotten PIN.
+  return <div data-testid="helloo-pin-note" style={{ textAlign: "center", fontFamily: T.fontBody, lineHeight: 1.5 }}>{who && <div style={{ fontSize: 12.5, fontWeight: 700, color: T.inkSoft }}>Signing in as {who}</div>}<div style={{ marginTop: 2, fontSize: 12.5, color: T.inkSoft }}>Forgot it? <a href={HELLOO_GLOOBAL_SIGNUP} target="_blank" rel="noopener" style={{ color: T.accent, fontWeight: 800, textDecoration: "none" }}>Reset it in <GloobalWordmark /></a></div></div>;
 }
 
 function HellooWelcomeBack({ me, onDone }) {
@@ -84359,7 +84098,7 @@ function HellooRoot() {
   if (stage === "splash" || stage === "splash-in") return shell(<HellooSplash intro={stage === "splash"} onSkip={stage === "splash" ? () => setStage("id") : undefined} />);
   if (stage === "welcome") return shell(<HellooWelcome hasGloobal={false} note={outNote} onEnterId={() => { setOutNote(""); setStage("id"); }} />);
   if (stage === "id") return shell(<HellooIdScreen value={idValue} onChange={setIdValue} mode={idMode} onMode={setIdMode} mobile={idMobile} onMobile={setIdMobile} status={idValue.length === 12 ? "ready" : ""} note={outNote} onNext={() => { setOutNote(""); setPin(""); setStage("pin"); }} />);
-  if (stage === "pin") return shell(<><LoginAuthScreen value={pin} length={HELLOO_PIN_LENGTH} onChange={setPin} onSubmit={() => submitPin(pin)} onBack={() => setStage("id")} revealed={pinShown} onToggleReveal={() => setPinShown((v) => !v)} waking={pinWaking} busy={pinBusy} /><HellooPinNote who={idMode === "mobile" ? `+${idMobile}` : <ColoredGloobalId id={idValue} />} /></>);
+  if (stage === "pin") return shell(<LoginAuthScreen note="The same PIN you pay with on GLOOBAL. Never kept on this phone." extra={<HellooPinNote who={idMode === "mobile" ? `+${idMobile}` : <ColoredGloobalId id={idValue} />} />} value={pin} length={HELLOO_PIN_LENGTH} onChange={setPin} onSubmit={() => submitPin(pin)} onBack={() => setStage("id")} revealed={pinShown} onToggleReveal={() => setPinShown((v) => !v)} waking={pinWaking} busy={pinBusy} />);
   if (stage === "back" && me) return shell(<HellooWelcomeBack me={me} onDone={() => setStage("app")} />);
   if (!me) return shell(<HellooSplash />);
 

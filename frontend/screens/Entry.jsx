@@ -107,7 +107,9 @@ function HellooIdScreen({ value, onChange, status, onBack, onNext, mode = "id", 
 // this is, who is signing in, and what to do when it is forgotten. Drawn
 // over the pad's empty lower part; only the link takes a tap.
 function HellooPinNote({ who }) {
-  return <div data-testid="helloo-pin-note" style={{ position: "fixed", left: 0, right: 0, bottom: "calc(26px + env(safe-area-inset-bottom, 0px))", zIndex: 101, padding: "0 28px", textAlign: "center", pointerEvents: "none", fontFamily: T.fontBody }}><div style={{ fontSize: 15, fontWeight: 800, color: T.ink }}>Your <GloobalWordmark /> PIN</div><div style={{ fontSize: 12.5, color: T.inkSoft, lineHeight: 1.45, marginTop: 4 }}>The same PIN you pay with. GLOOBAL checks it; it is not kept on this phone.</div>{who && <div style={{ marginTop: 8, fontSize: 12.5, fontWeight: 700, color: T.inkSoft }}>Signing in as {who}</div>}<div style={{ marginTop: 8, fontSize: 12.5, color: T.inkSoft }}>Forgot it? <a href={HELLOO_GLOOBAL_SIGNUP} target="_blank" rel="noopener" style={{ color: T.accent, fontWeight: 800, textDecoration: "none", pointerEvents: "auto" }}>Reset it in <GloobalWordmark /></a></div></div>;
+  // Under the PIN dots (the shared PIN screen's footer): who is signing in,
+  // and where to reset a forgotten PIN.
+  return <div data-testid="helloo-pin-note" style={{ textAlign: "center", fontFamily: T.fontBody, lineHeight: 1.5 }}>{who && <div style={{ fontSize: 12.5, fontWeight: 700, color: T.inkSoft }}>Signing in as {who}</div>}<div style={{ marginTop: 2, fontSize: 12.5, color: T.inkSoft }}>Forgot it? <a href={HELLOO_GLOOBAL_SIGNUP} target="_blank" rel="noopener" style={{ color: T.accent, fontWeight: 800, textDecoration: "none" }}>Reset it in <GloobalWordmark /></a></div></div>;
 }
 
 function HellooWelcomeBack({ me, onDone }) {
