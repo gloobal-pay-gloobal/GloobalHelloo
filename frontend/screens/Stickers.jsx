@@ -153,6 +153,7 @@ function HellooStickerPanel({ onPick, onPay, onClose }) {
   const [fav, setFav] = useStateH44(() => hellooStickerRead(HELLOO_STICKER_FAV).filter((t) => typeof t === "string"));
   const [pack, setPack] = useStateH44(() => (hellooStickerRead(HELLOO_STICKER_FAV).length ? "fav" : "kullu"));
   const [making, setMaking] = useStateH44(null); // null | {} new | {key,...} edit
+  useHellooBackLayer(Boolean(making), () => setMaking(null));
   const [held, setHeld] = useStateH44(null); // { id, mine }
   const holdT = useRefH50(null); const holdFired = useRefH50(false);
   const recent = hellooStickerRecent();

@@ -86,6 +86,7 @@ function HellooThreadScreen({ onSnap, onSticker, onPaySticker, me, chat, onBack,
   // Opens at the newest message, and follows the thread as it grows.
   const scrollRef = useRefH4(null);
   const [stickersOpen, setStickersOpen] = useStateH4(false);
+  useHellooBackLayer(stickersOpen, () => setStickersOpen(false));
   useEffectH4(() => { const el = scrollRef.current; if (el && stickersOpen) el.scrollTop = el.scrollHeight; }, [stickersOpen]);
   const newest = chat.messages.length ? chat.messages[chat.messages.length - 1] : null;
   useEffectH4(() => { const el = scrollRef.current; if (el) el.scrollTop = el.scrollHeight; }, [chat.id, newest && (newest.id || newest.clientId)]);

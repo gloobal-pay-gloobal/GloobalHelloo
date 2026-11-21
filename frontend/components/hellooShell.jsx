@@ -164,7 +164,26 @@ function HellooTop({ left, title, subtitle, right, big = false }) {
   return <div style={{ display: "flex", alignItems: "center", gap: 10, padding: `calc(${big ? 14 : 10}px + env(safe-area-inset-top, 0px)) 16px 10px`, flexShrink: 0 }}>{left}<div style={{ flex: 1, minWidth: 0 }}>{typeof title === "string" ? <div style={{ fontSize: big ? 24 : 16.5, fontWeight: 800, fontFamily: T.fontDisplay, color: T.ink, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", letterSpacing: big ? -0.4 : 0 }}>{title}</div> : <div style={{ minWidth: 0, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis", }}>{title}</div>}{subtitle && <div style={{ fontSize: 11.5, color: T.inkSoft, marginTop: 1, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{subtitle}</div>}</div><div style={{ display: "flex", gap: 8, alignItems: "center", flexShrink: 0 }}>{right}</div></div>;
 }
 
+// ── THE PHONE'S BACK BUTTON ─────────────────────────────────────────────
+// Anything that opens over a screen (a sheet, a full-screen viewer, a
+// picker) says so here while it is open. The phone's Back then closes the
+// top one first — and only when nothing is open does it leave the screen.
+// HellooApp counts these into the history it keeps (useHellooBack).
+var hellooBackLayers = { list: [], subs: new Set() };
+var hellooBackLayersTell = () => hellooBackLayers.subs.forEach((f) => { try { f(hellooBackLayers.list.length); } catch (e) { /* gone */ } });
+function useHellooBackLayer(open, close) {
+  const ref = useRefH1(close);
+  ref.current = close;
+  const isOpen = Boolean(open);
+  useEffectH1(() => {
+    if (!isOpen) return undefined;
+    const item = { close: () => { if (ref.current) ref.current(); } };
+    hellooBackLayers.list.push(item); hellooBackLayersTell();
+    return () => { const i = hellooBackLayers.list.indexOf(item); if (i >= 0) hellooBackLayers.list.splice(i, 1); hellooBackLayersTell(); };
+  }, [isOpen]);
+}
 function HellooSheet({ title, onClose, children, label, zIndex = 60 }) {
+  useHellooBackLayer(Boolean(onClose), onClose);
   return <div role="dialog" aria-modal="true" aria-label={label || (typeof title === "string" ? title : "Sheet")} style={{ position: "absolute", inset: 0, zIndex, background: "rgba(15,12,35,0.45)", display: "flex", alignItems: "flex-end" }} onClick={(e) => { if (e.target === e.currentTarget && onClose) onClose(); }}><div style={{ width: "100%", maxHeight: "92%", display: "flex", flexDirection: "column", background: T.bg, borderRadius: `${Math.max(HT.radius ?? 26, 10)}px ${Math.max(HT.radius ?? 26, 10)}px 0 0`, boxShadow: T.shadowFloat }}><div style={{ display: "flex", justifyContent: "center", padding: "10px 0 2px" }}><span style={{ width: 40, height: 4, borderRadius: 2, background: T.line }} /></div>{title && <div style={{ padding: "8px 18px 4px", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis", fontSize: 18, fontWeight: 800, fontFamily: T.fontDisplay, color: T.ink }}>{title}</div>}<div style={{ flex: 1, minHeight: 0, overflowY: "auto", padding: "8px 18px calc(18px + env(safe-area-inset-bottom, 0px))" }}>{children}</div></div></div>;
 }
 

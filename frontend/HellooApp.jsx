@@ -340,6 +340,9 @@ function HellooRoot() {
   // ── Navigation ───────────────────────────────────────────────────────
   const [tab, setTab] = useStateH9("chats");
   const [socialCompose, setSocialCompose] = useStateH9(0);
+  // How many things are open on top of the screen (components/hellooShell).
+  const [backLayers, setBackLayers] = useStateH9(hellooBackLayers.list.length);
+  useEffectH9(() => { const f = (n) => setBackLayers(n); hellooBackLayers.subs.add(f); setBackLayers(hellooBackLayers.list.length); return () => { hellooBackLayers.subs.delete(f); }; }, []);
   // A post tapped in a chat opens in Social.
   const [socialOpenPost, setSocialOpenPost] = useStateH9("");
   useEffectH9(() => {
@@ -1633,7 +1636,8 @@ function HellooRoot() {
     (openId ? 1 : 0) +
     (screen === "earnings" ? 2 : screen && screen !== "contact" ? 1 : 0) +
     (signedIn && tab !== "chats" ? 1 : 0) +
-    (stage === "id" ? 1 : stage === "pin" ? 2 : 0);
+    (stage === "id" ? 1 : stage === "pin" ? 2 : 0) +
+    backLayers;
   const closeThread = () => {
     cancelRecording(); setOpenId(null); setSheet(null); setReplyTo(null); refreshChats();
     if (backToContactsRef.current) { backToContactsRef.current = false; setScreen("contacts"); }
@@ -1643,6 +1647,8 @@ function HellooRoot() {
     setScreen(null);
   };
   useHellooBack(backDepth, () => {
+    // Whatever is open on top (a sheet, a viewer, a picker) closes first.
+    if (hellooBackLayers.list.length) { hellooBackLayers.list[hellooBackLayers.list.length - 1].close(); return undefined; }
     if (call) { if (call.state === "ringing" && call.direction === "in") return undefined; return hangUp(); }
     if (orderPinOpen) return setOrderPinOpen(false);
     if (payPinOpen) return setPayPinOpen(false);

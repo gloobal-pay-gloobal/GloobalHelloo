@@ -126,6 +126,10 @@ function socialReadFile(file) {
 
 // ── Small pieces ────────────────────────────────────────────────────────
 function SocialFace({ card, photos, size = 38 }) {
+  // A person's own Social picture, when they chose one; else their GLOOBAL
+  // face (or a shop's logo), as everywhere else.
+  const own = card && card.picture ? socialMediaSrc(card.picture) : "";
+  if (own) return <span data-testid="social-own-picture" style={{ width: size, height: size, borderRadius: "50%", overflow: "hidden", display: "inline-flex", flexShrink: 0, background: T.surfaceSunk }}><img src={own} alt="" loading="lazy" style={{ width: "100%", height: "100%", objectFit: "cover", display: "block" }} /></span>;
   return <HellooAvatar person={hellooPersonFrom(card, photos)} size={size} flag={false} />;
 }
 function SocialName({ card, size = 14, color }) {
@@ -166,7 +170,7 @@ function SocialChip({ on, onClick, children, testid, label }) {
 function SocialTile({ post, onOpen, tall }) {
   const m = (post.media || [])[0];
   const src = socialMediaSrc(m);
-  return <button onClick={() => onOpen(post)} className="v2-tap" aria-label={post.caption || "Post"} style={{ position: "relative", display: "block", width: "100%", height: "100%", border: "none", padding: 0, margin: 0, borderRadius: 10, overflow: "hidden", background: T.surfaceAlt, cursor: "pointer", gridRow: tall ? "span 2" : undefined }}>
+  return <button onClick={() => onOpen(post)} className="v2-tap" data-testid="social-tile" aria-label={post.caption || "Post"} style={{ position: "relative", display: "block", width: "100%", height: "100%", border: "none", padding: 0, margin: 0, borderRadius: 10, overflow: "hidden", background: T.surfaceAlt, cursor: "pointer", gridRow: tall ? "span 2" : undefined }}>
     {m && m.kind === "video" ? <video src={src + "#t=0.1"} muted playsInline preload="metadata" style={{ width: "100%", height: "100%", objectFit: "cover", display: "block" }} /> : <img src={src} alt="" loading="lazy" style={{ width: "100%", height: "100%", objectFit: "cover", display: "block" }} />}
     <span style={{ position: "absolute", left: 7, bottom: 6, display: "inline-flex", alignItems: "center", gap: 3, fontSize: 11.5, fontWeight: 800, color: "#fff", textShadow: "0 1px 4px rgba(0,0,0,0.6)" }}><SxViews size={12} color="#fff" strokeWidth={2.6} />{socialCount(post.views || 0)}</span>{m && m.kind === "video" ? <span style={{ position: "absolute", left: 7, top: 6, display: "flex", filter: "drop-shadow(0 1px 3px rgba(0,0,0,0.5))" }}><HlPlay size={13} color="#fff" fill="#fff" /></span> : null}
     {(post.media || []).length > 1 ? <span style={{ position: "absolute", right: 6, top: 6, fontSize: 10.5, fontWeight: 800, color: "#fff", background: "rgba(0,0,0,0.4)", borderRadius: 999, padding: "2px 6px" }}>{post.media.length}</span> : null}
@@ -401,6 +405,13 @@ function HellooSocialHome({ me, faces, photos, chats = [], onSendPost, openPost 
   const [talk, setTalk] = useStateH40(null);
   const [more, setMore] = useStateH40(null);
   const [compose, setCompose] = useStateH40("");
+  // The phone's Back closes what is open on top, newest first, before it
+  // leaves Social (the Create sheet and other sheets say so themselves).
+  useHellooBackLayer(view === "explore", () => setView("feed"));
+  useHellooBackLayer(Boolean(activity), () => setActivity(false));
+  useHellooBackLayer(Boolean(profile), () => setProfile(null));
+  useHellooBackLayer(Boolean(open), () => setOpen(null));
+  useHellooBackLayer(Boolean(compose) && compose !== "pick", () => setCompose(""));
   const [muted, setMuted] = useStateH40(true);
   const seen = (cards) => { if (onCards) onCards(cards.filter(Boolean)); };
 
@@ -577,6 +588,7 @@ function SocialStatusRow({ people, photos, onAdd, onOpen }) {
   </div>;
 }
 function SocialStatusViewer({ people, start, photos, muted, onMuted, onClose, onProfile, onDelete, extra = null }) {
+  useHellooBackLayer(true, onClose);
   const [at, setAt] = useStateH40({ g: start, i: 0 });
   const g = people[at.g];
   const it = g && g.items[at.i];
@@ -722,6 +734,11 @@ function SocialProfileEditor({ p, card, photos, onClose, onSaved, onPhoto, onToa
   const [bio, setBio] = useStateH40(p.bio || "");
   const [cover, setCover] = useStateH40(p.cover ? { preview: socialMediaSrc(p.cover), id: p.cover.id } : null);
   const [logo, setLogo] = useStateH40(null); // new data URL
+  // A person's own Social picture: undefined = unchanged, null = back to the
+  // GLOOBAL face, { preview, file } = a new one from the gallery.
+  const [pic, setPic] = useStateH40(undefined);
+  const picIn = useRefH40(null);
+  const pickPic = (e) => { const f = e.target.files && e.target.files[0]; e.target.value = ""; if (!f) return; if (!/^image\//.test(f.type)) { setErr("Pick a photo for your picture."); return; } setErr(""); setPic({ preview: URL.createObjectURL(f), file: f }); };
   const [busy, setBusy] = useStateH40("");
   const [err, setErr] = useStateH40("");
   const coverIn = useRefH40(null); const logoIn = useRefH40(null);
@@ -729,7 +746,7 @@ function SocialProfileEditor({ p, card, photos, onClose, onSaved, onPhoto, onToa
   const pickCover = async (e) => { const f = e.target.files && e.target.files[0]; e.target.value = ""; if (!f) return; if (!/^image\//.test(f.type)) { setErr("Pick a photo for the cover."); return; } setErr(""); setCover({ preview: URL.createObjectURL(f), file: f }); };
   const pickLogo = async (e) => { const f = e.target.files && e.target.files[0]; e.target.value = ""; if (!f) return; try { const raw = await socialShrinkPhoto(f); const fit = typeof fitProfilePhotoForUpload === "function" ? await fitProfilePhotoForUpload(raw) : raw; setLogo(fit); setErr(""); } catch (x) { setErr("Couldn't read that picture."); } };
   const left = 150 - [...bio].length;
-  const changed = bio !== (p.bio || "") || Boolean(logo) || (cover ? cover.file || (!p.cover) : Boolean(p.cover));
+  const changed = pic !== undefined || bio !== (p.bio || "") || Boolean(logo) || (cover ? cover.file || (!p.cover) : Boolean(p.cover));
   const save = async () => {
     if (busy || left < 0) return;
     setErr("");
@@ -739,10 +756,12 @@ function SocialProfileEditor({ p, card, photos, onClose, onSaved, onPhoto, onToa
       if (cover && cover.file) { setBusy("Sending the cover…"); const data = await socialShrinkPhoto(cover.file); const r = await socialApi.upload(data); body.cover = r.id; }
       else if (!cover && p.cover) body.cover = null;
       if (logo) body.photo = logo;
+      if (pic && pic.file) { setBusy("Sending your picture…"); const data = await socialShrinkPhoto(pic.file); const r = await socialApi.upload(data); body.picture = r.id; }
+      else if (pic === null) body.picture = null;
       setBusy("Saving…");
       const r = Object.keys(body).length ? await socialApi.editProfile(body) : {};
       if (logo && onPhoto) onPhoto(logo);
-      onSaved(Object.assign({}, r.bio !== undefined ? { bio: r.bio } : {}, r.cover !== undefined ? { cover: r.cover } : {}));
+      onSaved(Object.assign({}, r.bio !== undefined ? { bio: r.bio } : {}, r.cover !== undefined ? { cover: r.cover } : {}, pic !== undefined ? { picture: r.picture || undefined } : {}));
       onToast && onToast("Profile saved");
       onClose();
     } catch (x) { setErr((x && x.message) || "Couldn't save. Try again."); }
@@ -751,6 +770,9 @@ function SocialProfileEditor({ p, card, photos, onClose, onSaved, onPhoto, onToa
   const lbl = (t, right) => <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", margin: "16px 2px 7px" }}><span style={{ fontSize: 12, fontWeight: 800, color: T.inkSoft, letterSpacing: 0.4, textTransform: "uppercase" }}>{t}</span>{right}</div>;
   return <HellooSheet title="Edit profile" onClose={onClose}>
     <input ref={coverIn} type="file" accept="image/*" onChange={pickCover} style={{ display: "none" }} data-testid="social-edit-cover-file" />
+    <input ref={picIn} type="file" accept="image/*" onChange={pickPic} style={{ display: "none" }} data-testid="social-edit-picture-file" />
+    {/* Pictures show only after "Confirm it's you" (good for 5 minutes). */}
+    <GloobalSealedGate onSetup={() => { try { window.open("https://gloobalv3.netlify.app/", "_blank", "noopener"); } catch (e) { /* fine */ } }} />
     <input ref={logoIn} type="file" accept="image/*" onChange={pickLogo} style={{ display: "none" }} data-testid="social-edit-logo-file" />
     <div data-testid="social-edit" style={{ position: "relative" }}>
       <button type="button" onClick={() => coverIn.current && coverIn.current.click()} data-testid="social-edit-cover" aria-label="Change cover photo" className="v2-tap" style={{ position: "relative", width: "100%", height: 120, borderRadius: 20, border: "none", padding: 0, overflow: "hidden", cursor: "pointer", background: cover ? `center / cover no-repeat url(${cover.preview})` : `linear-gradient(135deg, ${hue}99 0%, ${hue} 60%, ${hue}CC 100%)`, display: "block" }}>
@@ -759,10 +781,11 @@ function SocialProfileEditor({ p, card, photos, onClose, onSaved, onPhoto, onToa
       {cover ? <button type="button" onClick={() => setCover(null)} aria-label="Remove cover" className="v2-tap" style={{ position: "absolute", right: 10, top: 10, width: 32, height: 32, borderRadius: "50%", border: "none", background: "rgba(0,0,0,0.45)", display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer" }}><HlX size={16} color="#fff" /></button> : null}
       <div style={{ display: "flex", alignItems: "flex-end", gap: 12, padding: "0 12px", marginTop: -34 }}>
         <span style={{ position: "relative", padding: 4, borderRadius: "50%", background: HT.cardBg || T.surface, display: "flex" }}>
-          {logo ? <img src={logo} alt="" style={{ width: 72, height: 72, borderRadius: "50%", objectFit: "cover" }} /> : <SocialFace card={card} photos={photos} size={72} />}
+          {logo || (pic && pic.preview) ? <img src={logo || pic.preview} alt="" style={{ width: 72, height: 72, borderRadius: "50%", objectFit: "cover" }} /> : <SocialFace card={pic === null ? Object.assign({}, card, { picture: null }) : card} photos={photos} size={72} />}
+          {!shop ? <button type="button" onClick={() => picIn.current && picIn.current.click()} data-testid="social-edit-picture" aria-label="Change your picture" className="v2-tap" style={{ position: "absolute", right: 0, bottom: 0, width: 28, height: 28, borderRadius: "50%", border: `2px solid ${HT.cardBg || T.surface}`, background: T.gradButton, display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer", padding: 0 }}><HlCamera size={14} color={HT.onAccent || "#fff"} /></button> : null}
           {shop ? <button type="button" onClick={() => logoIn.current && logoIn.current.click()} data-testid="social-edit-logo" aria-label="Change shop logo" className="v2-tap" style={{ position: "absolute", right: 0, bottom: 0, width: 28, height: 28, borderRadius: "50%", border: `2px solid ${HT.cardBg || T.surface}`, background: T.gradButton, display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer", padding: 0 }}><HlCamera size={14} color={HT.onAccent || "#fff"} /></button> : null}
         </span>
-        <span style={{ flex: 1, minWidth: 0, paddingBottom: 6, fontSize: 12, color: T.inkSoft, lineHeight: 1.4 }}>{shop ? "Tap the camera to change the shop's logo." : <>Your picture is your live <GloobalWordmark /> face. Change it in GLOOBAL, Profile.</>}</span>
+        <span style={{ flex: 1, minWidth: 0, alignSelf: "flex-start", paddingTop: 42, paddingBottom: 2, fontSize: 12, color: T.inkSoft, lineHeight: 1.4 }}>{shop ? "Tap the camera to change the shop's logo." : <>For Social only, from your gallery.{(pic === undefined ? card.picture : pic) ? <><br /><button type="button" onClick={() => setPic(null)} data-testid="social-edit-picture-remove" style={{ border: "none", background: "none", padding: 0, color: T.accent, fontWeight: 800, fontSize: 12, cursor: "pointer", fontFamily: T.fontBody }}>Use my GLOOBAL face</button></> : null}</>}</span>
       </div>
     </div>
     {lbl("About you", <span style={{ fontSize: 12, fontWeight: 800, color: left < 0 ? T.negative : left < 20 ? "#D97706" : T.inkFaint }}>{left}</span>)}
@@ -779,11 +802,13 @@ function SocialProfile({ state, me, photos, act, onBack, onOpen, onMessage, onCa
   const [workOpen, setWorkOpen] = useStateH40("");
   const [workTick, setWorkTick] = useStateH40(0);
   const [editing, setEditing] = useStateH40(false);
+  useHellooBackLayer(Boolean(workOpen), () => setWorkOpen(""));
   const [tab, setTab] = useStateH40("posts");
   const p = state.profile;
   const card = p || state.card;
   const hue = hellooHue(card.accountId || card.name || "");
   const [people, setPeople] = useStateH40("");
+  useHellooBackLayer(Boolean(people), () => setPeople(""));
   const stat = (n, l, fn) => { const Tag = fn ? "button" : "span"; return <Tag onClick={fn} data-testid={fn ? `social-stat-${l}` : undefined} className={fn ? "v2-tap" : undefined} style={{ flex: 1, textAlign: "center", minWidth: 0, border: "none", background: "none", padding: 0, cursor: fn ? "pointer" : "default", fontFamily: T.fontBody }}><span style={{ display: "block", fontSize: 18, fontWeight: 800, color: T.ink }}>{socialCount(n)}</span><span style={{ display: "block", fontSize: 11.5, color: T.inkSoft }}>{l}</span></Tag>; };
   const fmt = (x) => x.format || (x.media[0] && x.media[0].kind === "video" ? "video" : "post");
   const grid = (state.grid || []).filter((x) => tab === "posts" || (tab === "reels" ? fmt(x) === "reel" : tab === "videos" ? fmt(x) === "video" : true));
@@ -791,6 +816,7 @@ function SocialProfile({ state, me, photos, act, onBack, onOpen, onMessage, onCa
   const icon = (Icon, label, fn, color) => <button key={label} onClick={fn} aria-label={label} title={label} data-testid={`social-profile-${label.toLowerCase()}`} className="v2-tap" style={{ width: 48, height: 44, flexShrink: 0, borderRadius: 14, border: "none", background: HT.cardBg || T.surface, boxShadow: HT.cardShadow ?? T.shadowCard, display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer", padding: 0 }}><Icon size={21} color={color} /></button>;
   const btn = (Icon, label, fn, primary) => <button onClick={fn} className="v2-tap" style={{ flex: primary ? 1.4 : 1, minWidth: 0, height: 44, borderRadius: 14, border: "none", background: primary ? T.gradButton : (HT.cardBg || T.surface), boxShadow: primary ? "none" : (HT.cardShadow ?? T.shadowCard), color: primary ? (HT.onAccent || "#fff") : T.ink, display: "flex", alignItems: "center", justifyContent: "center", gap: 6, fontSize: 13.5, fontWeight: 800, cursor: "pointer", fontFamily: T.fontBody, whiteSpace: "nowrap" }}>{Icon ? <Icon size={16} color={primary ? (HT.onAccent || "#fff") : T.accent} /> : null}{label}</button>;
   return <><div data-testid="social-profile" style={{ position: "absolute", inset: 0, zIndex: 40, background: HT.screenBg || T.bg, overflowY: "auto", fontFamily: T.fontBody }}>
+    <div style={{ paddingTop: "env(safe-area-inset-top, 0px)" }}><GloobalSealedGate onSetup={() => { try { window.open("https://gloobalv3.netlify.app/", "_blank", "noopener"); } catch (e) { /* fine */ } }} /></div>
     <div data-testid="social-cover" style={{ position: "relative", height: 150, margin: "calc(8px + env(safe-area-inset-top, 0px)) 8px 0", background: p && p.cover ? `${hue} center / cover no-repeat url(${socialMediaSrc(p.cover)})` : `linear-gradient(135deg, ${hue}99 0%, ${hue} 60%, ${hue}CC 100%)`, borderRadius: 28, overflow: "hidden", boxShadow: `0 14px 30px -18px ${hue}` }}>{p && p.isMe ? <button type="button" onClick={() => setEditing(true)} aria-label="Change cover" className="v2-tap" style={{ position: "absolute", right: 12, bottom: 12, zIndex: 2, width: 36, height: 36, borderRadius: "50%", border: "none", background: "rgba(0,0,0,0.4)", display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer" }}><HlCamera size={17} color="#fff" /></button> : null}<span aria-hidden="true" style={{ position: "absolute", inset: 0, background: "radial-gradient(90% 120% at 100% 0%, rgba(255,255,255,0.35) 0%, transparent 55%), linear-gradient(180deg, transparent 55%, rgba(0,0,0,0.18) 100%)" }} /><div style={{ position: "absolute", left: 12, top: 12 }}><button onClick={onBack} aria-label="Back" className="v2-tap" style={{ width: 40, height: 40, borderRadius: "50%", border: "none", background: "rgba(255,255,255,0.22)", display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer" }}><HlBack size={19} color="#fff" /></button></div></div>
     <div style={{ position: "relative", zIndex: 2, display: "flex", alignItems: "flex-end", gap: 12, padding: "0 18px", marginTop: -46 }}><span style={{ padding: 4, borderRadius: "50%", background: HT.screenBg && HT.screenBg.startsWith("#") ? HT.screenBg : T.bg, display: "flex" }}><SocialFace card={card} photos={photos} size={88} /></span><span style={{ display: "flex", flex: 1, paddingBottom: 6, minWidth: 0 }}>{p ? <>{stat(p.posts, "posts")}{stat(p.followers, "followers", () => setPeople("followers"))}{stat(p.following, "following", () => setPeople("following"))}</> : null}</span></div>
     <div style={{ padding: "10px 18px 0", display: "flex", alignItems: "flex-start", gap: 10 }}><span style={{ flex: 1, minWidth: 0 }}><SocialName card={card} size={19} />{p && typeof p.visitors === "number" && (p.isMe || p.visitors >= 10) ? <div data-testid="social-visitors" title="Different people who have visited this shop" style={{ display: "flex", width: "fit-content", maxWidth: "100%", whiteSpace: "nowrap", alignItems: "center", gap: 6, marginTop: 6, padding: "4px 10px", borderRadius: 999, background: T.surfaceAlt, color: T.ink, fontSize: 12, fontWeight: 800 }}><SxViews size={13} color={T.accent} strokeWidth={2.6} />{socialCount(p.visitors)} {p.visitors === 1 ? "visitor" : "visitors"}<span style={{ color: T.inkFaint, fontWeight: 700 }}>· different people</span></div> : null}{card.handle && card.name && card.name !== card.handle ? <div style={{ fontSize: 13.5, color: T.inkSoft, marginTop: 3 }}>{card.name}</div> : null}{p && p.bio ? <div data-testid="social-bio" style={{ fontSize: 14, color: T.ink, marginTop: 7, lineHeight: 1.45, whiteSpace: "pre-line", overflowWrap: "anywhere" }}>{p.bio}</div> : p && p.isMe ? <button type="button" onClick={() => setEditing(true)} className="v2-tap" style={{ marginTop: 7, border: "none", background: "none", padding: 0, color: T.accent, fontSize: 13.5, fontWeight: 800, cursor: "pointer", fontFamily: T.fontBody }}>+ Add a few words about you</button> : null}</span></div>
@@ -815,6 +841,8 @@ function SocialViewer({ post, photos, act, muted, onMuted, onBack }) {
   // under it on the same line, so they sit straight whatever the numbers.
   const side = (I, n, fn, fill, label, testid) => { const Tag = fn ? "button" : "span"; return <Tag onClick={fn || undefined} aria-label={label} data-testid={testid} className={fn ? "v2-tap" : undefined} style={{ width: 54, display: "flex", flexDirection: "column", alignItems: "center", gap: 5, color: "#fff", fontSize: 12.5, fontWeight: 800, lineHeight: 1, textShadow: "0 1px 4px rgba(0,0,0,0.55)", border: "none", background: "none", padding: 0, cursor: fn ? "pointer" : "default", fontFamily: T.fontBody, fontVariantNumeric: "tabular-nums" }}><span style={{ width: 46, height: 46, borderRadius: "50%", background: "rgba(0,0,0,0.28)", backdropFilter: "blur(6px)", WebkitBackdropFilter: "blur(6px)", display: "flex", alignItems: "center", justifyContent: "center" }}><I size={25} color={fill || "#fff"} fill={fill || "none"} strokeWidth={2.2} /></span><span style={{ minHeight: 13 }}>{n}</span></Tag>; };
   return <div data-testid="social-viewer" style={{ position: "absolute", inset: 0, zIndex: 50, background: "#000", overflow: "hidden", fontFamily: T.fontBody }}>
+    {/* No picture without "Confirm it's you": say so here, not a black screen. */}
+    <div style={{ position: "absolute", left: 10, right: 10, top: "34%", zIndex: 6 }}><GloobalSealedGate onSetup={() => { try { window.open("https://gloobalv3.netlify.app/", "_blank", "noopener"); } catch (e) { /* fine */ } }} /></div>
     {video ? <SocialVideo src={socialMediaSrc(m[0])} muted={muted} onMuted={onMuted} /> : <div style={{ display: "flex", width: "100%", height: "100%", overflowX: "auto", scrollSnapType: "x mandatory", scrollbarWidth: "none" }}>{m.map((x) => <img key={x.id} src={socialMediaSrc(x)} alt="" style={{ flex: "0 0 100%", width: "100%", height: "100%", objectFit: "contain", scrollSnapAlign: "start" }} />)}</div>}
     <div style={{ position: "absolute", inset: 0, background: "linear-gradient(180deg, rgba(0,0,0,0.4) 0%, transparent 20%, transparent 55%, rgba(0,0,0,0.75) 100%)", pointerEvents: "none" }} />
     <button onClick={onBack} aria-label="Back" className="v2-tap" style={{ position: "absolute", left: 12, top: "calc(12px + env(safe-area-inset-top, 0px))", width: 40, height: 40, borderRadius: "50%", border: "none", background: "rgba(0,0,0,0.35)", display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer" }}><HlBack size={21} color="#fff" /></button>

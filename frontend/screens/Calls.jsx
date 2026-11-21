@@ -67,6 +67,7 @@ function HellooCallsHome({ me, calls = [], onCallBack, onInfo, onOpenDial, onAdd
   const missedN = inWhen.filter((c) => c.missed).length;
   const periodWords = hellooPeriodWords(when);
   const [picking, setPicking] = useStateH12(false);
+  useHellooBackLayer(picking, () => setPicking(false));
   const callDays = new Set(calls.map((c) => hellooDayKey(new Date(c.at))));
   const line = (c) => `${c.video ? "Video" : "Voice"}${c.status === "ended" && c.seconds ? ` · ${hellooDurationHms(c.seconds)}` : c.missed ? " · Missed" : c.status === "declined" ? " · Declined" : c.status === "cancelled" ? " · Cancelled" : ""}`;
   const dayOf = (d) => { const x = new Date(d); return `${x.getFullYear()}-${x.getMonth()}-${x.getDate()}`; };
@@ -105,6 +106,7 @@ function HellooDialSheet({ dial = "", onDial, match, status, onMessage, onCall, 
   const dialFlag = (dialCountry && dialCountry.flag) || "";
   // Tap the flag: GLOOBAL's own country list, searched by name or code.
   const [picking, setPicking] = useStateH12(false);
+  useHellooBackLayer(picking, () => setPicking(false));
   const [pickQ, setPickQ] = useStateH12("");
   const maxDigits = (dialCountry && typeof MOBILE_DIGIT_RANGE_BY_ISO === "object" && MOBILE_DIGIT_RANGE_BY_ISO[dialCountry.iso] && MOBILE_DIGIT_RANGE_BY_ISO[dialCountry.iso][1]) || 13;
   const people = contacts.filter((c) => c && c.gloobalId && !c.group).slice(0, 12);
