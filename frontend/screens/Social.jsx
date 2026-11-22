@@ -305,8 +305,8 @@ function SocialSwitch({ on, busy, onChange, label, testid }) {
 }
 
 // Your social profiles: yourself, and each shop — a card in the middle,
-// like "Message as" in chats. Tap a face to open that profile (and post as
-// it); the icon under it posts as it; the switch turns it on or off. Each
+// like "Connect as" in chats. Tap a face to open that profile and post
+// as it; the switch turns it on or off. Each
 // one is off until you turn it on; only an "on" one can post, follow, like
 // and comment.
 function SocialProfilesSheet({ me, list, face, photos, accounts, onUse, onSet, onOpen, onClose }) {
@@ -327,7 +327,7 @@ function SocialProfilesSheet({ me, list, face, photos, accounts, onUse, onSet, o
     <div role="dialog" aria-modal="true" aria-label="Your social profiles" data-testid="social-profile-card" onClick={(e) => e.stopPropagation()} style={{ position: "relative", width: "100%", maxWidth: 380, maxHeight: "100%", overflowY: "auto", boxSizing: "border-box", borderRadius: 28, background: card, boxShadow: "0 24px 60px rgba(15,23,42,0.28)", padding: "22px 12px 16px" }}>
       <button type="button" onClick={onClose} aria-label="Close" className="v2-tap" style={{ position: "absolute", right: 10, top: 10, width: 36, height: 36, border: "none", background: "none", display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer" }}><HlX size={20} color={T.inkFaint} /></button>
       <div style={{ textAlign: "center", fontSize: 11.5, fontWeight: 900, letterSpacing: 1.2, color: T.accent, textTransform: "uppercase" }}>GLOOBAL Social</div>
-      <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 8, marginTop: 6 }}><span style={{ fontSize: 17, fontWeight: 900, color: T.ink, fontFamily: T.fontDisplay }}>Post as</span><span style={{ fontSize: 11.5, fontWeight: 800, color: T.inkSoft, background: T.surfaceAlt, padding: "3px 9px", borderRadius: 999 }}>{accounts ? `${onCount} of ${list.length} on` : `${list.length}`}</span></div>
+      <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 8, marginTop: 6 }}><span style={{ fontSize: 17, fontWeight: 900, color: T.ink, fontFamily: T.fontDisplay }}>Connect as</span><span style={{ fontSize: 11.5, fontWeight: 800, color: T.inkSoft, background: T.surfaceAlt, padding: "3px 9px", borderRadius: 999 }}>{accounts ? `${onCount} of ${list.length} on` : `${list.length}`}</span></div>
       <div style={{ textAlign: "center", fontSize: 12.5, color: T.inkSoft, marginTop: 3, lineHeight: 1.45, padding: "0 12px" }}>Each one has its own posts, followers and status.</div>
       <div style={{ display: "grid", gridTemplateColumns: `repeat(${many ? 3 : Math.max(1, list.length)}, minmax(0, 1fr))`, gap: "18px 4px", marginTop: 18 }}>
         {list.map((f) => {
@@ -343,8 +343,7 @@ function SocialProfilesSheet({ me, list, face, photos, accounts, onUse, onSet, o
               <span style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 3, maxWidth: "100%", minWidth: 0 }}><span style={{ minWidth: 0, fontSize: 13, fontWeight: 800, color: isOn ? T.ink : T.inkSoft, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{shop ? <CreatorHandleText handle={f.handle} icon={false} /> : String(nameOf(f)).split(" ")[0]}</span>{isOn ? <HellooBadge tier={(a && a.badge) || 1} size={11.5} /> : null}</span>
               <span style={{ fontSize: 11, fontWeight: 700, color: T.inkFaint, marginTop: -4, whiteSpace: "nowrap" }}>{a ? (isOn ? `${socialCount(a.followers)} followers` : "Hidden") : "…"}</span>
             </button>
-            <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 6, marginTop: 2 }}>
-              {isOn ? <button type="button" data-testid={`social-use-${key}`} aria-pressed={using} aria-label={`Post as ${nameOf(f)}`} onClick={() => onUse(f)} className="v2-tap" style={{ width: 34, height: 34, display: "flex", alignItems: "center", justifyContent: "center", border: "none", background: "none", padding: 0, cursor: "pointer" }}><SxAddPic size={24} color={using ? T.accent : "#0E7490"} strokeWidth={2.2} /></button> : <span aria-hidden="true" style={{ width: 34, height: 34 }} />}
+            <div style={{ display: "flex", alignItems: "center", marginTop: 2 }}>
               <span style={{ width: 40, height: 24, display: "flex", alignItems: "center", justifyContent: "center" }}><span style={{ transform: "scale(0.8)", display: "flex" }}><SocialSwitch on={isOn} busy={busy === f.as || a === null} label={`${nameOf(f)} on Social`} testid={`social-on-${key}`} onChange={(v) => setAsk({ f, on: v })} /></span></span>
             </div>
           </div>;

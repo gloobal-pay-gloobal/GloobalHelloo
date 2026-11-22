@@ -266,10 +266,10 @@ function HellooFaceCard({ faces = [], current = "", photos = {}, onPick, onProfi
     return { id: f.accountId, name: shop ? (f.handle || f.name) : f.name, short: shop ? "" : String(f.name || "").split(" ")[0], photo };
   };
   return <div data-testid="helloo-face-card-layer" onClick={onClose} style={{ position: "fixed", inset: 0, zIndex: 80, background: "rgba(15,23,42,0.42)", backdropFilter: "blur(6px)", WebkitBackdropFilter: "blur(6px)", display: "flex", alignItems: "center", justifyContent: "center", padding: 16, boxSizing: "border-box", fontFamily: T.fontBody }}>
-    <div role="dialog" aria-modal="true" aria-label="Message as" data-testid="helloo-face-card" onClick={(e) => e.stopPropagation()} style={{ position: "relative", width: "100%", maxWidth: 380, maxHeight: "100%", overflowY: "auto", boxSizing: "border-box", borderRadius: 28, background: HT.cardBg || T.surface, boxShadow: "0 24px 60px rgba(15,23,42,0.28)", padding: "22px 14px 14px" }}>
+    <div role="dialog" aria-modal="true" aria-label="Connect as" data-testid="helloo-face-card" onClick={(e) => e.stopPropagation()} style={{ position: "relative", width: "100%", maxWidth: 380, maxHeight: "100%", overflowY: "auto", boxSizing: "border-box", borderRadius: 28, background: HT.cardBg || T.surface, boxShadow: "0 24px 60px rgba(15,23,42,0.28)", padding: "22px 14px 14px" }}>
       <button type="button" onClick={onClose} aria-label="Close" className="v2-tap" style={{ position: "absolute", right: 10, top: 10, width: 36, height: 36, border: "none", background: "none", display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer" }}><HlX size={20} color={T.inkFaint} /></button>
       <div style={{ display: "flex", justifyContent: "center" }}><HellooWordmark size={20} /></div>
-      <div style={{ textAlign: "center", fontSize: 17, fontWeight: 900, color: T.ink, marginTop: 8, fontFamily: T.fontDisplay }}>Message as</div>
+      <div style={{ textAlign: "center", fontSize: 17, fontWeight: 900, color: T.ink, marginTop: 8, fontFamily: T.fontDisplay }}>Connect as</div>
       <div style={{ textAlign: "center", fontSize: 12.5, color: T.inkSoft, marginTop: 3, lineHeight: 1.45, padding: "0 12px" }}>Each one has its own chats and calls.</div>
       <div data-testid="helloo-face-card-row" style={{ display: "grid", gridTemplateColumns: `repeat(${many ? 3 : Math.max(1, faces.length)}, minmax(0, 1fr))`, gap: "16px 6px", marginTop: 18 }}>
         {faces.map((f) => {
