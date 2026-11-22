@@ -1788,7 +1788,7 @@ function HellooRoot() {
   if (stage === "splash" || stage === "splash-in") return shell(<HellooSplash intro={stage === "splash"} onSkip={stage === "splash" ? () => setStage("id") : undefined} />);
   if (stage === "welcome") return shell(<HellooWelcome hasGloobal={false} note={outNote} onEnterId={() => { setOutNote(""); setStage("id"); }} />);
   if (stage === "id") return shell(<HellooIdScreen value={idValue} onChange={setIdValue} mode={idMode} onMode={setIdMode} mobile={idMobile} onMobile={setIdMobile} status={idValue.length === 12 ? "ready" : ""} note={outNote} onNext={() => { setOutNote(""); setPin(""); setStage("pin"); }} />);
-  if (stage === "pin") return shell(<LoginAuthScreen note="The same PIN you pay with on GLOOBAL. Never kept on this phone." extra={<HellooPinNote who={idMode === "mobile" ? `+${idMobile}` : <ColoredGloobalId id={idValue} />} />} value={pin} length={HELLOO_PIN_LENGTH} onChange={setPin} onSubmit={() => submitPin(pin)} onBack={() => setStage("id")} revealed={pinShown} onToggleReveal={() => setPinShown((v) => !v)} waking={pinWaking} busy={pinBusy} />);
+  if (stage === "pin") return shell(<LoginAuthScreen who={idMode === "mobile" ? `+${idMobile}` : <ColoredGloobalId id={idValue} />} forgotHref={HELLOO_GLOOBAL_SIGNUP} value={pin} length={HELLOO_PIN_LENGTH} onChange={setPin} onSubmit={() => submitPin(pin)} onBack={() => setStage("id")} revealed={pinShown} onToggleReveal={() => setPinShown((v) => !v)} waking={pinWaking} busy={pinBusy} />);
   if (stage === "back" && me) return shell(<HellooWelcomeBack me={me} onDone={() => setStage("app")} />);
   if (!me) return shell(<HellooSplash />);
 
@@ -2068,9 +2068,11 @@ function HellooRoot() {
     return shell(<HellooMyQrScreen me={me} onBack={() => setScreen(null)} onSave={saveQr} onShare={shareQr} />);
   }
   if (screen === "scan") {
-    // GLOOBAL's own scanner with all its controls: torch, zoom, and a
-    // picture from the gallery.
-    return shell(<div style={{ position: "absolute", inset: 0, background: "#000" }}><QrCameraScanner onDetected={onScanned} active fullScreen onUploadRequested={() => scanFileRef.current && scanFileRef.current.click()} /><input ref={scanFileRef} type="file" accept="image/*" onChange={onScanFile} data-testid="helloo-scan-file" style={{ display: "none" }} /><div style={{ position: "absolute", top: "calc(14px + env(safe-area-inset-top, 0px))", left: 14, zIndex: 400 }}><NavBackButton onClick={() => setScreen(null)} /></div></div>);
+    // GLOOBAL's own scan screen, the very same one (GloobalScanScreen):
+    // GLOOBAL QR over the camera, torch, zoom, a picture from the gallery,
+    // the camera permission step. A code opens that person's chat here;
+    // the big button under the camera dials instead of sending money.
+    return shell(<GloobalScanScreen onBack={() => setScreen(null)} onDetected={onScanned} galleryRef={scanFileRef} onGalleryFile={onScanFile} bottom={(overVideo) => <ScanSendButton overVideo={overVideo} label="Dial" onClick={() => { setScreen(null); setDial({ value: "", status: "", match: null }); setSheet("dial"); }} />} />);
   }
 
   if (screen === "reach" && myReach) {

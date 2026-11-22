@@ -442,6 +442,7 @@ import {
   FlashlightOff as FlashlightOff1,
   Image as ImageIcon2
 } from "lucide-react";
+import { useState as useStateGss, useRef as useRefGss, useEffect as useEffectGss } from "react";
 import { useState as useState22, useRef as useRef16, useEffect as useEffect26 } from "react";
 import {
   Search as MapSearchIcon,
@@ -14608,13 +14609,22 @@ function PinScreen({ value, length, onChange, onSubmit, onBack, revealed, onTogg
 // a known 40-second wait from looking like a fault: the time is the same and
 // the person knows what it is, which is the difference between waiting and
 // wondering whether to force-quit.
-function LoginAuthScreen({ value, length, onChange, onSubmit, onBack, revealed, onToggleReveal, waking, busy, error = "", note = "Welcome back. Your 6-digit GLOOBAL PIN.", extra = null }) {
+// Under the PIN slots on the sign-in screen, in GLOOBAL and in Helloo alike
+// (Helloo is built on top of this bundle and draws this same screen): who
+// is signing in, and — where there is somewhere to send them — what to do
+// about a forgotten PIN. One screen, so the two apps never drift apart.
+function PinSignInNote({ who, forgotHref = "", onForgot = null }) {
+  if (!who && !forgotHref && !onForgot) return null;
+  const forgotLink = { color: T.accent, fontWeight: 800, textDecoration: "none", background: "none", border: "none", padding: 0, font: "inherit", cursor: "pointer" };
+  return <div data-testid="pin-signin-note" style={{ textAlign: "center", fontFamily: T.fontBody, lineHeight: 1.5 }}>{who ? <div style={{ fontSize: 12.5, fontWeight: 700, color: T.inkSoft }}>Signing in as {who}</div> : null}{forgotHref || onForgot ? <div style={{ marginTop: 2, fontSize: 12.5, color: T.inkSoft }}>Forgot it? {onForgot ? <button type="button" onClick={onForgot} style={forgotLink}>Reset it</button> : <a href={forgotHref} target="_blank" rel="noopener" style={forgotLink}>Reset it in <GloobalWordmark /></a>}</div> : null}</div>;
+}
+function LoginAuthScreen({ value, length, onChange, onSubmit, onBack, revealed, onToggleReveal, waking, busy, error = "", note = "The same PIN you pay with on GLOOBAL. Never kept on this phone.", who = null, forgotHref = "", onForgot = null, extra = null }) {
   // The shared PIN screen. `waking` says why a sign-in is slow: the API
   // on Render's free plan sleeps after ~15 minutes, and the first request
   // pays 20–50 seconds to wake it. Saying so turns waiting into knowing.
   return <div
     style={{ position: "fixed", inset: 0, zIndex: 100, background: T.bg, display: "flex", flexDirection: "column", fontFamily: T.fontBody, padding: "calc(14px + env(safe-area-inset-top, 0px)) 18px calc(22px + env(safe-area-inset-bottom, 0px))", boxSizing: "border-box", overflowY: "auto" }}
-  ><GloobalPinPanel title="Enter your PIN" note={note} length={length} value={value} onChange={onChange} onSubmit={onSubmit} onBack={onBack} revealed={revealed} onToggleReveal={onToggleReveal} busy={busy} error={error} footer={waking ? <div role="status" aria-live="polite" data-testid="login-waking" style={{ marginTop: 4, padding: "10px 14px", borderRadius: T.radiusLg, background: T.accentSoft, color: T.accent, fontSize: 12, fontWeight: 700, lineHeight: 1.45, textAlign: "center", maxWidth: 320 }}>Waking the server {"\u2014"} this can take up to a minute the first time today.</div> : extra} /></div>;
+  ><GloobalPinPanel title="Enter your PIN" note={note} length={length} value={value} onChange={onChange} onSubmit={onSubmit} onBack={onBack} revealed={revealed} onToggleReveal={onToggleReveal} busy={busy} error={error} footer={waking ? <div role="status" aria-live="polite" data-testid="login-waking" style={{ marginTop: 4, padding: "10px 14px", borderRadius: T.radiusLg, background: T.accentSoft, color: T.accent, fontSize: 12, fontWeight: 700, lineHeight: 1.45, textAlign: "center", maxWidth: 320 }}>Waking the server {"\u2014"} this can take up to a minute the first time today.</div> : (extra || <PinSignInNote who={who} forgotHref={forgotHref} onForgot={onForgot} />)} /></div>;
 }
 // `notice` carries whatever the real device check had to say — no sensor
 // on this device, a declined prompt, a timed-out one. It is shown on this
@@ -70769,6 +70779,135 @@ function decodeGloobalQrFromImageFile(file) {
 }
 
 
+
+// ── ONE SCAN SCREEN, GLOOBAL AND HELLOO ─────────────────────────────────
+//
+// This is GLOOBAL's scan screen, lifted out of App.jsx so Helloo can draw
+// the very same one (Helloo is built on top of this bundle). Everything a
+// person sees while aiming is here: black while the camera runs, the back
+// button, "GLOOBAL QR" centred over the picture, "Point at any GLOOBAL
+// code" under the square, the torch / zoom / gallery row, the camera
+// permission step with Upload from gallery, and the band that says
+// "Looking this QR up…", an error, or a retry.
+//
+// What happens with a code is the caller's: GLOOBAL looks the payee up and
+// passes its confirm card back in as `result` (the camera stops and the
+// page takes the payee's tint); Helloo opens the chat. `bottom` is the one
+// big button under the camera (GLOOBAL: Send; Helloo: Dial), drawn for
+// both grounds — `bottom(false)` on the permission page, `bottom(true)`
+// over live video.
+//
+// `cameraGranted` may be held by the caller (GLOOBAL resets it whenever
+// the screen closes); without it the screen keeps its own.
+function GloobalScanScreen({
+  onBack,
+  onDetected,
+  onGalleryFile,
+  galleryRef = null,
+  active = true,
+  fixed = false,
+  zIndex = 400,
+  cameraGranted,
+  onAllowCamera,
+  paused = false,
+  resolving = false,
+  error = null,
+  retry = null,
+  onRetry,
+  onClearError,
+  tint = null,
+  headerRight = null,
+  bottom = null,
+  result = null
+}) {
+  const [ownGranted, setOwnGranted] = useStateGss(false);
+  const ownRef = useRefGss(null);
+  const inputRef = galleryRef || ownRef;
+  // Held here: skip the Allow step when the browser already says the
+  // camera is allowed, exactly as GLOOBAL's own screen does.
+  useEffectGss(() => {
+    if (cameraGranted !== undefined || typeof cameraPermissionState !== "function") return undefined;
+    let alive = true;
+    cameraPermissionState().then((state) => { if (alive && state === "granted") setOwnGranted(true); });
+    return () => { alive = false; };
+  }, []);
+  const granted = cameraGranted === undefined ? ownGranted : cameraGranted;
+  const allow = () => { if (onAllowCamera) onAllowCamera(); if (cameraGranted === undefined) setOwnGranted(true); };
+  const pickFromGallery = () => { if (onClearError) onClearError(); if (inputRef.current) inputRef.current.click(); };
+  const live = granted && !result;
+  const light = Boolean(result);
+  return <div data-testid="gloobal-scan-screen" style={{
+    position: fixed ? "fixed" : "absolute", inset: 0, zIndex,
+    // Black while aiming — a dark frame is what lets somebody see what the
+    // lens is pointed at — and the payee's own tint once a code lands.
+    background: light && tint ? tint : "#000",
+    transition: "background 0.45s ease",
+    display: "flex", flexDirection: "column", overflow: "hidden"
+  }}>{live && <QrCameraScanner
+    fullScreen
+    active={active}
+    paused={paused}
+    onDetected={onDetected}
+    // Every control off the picture while the screen is saying something.
+    quiet={Boolean(resolving || error || retry)}
+    onUploadRequested={pickFromGallery}
+  />}<div style={{ position: "relative", zIndex: 1, display: "flex", alignItems: "center", gap: 12, padding: "calc(18px + env(safe-area-inset-top, 0px)) 18px 14px", flexShrink: 0 }}><NavBackButton onClick={onBack} /><span style={{
+    flex: 1, textAlign: "center", fontSize: 17, fontWeight: 800, fontFamily: T.fontDisplay,
+    color: light ? T.ink : "#FFFFFF",
+    textShadow: light ? "none" : "0 1px 8px rgba(0,0,0,0.5)"
+  }}><GloobalWordmark /> QR</span>{
+    /* The back button's own width when there is nothing in the corner,
+       so the title is centred on the screen. */
+  }{headerRight || <span aria-hidden="true" style={{ width: 42, flexShrink: 0 }} />}</div>{live && !resolving && !error && !retry && <div
+    style={{ position: "absolute", left: 0, right: 0, bottom: "calc(160px + env(safe-area-inset-bottom, 0px))", zIndex: 1, display: "flex", justifyContent: "center", padding: "0 24px", pointerEvents: "none" }}
+  ><div data-testid="gloobal-scan-hint" style={{ fontSize: 12.5, color: "rgba(255,255,255,0.92)", textAlign: "center", lineHeight: 1.5, fontWeight: 600, textShadow: "0 1px 6px rgba(0,0,0,0.6)" }}>
+      Point at any <GloobalWordmark /> code
+    </div></div>}<input
+      ref={inputRef}
+      type="file"
+      accept="image/*"
+      onChange={onGalleryFile}
+      data-testid="gloobal-scan-file"
+      style={{ display: "none" }}
+    />{!granted ? <><QrFrameGuide><ScannerIcon size={52} animated color="#FFFFFF" /><div
+      style={{ fontSize: 16, fontWeight: 800, color: "#FFFFFF", fontFamily: T.fontDisplay, marginTop: 14 }}
+    >Allow camera access</div><div
+      style={{ fontSize: 12.5, color: "rgba(255,255,255,0.78)", lineHeight: 1.45, marginTop: 6 }}
+    >Your browser will ask you to confirm.</div><button
+      onClick={allow}
+      className="v2-tap"
+      data-testid="gloobal-scan-allow"
+      style={{ marginTop: 18, border: "none", borderRadius: 999, padding: "12px 32px", background: T.gradButton, color: "#fff", fontSize: 14, fontWeight: 800, cursor: "pointer", boxShadow: `0 8px 20px rgba(${T.accentRgb},0.35)` }}
+    >Allow Access</button>{error && <div
+      role="alert"
+      style={{ fontSize: 12, color: "#fff", background: T.negative, borderRadius: 10, padding: "7px 12px", textAlign: "center", fontWeight: 700, marginTop: 14, lineHeight: 1.4 }}
+    >{error}</div>}</QrFrameGuide>{
+    /* Where the scanner's own control row sits, so the gallery picker does
+       not move when the camera comes up. A code that arrived as a
+       screenshot never needs the camera at all. */
+  }<div style={{ position: "absolute", left: 0, right: 0, bottom: "calc(132px + env(safe-area-inset-bottom, 0px))", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 2 }}><button
+      onClick={pickFromGallery}
+      className="v2-tap"
+      style={{ display: "flex", alignItems: "center", gap: 8, border: "1px solid rgba(255,255,255,0.35)", borderRadius: 999, padding: "10px 18px", background: "rgba(0,0,0,0.45)", backdropFilter: "blur(6px)", color: "#fff", fontSize: 13, fontWeight: 700, cursor: "pointer" }}
+    ><ImageIcon size={16} />Upload from gallery</button></div>{bottom ? <div
+      // Fills the column to push the button down — and so lies over the
+      // Allow Access card above it. Taps go through the empty part.
+      style={{ position: "relative", zIndex: 1, flex: 1, display: "flex", flexDirection: "column", justifyContent: "flex-end", padding: "0 24px calc(26px + env(safe-area-inset-bottom, 0px))", pointerEvents: "none" }}
+    ><div style={{ pointerEvents: "auto" }}>{bottom(false)}</div></div> : null}</> : <div style={{ position: "relative", zIndex: 1, flex: 1, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: live ? "flex-end" : "center", padding: "0 24px calc(26px + env(safe-area-inset-bottom, 0px))", gap: 16 }}>{!result ? <>{(resolving || error || retry) && <div
+    style={{ position: "absolute", left: 0, right: 0, bottom: "calc(96px + env(safe-area-inset-bottom, 0px))", zIndex: 2, display: "flex", flexDirection: "column", alignItems: "center", gap: 11, padding: "0 24px" }}
+  >{resolving && <div
+    style={{ fontSize: 12.5, color: "rgba(255,255,255,0.92)", textAlign: "center", lineHeight: 1.5, fontWeight: 600, textShadow: "0 1px 6px rgba(0,0,0,0.6)" }}
+  >{typeof resolving === "string" ? resolving : "Looking this QR up…"}</div>}{error && <div
+    role="alert"
+    style={{ fontSize: 12.5, color: "#fff", background: T.negative, borderRadius: 12, padding: "9px 15px", textAlign: "center", fontWeight: 700, maxWidth: 300, lineHeight: 1.4 }}
+  >{error}</div>}{retry && <button
+    onClick={onRetry}
+    className="v2-tap"
+    style={{ border: "none", borderRadius: 999, padding: "10px 24px", background: "rgba(255,255,255,0.94)", color: T.accent, fontSize: 13.5, fontWeight: 800, cursor: "pointer" }}
+  >{retry}</button>}</div>}{bottom ? bottom(true) : null}</> : result}</div>}</div>;
+}
+
+
 // src/components/common/appMap.jsx
 
 // The floating map button's last settled spot — which screen edge, and how
@@ -71532,7 +71671,7 @@ var SHOW_PHONE_HERO_CIRCLE = false;
 // Two grounds, because it appears on both a white permission page and on
 // top of live video, and a control that is legible on one is invisible on
 // the other.
-function ScanSendButton({ onClick, overVideo = false }) {
+function ScanSendButton({ onClick, overVideo = false, label = "Send" }) {
   return <button
     onClick={onClick}
     className="v2-tap"
@@ -71565,7 +71704,7 @@ function ScanSendButton({ onClick, overVideo = false }) {
         ? `0 10px 34px rgba(${T.accentRgb},0.55), inset 0 1px 0 rgba(255,255,255,0.3)`
         : `0 8px 20px rgba(${T.accentRgb},0.28)`
     }}
-  ><ArrowUpRight5 size={17} />Send</button>;
+  ><ArrowUpRight5 size={17} />{label}</button>;
 }
 
 // The local CACHE of the profile picture, keyed by Gloobal ID. The photo
@@ -76295,6 +76434,8 @@ function GloobalId() {
     onToggleReveal={() => setLoginAuthRevealed((v) => !v)}
     waking={authBusy && authSlow}
     busy={authBusy}
+    // Who is signing in, under the slots — the same screen Helloo shows.
+    who={loginIdentifier ? (/^\d/.test(loginIdentifier) ? `+${loginIdentifier}` : /^\+/.test(loginIdentifier) && /\d/.test(loginIdentifier) ? loginIdentifier : <ColoredGloobalId id={loginIdentifier} />) : null}
   />}{stage === "loginBiometric" && <BiometricVerifyScreen
     onBack={requestBackFromLoginBiometric}
     onVerify={handleLoginBiometricVerify}
@@ -76404,76 +76545,27 @@ function GloobalId() {
     // scanning — not before permission, and not once a code has resolved and
     // there is a confirm card to look at.
     const scanLive = scanCameraAccessGranted && !scanPayee;
-    return <><ScanOverlayBlocksMap /><div style={{
-      position: "fixed", inset: 0, zIndex: 400,
-      // ── BLACK WHILE AIMING, LIGHT ONCE IT LANDS ─────────────────────
-      //
-      // A dark frame is what lets somebody see the picture they are
-      // pointing at a code, so the camera keeps its black. The moment a
-      // code resolves, a white confirmation card floating on a black
-      // field reads as an error dialog — which is the one thing a
-      // payment card must not read as.
-      //
-      // The page then goes to WHITE with a trace of the payee's hue in
-      // it, and the colour itself goes on the card. The first build had
-      // that the other way round, and the founder inverted it: the field
-      // is the biggest thing on screen and the card is the only thing
-      // anybody reads, so colouring the field spent all that area in the
-      // place nobody looks.
-      //
-      // The hue is derived from the scanned ID and nothing else: no
-      // setting, no shop's own colour, nobody choosing. See
-      // scanBackdrop.js for why that also makes it impossible for the
-      // colour to shift under somebody mid-payment.
-      background: scanPayee ? scanPageTint(scanPayee.gloobalId) : "#000",
-      transition: "background 0.45s ease",
-      display: "flex", flexDirection: "column", overflow: "hidden"
-    }}>{
-    /* The camera layer. A direct child of the overlay rather than an item
-       in the column below, which is what lets it run edge to edge behind
-       the back button. Paused while a lookup runs and after a failed one,
-       until the person taps to go again. */
-  }{scanLive && <QrCameraScanner
-    fullScreen
-    active={showScanScreen}
-    paused={scanResolving || Boolean(scanRetry)}
-    onDetected={handleQrScanned}
-    // Every control off the picture while the screen is saying
-    // something. The scanner is paused in exactly those moments anyway.
-    quiet={Boolean(scanResolving || scanError || scanRetry)}
-    onUploadRequested={() => {
-      setScanError(null);
-      setScanRetry(null);
-      if (scanGalleryInputRef.current) scanGalleryInputRef.current.click();
-    }}
-  />}<div style={{ position: "relative", zIndex: 1, display: "flex", alignItems: "center", gap: 12, padding: "calc(18px + env(safe-area-inset-top, 0px)) 18px 14px", flexShrink: 0 }}><NavBackButton onClick={requestCloseScanScreen} />{
-    /* ── ONE TITLE, CENTRED, AND IT NAMES THE THING ──────────────────────
-       It was a two-line block pinned beside the back button: "Scan QR"
-       over "Point at any Gloobal code". Two faults in that.
-       "Scan QR" names the ACTION, and the action is already obvious from
-       a camera with a square drawn on it. What is not obvious is WHICH
-       codes this reads — it is not a general QR scanner, it will only
-       resolve a Gloobal code — so the title is the name of the thing.
-       And a subtitle in the header is an instruction printed where the
-       eye is not: somebody holding a phone up at a code is looking at
-       the square, not at a caption above it. It moved under the camera,
-       below. */
-  }<span style={{
-    flex: 1, textAlign: "center", fontSize: 17, fontWeight: 800, fontFamily: T.fontDisplay,
-    // White over the camera, where it needs a shadow to survive whatever
-    // the lens is pointed at. Ink once the page goes light, where white
-    // would simply be gone — the title is the same title either way and
-    // only the ground under it changed.
-    color: scanPayee ? T.ink : "#FFFFFF",
-    textShadow: scanPayee ? "none" : "0 1px 8px rgba(0,0,0,0.5)"
-  }}>
-          <GloobalWordmark /> QR
-        </span>{
-    /* The back button's own width, so the title is centred on the SCREEN
-       rather than on the space left over beside it. Without this it sits
-       27px right of centre, which is just enough to read as a mistake
-       and not enough to read as a decision. */
-  }{scanPayee ? <div style={{ display: "flex", alignItems: "center", gap: 8, flexShrink: 0 }}>{
+    return <><ScanOverlayBlocksMap /><GloobalScanScreen
+      fixed
+      active={showScanScreen}
+      cameraGranted={scanCameraAccessGranted}
+      onAllowCamera={() => setScanCameraAccessGranted(true)}
+      onBack={requestCloseScanScreen}
+      onDetected={handleQrScanned}
+      galleryRef={scanGalleryInputRef}
+      onGalleryFile={handleScanGalleryFile}
+      // Paused while a lookup runs and after a failed one, until the
+      // person taps to go again.
+      paused={scanResolving || Boolean(scanRetry)}
+      resolving={scanResolving}
+      error={scanError}
+      retry={scanRetry}
+      onRetry={() => { setScanError(null); setScanRetry(null); }}
+      onClearError={() => { setScanError(null); setScanRetry(null); }}
+      // The page goes from black to the payee's own hue once a code lands;
+      // see scanBackdrop.js.
+      tint={scanPayee ? scanPageTint(scanPayee.gloobalId) : null}
+      headerRight={scanPayee ? <div style={{ display: "flex", alignItems: "center", gap: 8, flexShrink: 0 }}>{
     /* ── THE CORNER, ONCE A CODE HAS LANDED ───────────────────────────
        Both of these lived inside the card: the scan mark under the Pay
        button, and nothing at all for "show me what this shop sells".
@@ -76495,186 +76587,9 @@ function GloobalId() {
   ><Store4 size={NAV_GLYPH_SIZE} color={T.ink} /></NavIconButton> : null}<NavScanButton
     onClick={() => setScanPayee(null)}
     label="Scan another code"
-  /></div> : <span aria-hidden="true" style={{ width: 42, flexShrink: 0 }} />}</div>{
-    /* ── AND THE WORDS WENT BACK UNDER THE CAMERA ────────────────────────
-       They were under it once, moved above the frame, and have now moved
-       back. The history is worth keeping because the reason changed.
-       They were moved UP because the band under the square held the
-       control row, the zoom arc and any message the screen had to say,
-       all at once — the founder photographed the arc drawn through the
-       instruction line and "This is your own QR" behind the flashlight.
-       The arc is gone: the zoom is drawn inside the square now, on its
-       right-hand edge. That band holds the control row and nothing else,
-       so there is room again, and under the picture is where an
-       instruction about aiming belongs — it is the last thing read on
-       the way from the square to the thumb.
-       Anchored at 160: the control row sits at 96 and is 52 tall, so
-       this clears it by 12, and one line of 12.5px type reaches about
-       180 against a square whose lower edge is never nearer than ~281.
-       A MESSAGE still replaces it rather than joining it — same
-       condition as before — because two sentences in one band is the
-       fault this screen already had once. */
-  }{scanLive && !scanPayee && !scanError && !scanRetry && !scanResolving && <div
-    style={{
-      position: "absolute",
-      left: 0,
-      right: 0,
-      bottom: "calc(160px + env(safe-area-inset-bottom, 0px))",
-      zIndex: 1,
-      display: "flex",
-      justifyContent: "center",
-      padding: "0 24px",
-      pointerEvents: "none"
-    }}
-  ><div
-    style={{ fontSize: 12.5, color: "rgba(255,255,255,0.92)", textAlign: "center", lineHeight: 1.5, fontWeight: 600, textShadow: "0 1px 6px rgba(0,0,0,0.6)" }}
-  >
-      Point at any <GloobalWordmark /> code
-    </div></div>}<input
-      ref={scanGalleryInputRef}
-      type="file"
-      accept="image/*"
-      onChange={handleScanGalleryFile}
-      style={{ display: "none" }}
-    />{!scanCameraAccessGranted ? (
-    // ── ONE SCREEN, NOT TWO ──────────────────────────────────────────────
-    //
-    // This was a separate white page: an ambient background, a 200px circle
-    // with a scan mark in it, a headline, and a button. Granting replaced
-    // the whole thing with a black screen and a square. The founder asked
-    // for the two to be one — "build that permission screen upon the real
-    // camera".
-    //
-    // The live camera cannot literally be behind this: no browser hands
-    // over pixels before consent, so on a first run there is nothing to
-    // show. Everything else is shared. Same black ground, same title, same
-    // framing square from QrFrameGuide in the same place at the same size,
-    // same Send button at the bottom. Granting fills the square that is
-    // already on screen; nothing moves, and there is no white-to-black
-    // flash between the two.
-    //
-    // "Allow Access" still only flips this flag — the real request happens
-    // when QrCameraScanner mounts and calls getUserMedia, which is what
-    // puts the browser's own prompt up. Keeping our ask in front of it is
-    // deliberate: a prompt somebody taps away without reading is a denial
-    // that takes a trip into browser settings to undo.
-    <><QrFrameGuide><ScannerIcon size={52} animated color="#FFFFFF" /><div
-      style={{ fontSize: 16, fontWeight: 800, color: "#FFFFFF", fontFamily: T.fontDisplay, marginTop: 14 }}
-    >
-                  Allow camera access
-                </div><div
-      style={{ fontSize: 12.5, color: "rgba(255,255,255,0.78)", lineHeight: 1.45, marginTop: 6 }}
-    >
-                  Your browser will ask you to confirm.
-                </div><button
-      onClick={() => setScanCameraAccessGranted(true)}
-      className="v2-tap"
-      style={{
-        marginTop: 18,
-        border: "none",
-        borderRadius: 999,
-        padding: "12px 32px",
-        background: T.gradButton,
-        color: "#fff",
-        fontSize: 14,
-        fontWeight: 800,
-        cursor: "pointer",
-        boxShadow: `0 8px 20px rgba(${T.accentRgb},0.35)`
-      }}
-    >
-                  Allow Access
-                </button>{scanError && <div
-      role="alert"
-      style={{ fontSize: 12, color: "#fff", background: T.negative, borderRadius: 10, padding: "7px 12px", textAlign: "center", fontWeight: 700, marginTop: 14, lineHeight: 1.4 }}
-    >{scanError}</div>}</QrFrameGuide>{
-    /* Where the scanner's own control row sits, so the gallery picker does
-       not move when the camera comes up. It stays reachable here because a
-       code that arrived as a screenshot never needs the camera at all. */
-  }<div
-      style={{
-        position: "absolute",
-        left: 0,
-        right: 0,
-        bottom: "calc(132px + env(safe-area-inset-bottom, 0px))",
-        display: "flex",
-        alignItems: "center",
-        justifyContent: "center",
-        zIndex: 2
-      }}
-    ><button
-      onClick={() => {
-        // Opens the picker. This used to set scanCameraAccessGranted and
-        // nothing else — a control labelled "Upload from gallery" that
-        // revealed the camera view instead, decoding nothing, leaving no
-        // route in for a device whose camera is blocked or for a code that
-        // arrived as a screenshot.
-        setScanError(null);
-        if (scanGalleryInputRef.current) scanGalleryInputRef.current.click();
-      }}
-      className="v2-tap"
-      style={{
-        display: "flex",
-        alignItems: "center",
-        gap: 8,
-        border: "1px solid rgba(255,255,255,0.35)",
-        borderRadius: 999,
-        padding: "10px 18px",
-        background: "rgba(0,0,0,0.45)",
-        backdropFilter: "blur(6px)",
-        color: "#fff",
-        fontSize: 13,
-        fontWeight: 700,
-        cursor: "pointer"
-      }}
-    ><ImageIcon size={16} />
-                  Upload from gallery
-                </button></div><div
-      style={{ position: "relative", zIndex: 1, flex: 1, display: "flex", flexDirection: "column", justifyContent: "flex-end", padding: "0 24px calc(26px + env(safe-area-inset-bottom, 0px))" }}
-    >{
-    /* Was a div reading "Enter Mobile Number to Pay" that was styled to
-       look like a text field but was not one — no input, no handler, no
-       tap target. It could not be typed into and it did nothing, which is
-       the worst kind of control: it advertised a way to pay someone
-       without a code and then refused to take it.
-
-       This is that promise kept. It opens the real Send flow, where a
-       number or a Gloobal ID can actually be entered. */
-  }<ScanSendButton onClick={() => { closeScanScreen(); setActiveScreen("send"); }} /></div></>
-  ) : <div style={{ position: "relative", zIndex: 1, flex: 1, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: scanLive ? "flex-end" : "center", padding: "0 24px calc(26px + env(safe-area-inset-bottom, 0px))", gap: 16 }}>{!scanPayee ? <>{
-    /* Upload moved into the scanner's own control row, beside the torch and
-       the zoom. */
-  }{(scanResolving || scanError || scanRetry) && <div
-    style={{
-      position: "absolute",
-      left: 0,
-      right: 0,
-      // The band the torch and the picker sit in when there is nothing to
-      // say. They are hidden whenever this is showing — see `quiet` on
-      // QrCameraScanner — so the two can never be here at once, which is
-      // the collision the founder photographed.
-      bottom: "calc(96px + env(safe-area-inset-bottom, 0px))",
-      zIndex: 2,
-      display: "flex",
-      flexDirection: "column",
-      alignItems: "center",
-      gap: 11,
-      padding: "0 24px"
-    }}
-  >{scanResolving && <div
-    style={{ fontSize: 12.5, color: "rgba(255,255,255,0.92)", textAlign: "center", lineHeight: 1.5, fontWeight: 600, textShadow: "0 1px 6px rgba(0,0,0,0.6)" }}
-  >
-      Looking this QR up…
-    </div>}{scanError && <div
-    role="alert"
-    style={{ fontSize: 12.5, color: "#fff", background: T.negative, borderRadius: 12, padding: "9px 15px", textAlign: "center", fontWeight: 700, maxWidth: 300, lineHeight: 1.4 }}
-  >{scanError}</div>}{scanRetry && <button
-    onClick={() => {
-      setScanError(null);
-      setScanRetry(null);
-    }}
-    className="v2-tap"
-    style={{ border: "none", borderRadius: 999, padding: "10px 24px", background: "rgba(255,255,255,0.94)", color: T.accent, fontSize: 13.5, fontWeight: 800, cursor: "pointer" }}
-  >{scanRetry}</button>}</div>}<ScanSendButton overVideo onClick={() => { closeScanScreen(); setActiveScreen("send"); }} /></> : <div style={{
+  /></div> : null}
+      bottom={(overVideo) => <ScanSendButton overVideo={overVideo} onClick={() => { closeScanScreen(); setActiveScreen("send"); }} />}
+      result={scanPayee ? <div style={{
     width: "100%", maxWidth: 340, display: "flex", flexDirection: "column", alignItems: "center"
   }}><div style={{
     width: "100%", borderRadius: T.radiusXl,
@@ -76860,7 +76775,8 @@ function GloobalId() {
     // style's; see scanNoteStrip.jsx.
     styleKey={scanPayee.creator.scanNoteStyle}
     speaker={creatorDisplayName(scanPayee.creator)}
-  /> : null}</div>}</div>}</div></>;
+  /> : null}</div> : null}
+    /></>;
   })()}{
     /* A shared receipt link, opened on a payment in this account's own
        history. The same read-only document History shows. */
@@ -78608,14 +78524,8 @@ function HellooIdScreen({ value, onChange, status, onBack, onNext, mode = "id", 
   return <HellooScreen><HellooTop left={onBack ? <NavBackButton onClick={onBack} /> : <span style={{ display: "inline-flex", paddingLeft: 4 }}><HellooMark size={36} /></span>} title="Sign in" subtitle={<>with your <GloobalWordmark suffix=" ID" /> or mobile number</>} /><div style={{ flex: 1, minHeight: 0, display: "flex", flexDirection: "column", alignItems: "center", padding: "4px 18px 0", overflow: "hidden" }}><div style={{ width: "100%" }}><HellooSegment value={mode} onChange={onMode} options={[["id", "GLOOBAL ID"], ["mobile", "Mobile number"]]} /></div><HellooCard style={{ width: "100%", padding: "14px 14px 12px", marginTop: 12 }}><div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}><span style={{ fontSize: 12.5, fontWeight: 800, color: T.ink }}>{byMobile ? "Your mobile number, country code first" : "The 12 symbols you pay with"}</span><span style={{ fontSize: 11.5, fontWeight: 700, color: T.inkFaint }}>{byMobile ? "" : `${value.length}/12`}</span></div><div style={{ marginTop: 10 }}>{byMobile ? <div data-testid="helloo-signin-mobile" style={{ minHeight: 34, display: "flex", alignItems: "center", gap: 6, fontSize: 24, fontWeight: 800, fontFamily: T.fontDisplay, letterSpacing: 0.5, color: mobile ? T.ink : T.inkFaint }}><span style={{ color: T.inkFaint }}>+</span>{mobile ? grouped : "91 98765 43210"}</div> : <SymbolChipRow length={12} value={value} masked={false} boxSize={22} fitWidth />}</div></HellooCard>{note ? <div role="status" data-testid="helloo-signed-out-note" style={{ width: "100%", marginTop: 8, fontSize: 12, lineHeight: 1.4, color: T.ink, background: "#FEF3C7", borderRadius: 12, padding: "8px 11px" }}>{note}</div> : null}<div style={{ height: 28, marginTop: 8, fontSize: 12.5, fontWeight: 800, color: found ? HT.free : status === "none" ? T.negative : T.inkFaint, display: "flex", alignItems: "center", gap: 6 }}>{byMobile ? (found ? <><HlCheck size={15} />Next, your GLOOBAL PIN</> : "For India, start with 91") : <>{status === "looking" && "Checking…"}{status === "found" && <><HlCheck size={15} />Account found · next, your PIN</>}{status === "ready" && <><HlCheck size={15} />12 symbols · next, your GLOOBAL PIN</>}{status === "none" && "No account with this ID yet"}{!status && "Tap the symbols of your ID on the dial"}</>}</div><div style={{ flex: 1, minHeight: 0, display: "flex", alignItems: "center", justifyContent: "center", width: "100%" }}>{byMobile ? <PhoneDialPad value={mobile} onChange={onMobile || (() => {})} minLength={HELLOO_MOBILE_MIN} maxLength={HELLOO_MOBILE_MAX} onSubmit={found ? onNext : undefined} showValue={false} /> : <SymbolDialPad value={value} onChange={onChange} length={12} soundWhileTyping />}</div></div><div style={{ padding: "6px 20px calc(18px + env(safe-area-inset-bottom, 0px))" }}>{!byMobile && status === "none" ? <HellooSecondary Icon={HlSpark} onClick={() => window.open(HELLOO_GLOOBAL_SIGNUP, "_blank", "noopener")}>Create this ID on GLOOBAL</HellooSecondary> : <HellooPrimary disabled={!found} onClick={onNext}>Continue</HellooPrimary>}<div style={{ textAlign: "center", fontSize: 12.5, color: T.inkSoft, marginTop: 10 }}>New here? <a data-testid="helloo-create-id" href={HELLOO_GLOOBAL_SIGNUP} target="_blank" rel="noopener" style={{ color: T.accent, fontWeight: 800, textDecoration: "none" }}>Create your free <GloobalWordmark suffix=" ID" /></a></div></div></HellooScreen>;
 }
 
-// Under Gloobal's PIN pad, which carries no words of its own: whose PIN
-// this is, who is signing in, and what to do when it is forgotten. Drawn
-// over the pad's empty lower part; only the link takes a tap.
-function HellooPinNote({ who }) {
-  // Under the PIN dots (the shared PIN screen's footer): who is signing in,
-  // and where to reset a forgotten PIN.
-  return <div data-testid="helloo-pin-note" style={{ textAlign: "center", fontFamily: T.fontBody, lineHeight: 1.5 }}>{who && <div style={{ fontSize: 12.5, fontWeight: 700, color: T.inkSoft }}>Signing in as {who}</div>}<div style={{ marginTop: 2, fontSize: 12.5, color: T.inkSoft }}>Forgot it? <a href={HELLOO_GLOOBAL_SIGNUP} target="_blank" rel="noopener" style={{ color: T.accent, fontWeight: 800, textDecoration: "none" }}>Reset it in <GloobalWordmark /></a></div></div>;
-}
+// The PIN step is GLOOBAL's own sign-in screen (LoginAuthScreen) with its
+// PinSignInNote: who is signing in and where to reset a forgotten PIN.
 
 function HellooWelcomeBack({ me, onDone }) {
   useEffectH2(() => { const t = setTimeout(() => onDone && onDone(), 1400); return () => clearTimeout(t); }, []);
@@ -85009,7 +84919,7 @@ function HellooRoot() {
   if (stage === "splash" || stage === "splash-in") return shell(<HellooSplash intro={stage === "splash"} onSkip={stage === "splash" ? () => setStage("id") : undefined} />);
   if (stage === "welcome") return shell(<HellooWelcome hasGloobal={false} note={outNote} onEnterId={() => { setOutNote(""); setStage("id"); }} />);
   if (stage === "id") return shell(<HellooIdScreen value={idValue} onChange={setIdValue} mode={idMode} onMode={setIdMode} mobile={idMobile} onMobile={setIdMobile} status={idValue.length === 12 ? "ready" : ""} note={outNote} onNext={() => { setOutNote(""); setPin(""); setStage("pin"); }} />);
-  if (stage === "pin") return shell(<LoginAuthScreen note="The same PIN you pay with on GLOOBAL. Never kept on this phone." extra={<HellooPinNote who={idMode === "mobile" ? `+${idMobile}` : <ColoredGloobalId id={idValue} />} />} value={pin} length={HELLOO_PIN_LENGTH} onChange={setPin} onSubmit={() => submitPin(pin)} onBack={() => setStage("id")} revealed={pinShown} onToggleReveal={() => setPinShown((v) => !v)} waking={pinWaking} busy={pinBusy} />);
+  if (stage === "pin") return shell(<LoginAuthScreen who={idMode === "mobile" ? `+${idMobile}` : <ColoredGloobalId id={idValue} />} forgotHref={HELLOO_GLOOBAL_SIGNUP} value={pin} length={HELLOO_PIN_LENGTH} onChange={setPin} onSubmit={() => submitPin(pin)} onBack={() => setStage("id")} revealed={pinShown} onToggleReveal={() => setPinShown((v) => !v)} waking={pinWaking} busy={pinBusy} />);
   if (stage === "back" && me) return shell(<HellooWelcomeBack me={me} onDone={() => setStage("app")} />);
   if (!me) return shell(<HellooSplash />);
 
@@ -85289,9 +85199,11 @@ function HellooRoot() {
     return shell(<HellooMyQrScreen me={me} onBack={() => setScreen(null)} onSave={saveQr} onShare={shareQr} />);
   }
   if (screen === "scan") {
-    // GLOOBAL's own scanner with all its controls: torch, zoom, and a
-    // picture from the gallery.
-    return shell(<div style={{ position: "absolute", inset: 0, background: "#000" }}><QrCameraScanner onDetected={onScanned} active fullScreen onUploadRequested={() => scanFileRef.current && scanFileRef.current.click()} /><input ref={scanFileRef} type="file" accept="image/*" onChange={onScanFile} data-testid="helloo-scan-file" style={{ display: "none" }} /><div style={{ position: "absolute", top: "calc(14px + env(safe-area-inset-top, 0px))", left: 14, zIndex: 400 }}><NavBackButton onClick={() => setScreen(null)} /></div></div>);
+    // GLOOBAL's own scan screen, the very same one (GloobalScanScreen):
+    // GLOOBAL QR over the camera, torch, zoom, a picture from the gallery,
+    // the camera permission step. A code opens that person's chat here;
+    // the big button under the camera dials instead of sending money.
+    return shell(<GloobalScanScreen onBack={() => setScreen(null)} onDetected={onScanned} galleryRef={scanFileRef} onGalleryFile={onScanFile} bottom={(overVideo) => <ScanSendButton overVideo={overVideo} label="Dial" onClick={() => { setScreen(null); setDial({ value: "", status: "", match: null }); setSheet("dial"); }} />} />);
   }
 
   if (screen === "reach" && myReach) {
