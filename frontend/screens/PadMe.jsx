@@ -253,6 +253,47 @@ function HellooFaceSheet({ faces = [], current = "", onPick, onClose }) {
   return <HellooSheet title="Use Helloo as" onClose={onClose}><div style={{ fontSize: 12.5, color: T.inkSoft, lineHeight: 1.5, margin: "0 2px 12px" }}>Your GLOOBAL ID runs {shops === 1 ? "a shop" : `${shops} shops`}. Each one has its own chats and calls here, apart from your personal ones. People who reach a shop see the shop's name, not yours.</div><HellooCard>{faces.map((f, i) => { const on = f.as === current; const shop = f.kind === "shop"; return <button key={f.as} data-testid={`helloo-face-${shop ? f.handle : "self"}`} aria-pressed={on} onClick={() => onPick && onPick(f)} className="v2-tap" style={{ width: "100%", display: "flex", alignItems: "center", gap: 12, padding: "12px 14px", border: "none", borderTop: i ? `1px solid ${T.line}` : "none", background: "none", cursor: "pointer", textAlign: "left", fontFamily: T.fontBody }}><span style={{ width: 40, height: 40, borderRadius: shop ? 13 : "50%", background: shop ? T.accentSoft : T.surfaceAlt, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>{shop ? <HlStore size={19} color={T.accent} /> : <HlUser size={19} color={T.inkSoft} />}</span><span style={{ flex: 1, minWidth: 0 }}><span style={{ display: "flex", alignItems: "center", gap: 4, minWidth: 0, maxWidth: "100%" }}><span style={{ minWidth: 0, fontSize: 14.5, fontWeight: 800, color: T.ink, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{shop ? <CreatorHandleText handle={f.handle} icon={false} /> : f.name}</span>{f && !f.group ? <HellooBadge tier={f.badge || 1} size={12.5} /> : null}</span><span style={{ display: "block", fontSize: 12, color: T.inkSoft, marginTop: 1 }}>{shop ? "Shop" : "Personal"}{f.fresh > 0 && !on ? <span style={{ color: T.accent, fontWeight: 800 }}> · {f.fresh} new</span> : null}</span></span><span aria-hidden="true" style={{ width: 22, height: 22, borderRadius: "50%", border: on ? "none" : `2px solid ${T.line}`, background: on ? T.accent : "transparent", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>{on && <HlCheck size={13} color="#fff" strokeWidth={3} />}</span></button>; })}</HellooCard></HellooSheet>;
 }
 
+// Tapping your picture at the top: who you message as, in a card in the
+// middle — your own face and each shop's logo side by side, with the
+// message icon under each. The one you are now has a ring and a tick.
+function HellooFaceCard({ faces = [], current = "", photos = {}, onPick, onMe, onClose }) {
+  useHellooBackLayer(true, onClose);
+  const many = faces.length > 3;
+  const faceOf = (f) => {
+    const shop = f.kind === "shop";
+    const photo = shop ? (photos["logo:" + f.accountId] || "") : (photos[f.accountId] || "");
+    return { id: f.accountId, name: shop ? (f.handle || f.name) : f.name, short: shop ? "" : String(f.name || "").split(" ")[0], photo };
+  };
+  return <div data-testid="helloo-face-card-layer" onClick={onClose} style={{ position: "fixed", inset: 0, zIndex: 80, background: "rgba(15,23,42,0.42)", backdropFilter: "blur(6px)", WebkitBackdropFilter: "blur(6px)", display: "flex", alignItems: "center", justifyContent: "center", padding: 16, boxSizing: "border-box", fontFamily: T.fontBody }}>
+    <div role="dialog" aria-modal="true" aria-label="Message as" data-testid="helloo-face-card" onClick={(e) => e.stopPropagation()} style={{ position: "relative", width: "100%", maxWidth: 380, maxHeight: "100%", overflowY: "auto", boxSizing: "border-box", borderRadius: 28, background: HT.cardBg || T.surface, boxShadow: "0 24px 60px rgba(15,23,42,0.28)", padding: "22px 14px 14px" }}>
+      <button type="button" onClick={onClose} aria-label="Close" className="v2-tap" style={{ position: "absolute", right: 10, top: 10, width: 36, height: 36, border: "none", background: "none", display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer" }}><HlX size={20} color={T.inkFaint} /></button>
+      <div style={{ display: "flex", justifyContent: "center" }}><HellooWordmark size={20} /></div>
+      <div style={{ textAlign: "center", fontSize: 17, fontWeight: 900, color: T.ink, marginTop: 8, fontFamily: T.fontDisplay }}>Message as</div>
+      <div style={{ textAlign: "center", fontSize: 12.5, color: T.inkSoft, marginTop: 3, lineHeight: 1.45, padding: "0 12px" }}>Each one has its own chats and calls.</div>
+      <div data-testid="helloo-face-card-row" style={{ display: "grid", gridTemplateColumns: `repeat(${many ? 3 : Math.max(1, faces.length)}, minmax(0, 1fr))`, gap: "16px 6px", marginTop: 18 }}>
+        {faces.map((f) => {
+          const on = f.as === current; const shop = f.kind === "shop"; const who = faceOf(f);
+          return <button key={f.as} type="button" data-testid={`helloo-face-${shop ? f.handle : "self"}`} aria-pressed={on} aria-label={`Message as ${who.name}${shop ? " (shop)" : ""}`} onClick={() => onPick && onPick(f)} className="v2-tap" style={{ minWidth: 0, display: "flex", flexDirection: "column", alignItems: "center", gap: 6, border: "none", background: "none", padding: "2px 2px 4px", cursor: "pointer", fontFamily: T.fontBody }}>
+            <span style={{ position: "relative", padding: 3, borderRadius: "50%", background: on ? `conic-gradient(${T.accent}, #2563EB, #DB2777, ${T.accent})` : "transparent", display: "flex" }}>
+              <span style={{ borderRadius: "50%", padding: 2, background: HT.cardBg || T.surface, display: "flex" }}>
+                {shop && !who.photo
+                  ? <span style={{ width: 62, height: 62, borderRadius: "50%", background: T.accentSoft, display: "flex", alignItems: "center", justifyContent: "center" }}><HlStore size={28} color={T.accent} /></span>
+                  : <HellooAvatar person={who} size={62} flag={false} />}
+              </span>
+              {on ? <span aria-hidden="true" style={{ position: "absolute", right: 0, bottom: 0, width: 22, height: 22, borderRadius: "50%", background: T.accent, border: `2px solid ${HT.cardBg || T.surface}`, display: "flex", alignItems: "center", justifyContent: "center" }}><HlCheck size={12} color="#fff" strokeWidth={3} /></span>
+                : shop && who.photo ? <span aria-hidden="true" style={{ position: "absolute", right: 0, bottom: 0, width: 22, height: 22, borderRadius: "50%", background: T.accentSoft, border: `2px solid ${HT.cardBg || T.surface}`, display: "flex", alignItems: "center", justifyContent: "center" }}><HlStore size={12} color={T.accent} /></span> : null}
+            </span>
+            <span style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 3, maxWidth: "100%", minWidth: 0 }}><span style={{ minWidth: 0, fontSize: 13, fontWeight: 800, color: T.ink, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{shop ? <CreatorHandleText handle={f.handle} icon={false} /> : (who.short || who.name)}</span><HellooBadge tier={f.badge || 1} size={11.5} /></span>
+            <span style={{ fontSize: 11, fontWeight: 700, color: T.inkFaint, marginTop: -4, whiteSpace: "nowrap" }}>{shop ? "Shop" : "Personal"}{f.fresh > 0 && !on ? <span style={{ color: "#DB2777", fontWeight: 900 }}> · {f.fresh} new</span> : null}</span>
+            <span style={{ position: "relative", display: "flex", marginTop: 2 }}><HlChat size={26} color={on ? T.accent : "#0E7490"} fill={on ? T.accent : "#0E7490"} strokeWidth={1.6} /></span>
+          </button>;
+        })}
+      </div>
+      <button type="button" data-testid="helloo-face-card-me" onClick={onMe} className="v2-tap" style={{ width: "100%", display: "flex", alignItems: "center", gap: 10, marginTop: 18, padding: "12px 14px", border: "none", borderRadius: 16, background: T.surfaceAlt, cursor: "pointer", fontFamily: T.fontBody, textAlign: "left" }}><HlUser size={18} color={T.inkSoft} /><span style={{ flex: 1, fontSize: 13.5, fontWeight: 800, color: T.ink }}>Me · profile, price and settings</span><HlChevron size={16} color={T.inkFaint} /></button>
+    </div>
+  </div>;
+}
+
 // When the shop takes calls: always, between two times, or not at all.
 function HellooShopCallsSheet({ calls, shopName = "", onSave, onClose }) {
   const [mode, setMode] = useStateH13((calls && calls.mode) || "always");

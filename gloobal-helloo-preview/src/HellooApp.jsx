@@ -79400,6 +79400,47 @@ function HellooFaceSheet({ faces = [], current = "", onPick, onClose }) {
   return <HellooSheet title="Use Helloo as" onClose={onClose}><div style={{ fontSize: 12.5, color: T.inkSoft, lineHeight: 1.5, margin: "0 2px 12px" }}>Your GLOOBAL ID runs {shops === 1 ? "a shop" : `${shops} shops`}. Each one has its own chats and calls here, apart from your personal ones. People who reach a shop see the shop's name, not yours.</div><HellooCard>{faces.map((f, i) => { const on = f.as === current; const shop = f.kind === "shop"; return <button key={f.as} data-testid={`helloo-face-${shop ? f.handle : "self"}`} aria-pressed={on} onClick={() => onPick && onPick(f)} className="v2-tap" style={{ width: "100%", display: "flex", alignItems: "center", gap: 12, padding: "12px 14px", border: "none", borderTop: i ? `1px solid ${T.line}` : "none", background: "none", cursor: "pointer", textAlign: "left", fontFamily: T.fontBody }}><span style={{ width: 40, height: 40, borderRadius: shop ? 13 : "50%", background: shop ? T.accentSoft : T.surfaceAlt, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>{shop ? <HlStore size={19} color={T.accent} /> : <HlUser size={19} color={T.inkSoft} />}</span><span style={{ flex: 1, minWidth: 0 }}><span style={{ display: "flex", alignItems: "center", gap: 4, minWidth: 0, maxWidth: "100%" }}><span style={{ minWidth: 0, fontSize: 14.5, fontWeight: 800, color: T.ink, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{shop ? <CreatorHandleText handle={f.handle} icon={false} /> : f.name}</span>{f && !f.group ? <HellooBadge tier={f.badge || 1} size={12.5} /> : null}</span><span style={{ display: "block", fontSize: 12, color: T.inkSoft, marginTop: 1 }}>{shop ? "Shop" : "Personal"}{f.fresh > 0 && !on ? <span style={{ color: T.accent, fontWeight: 800 }}> · {f.fresh} new</span> : null}</span></span><span aria-hidden="true" style={{ width: 22, height: 22, borderRadius: "50%", border: on ? "none" : `2px solid ${T.line}`, background: on ? T.accent : "transparent", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>{on && <HlCheck size={13} color="#fff" strokeWidth={3} />}</span></button>; })}</HellooCard></HellooSheet>;
 }
 
+// Tapping your picture at the top: who you message as, in a card in the
+// middle — your own face and each shop's logo side by side, with the
+// message icon under each. The one you are now has a ring and a tick.
+function HellooFaceCard({ faces = [], current = "", photos = {}, onPick, onMe, onClose }) {
+  useHellooBackLayer(true, onClose);
+  const many = faces.length > 3;
+  const faceOf = (f) => {
+    const shop = f.kind === "shop";
+    const photo = shop ? (photos["logo:" + f.accountId] || "") : (photos[f.accountId] || "");
+    return { id: f.accountId, name: shop ? (f.handle || f.name) : f.name, short: shop ? "" : String(f.name || "").split(" ")[0], photo };
+  };
+  return <div data-testid="helloo-face-card-layer" onClick={onClose} style={{ position: "fixed", inset: 0, zIndex: 80, background: "rgba(15,23,42,0.42)", backdropFilter: "blur(6px)", WebkitBackdropFilter: "blur(6px)", display: "flex", alignItems: "center", justifyContent: "center", padding: 16, boxSizing: "border-box", fontFamily: T.fontBody }}>
+    <div role="dialog" aria-modal="true" aria-label="Message as" data-testid="helloo-face-card" onClick={(e) => e.stopPropagation()} style={{ position: "relative", width: "100%", maxWidth: 380, maxHeight: "100%", overflowY: "auto", boxSizing: "border-box", borderRadius: 28, background: HT.cardBg || T.surface, boxShadow: "0 24px 60px rgba(15,23,42,0.28)", padding: "22px 14px 14px" }}>
+      <button type="button" onClick={onClose} aria-label="Close" className="v2-tap" style={{ position: "absolute", right: 10, top: 10, width: 36, height: 36, border: "none", background: "none", display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer" }}><HlX size={20} color={T.inkFaint} /></button>
+      <div style={{ display: "flex", justifyContent: "center" }}><HellooWordmark size={20} /></div>
+      <div style={{ textAlign: "center", fontSize: 17, fontWeight: 900, color: T.ink, marginTop: 8, fontFamily: T.fontDisplay }}>Message as</div>
+      <div style={{ textAlign: "center", fontSize: 12.5, color: T.inkSoft, marginTop: 3, lineHeight: 1.45, padding: "0 12px" }}>Each one has its own chats and calls.</div>
+      <div data-testid="helloo-face-card-row" style={{ display: "grid", gridTemplateColumns: `repeat(${many ? 3 : Math.max(1, faces.length)}, minmax(0, 1fr))`, gap: "16px 6px", marginTop: 18 }}>
+        {faces.map((f) => {
+          const on = f.as === current; const shop = f.kind === "shop"; const who = faceOf(f);
+          return <button key={f.as} type="button" data-testid={`helloo-face-${shop ? f.handle : "self"}`} aria-pressed={on} aria-label={`Message as ${who.name}${shop ? " (shop)" : ""}`} onClick={() => onPick && onPick(f)} className="v2-tap" style={{ minWidth: 0, display: "flex", flexDirection: "column", alignItems: "center", gap: 6, border: "none", background: "none", padding: "2px 2px 4px", cursor: "pointer", fontFamily: T.fontBody }}>
+            <span style={{ position: "relative", padding: 3, borderRadius: "50%", background: on ? `conic-gradient(${T.accent}, #2563EB, #DB2777, ${T.accent})` : "transparent", display: "flex" }}>
+              <span style={{ borderRadius: "50%", padding: 2, background: HT.cardBg || T.surface, display: "flex" }}>
+                {shop && !who.photo
+                  ? <span style={{ width: 62, height: 62, borderRadius: "50%", background: T.accentSoft, display: "flex", alignItems: "center", justifyContent: "center" }}><HlStore size={28} color={T.accent} /></span>
+                  : <HellooAvatar person={who} size={62} flag={false} />}
+              </span>
+              {on ? <span aria-hidden="true" style={{ position: "absolute", right: 0, bottom: 0, width: 22, height: 22, borderRadius: "50%", background: T.accent, border: `2px solid ${HT.cardBg || T.surface}`, display: "flex", alignItems: "center", justifyContent: "center" }}><HlCheck size={12} color="#fff" strokeWidth={3} /></span>
+                : shop && who.photo ? <span aria-hidden="true" style={{ position: "absolute", right: 0, bottom: 0, width: 22, height: 22, borderRadius: "50%", background: T.accentSoft, border: `2px solid ${HT.cardBg || T.surface}`, display: "flex", alignItems: "center", justifyContent: "center" }}><HlStore size={12} color={T.accent} /></span> : null}
+            </span>
+            <span style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 3, maxWidth: "100%", minWidth: 0 }}><span style={{ minWidth: 0, fontSize: 13, fontWeight: 800, color: T.ink, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{shop ? <CreatorHandleText handle={f.handle} icon={false} /> : (who.short || who.name)}</span><HellooBadge tier={f.badge || 1} size={11.5} /></span>
+            <span style={{ fontSize: 11, fontWeight: 700, color: T.inkFaint, marginTop: -4, whiteSpace: "nowrap" }}>{shop ? "Shop" : "Personal"}{f.fresh > 0 && !on ? <span style={{ color: "#DB2777", fontWeight: 900 }}> · {f.fresh} new</span> : null}</span>
+            <span style={{ position: "relative", display: "flex", marginTop: 2 }}><HlChat size={26} color={on ? T.accent : "#0E7490"} fill={on ? T.accent : "#0E7490"} strokeWidth={1.6} /></span>
+          </button>;
+        })}
+      </div>
+      <button type="button" data-testid="helloo-face-card-me" onClick={onMe} className="v2-tap" style={{ width: "100%", display: "flex", alignItems: "center", gap: 10, marginTop: 18, padding: "12px 14px", border: "none", borderRadius: 16, background: T.surfaceAlt, cursor: "pointer", fontFamily: T.fontBody, textAlign: "left" }}><HlUser size={18} color={T.inkSoft} /><span style={{ flex: 1, fontSize: 13.5, fontWeight: 800, color: T.ink }}>Me · profile, price and settings</span><HlChevron size={16} color={T.inkFaint} /></button>
+    </div>
+  </div>;
+}
+
 // When the shop takes calls: always, between two times, or not at all.
 function HellooShopCallsSheet({ calls, shopName = "", onSave, onClose }) {
   const [mode, setMode] = useStateH13((calls && calls.mode) || "always");
@@ -80000,6 +80041,27 @@ var SOCIAL_PHOTO_MAX = 700 * 1024;
 // Sealed: post media opens only with the signed-in viewer's pass (GLOOBAL
 // features/viewpass). No pass yet → no address, nothing asked anonymously.
 function socialMediaSrc(m) { return m && m.url ? gloobalSealedSrc(m.url) : ""; }
+// A profile's own picture or cover: shown to anyone signed in, with no
+// "Confirm it's you" first (it is a face beside a name, not a post). Asked
+// for once per picture as data inside the signed-in request, then kept.
+var socialFaceCache = new Map(); // id -> data URL | Promise
+function useSocialFaceSrc(m) {
+  const id = m && m.id ? String(m.id) : "";
+  const sealed = socialMediaSrc(m);
+  const known = id ? socialFaceCache.get(id) : "";
+  const [data, setData] = useStateH40(typeof known === "string" ? known : "");
+  useEffectH40(() => {
+    if (!id) { setData(""); return undefined; }
+    let live = true;
+    const have = socialFaceCache.get(id);
+    if (typeof have === "string") { setData(have); return undefined; }
+    const wait = have || socialHttp.get(`/api/social/media/${encodeURIComponent(id)}/face`).then((r) => { const d = (r && r.data) || ""; socialFaceCache.set(id, d); return d; }).catch(() => { socialFaceCache.delete(id); return ""; });
+    if (!have) socialFaceCache.set(id, wait);
+    wait.then((d) => { if (live) setData(d); });
+    return () => { live = false; };
+  }, [id]);
+  return data || sealed;
+}
 function socialCount(n) {
   const v = Number(n) || 0;
   if (v >= 1e6) return `${(v / 1e6).toFixed(v >= 1e7 ? 0 : 1).replace(/\.0$/, "")}M`;
@@ -80036,7 +80098,7 @@ function socialReadFile(file) {
 function SocialFace({ card, photos, size = 38 }) {
   // A person's own Social picture, when they chose one; else their GLOOBAL
   // face (or a shop's logo), as everywhere else.
-  const own = card && card.picture ? socialMediaSrc(card.picture) : "";
+  const own = useSocialFaceSrc(card && card.picture);
   if (own) return <span data-testid="social-own-picture" style={{ width: size, height: size, borderRadius: "50%", overflow: "hidden", display: "inline-flex", flexShrink: 0, background: T.surfaceSunk }}><img src={own} alt="" loading="lazy" style={{ width: "100%", height: "100%", objectFit: "cover", display: "block" }} /></span>;
   return <HellooAvatar person={hellooPersonFrom(card, photos)} size={size} flag={false} />;
 }
@@ -80640,7 +80702,8 @@ function SocialHighlightMaker({ onClose, onMade }) {
 function SocialProfileEditor({ p, card, photos, onClose, onSaved, onPhoto, onToast }) {
   const shop = p.side === "shop";
   const [bio, setBio] = useStateH40(p.bio || "");
-  const [cover, setCover] = useStateH40(p.cover ? { preview: socialMediaSrc(p.cover), id: p.cover.id } : null);
+  const [cover, setCover] = useStateH40(p.cover ? { preview: "", id: p.cover.id } : null);
+  const savedCover = useSocialFaceSrc(p.cover);
   const [logo, setLogo] = useStateH40(null); // new data URL
   // A person's own Social picture: undefined = unchanged, null = back to the
   // GLOOBAL face, { preview, file } = a new one from the gallery.
@@ -80661,10 +80724,10 @@ function SocialProfileEditor({ p, card, photos, onClose, onSaved, onPhoto, onToa
     try {
       const body = {};
       if (bio !== (p.bio || "")) body.bio = bio;
-      if (cover && cover.file) { setBusy("Sending the cover…"); const data = await socialShrinkPhoto(cover.file); const r = await socialApi.upload(data); body.cover = r.id; }
+      if (cover && cover.file) { setBusy("Sending the cover…"); const data = await socialShrinkPhoto(cover.file); const r = await socialApi.upload(data); body.cover = r.id; socialFaceCache.set(String(r.id), data); }
       else if (!cover && p.cover) body.cover = null;
       if (logo) body.photo = logo;
-      if (pic && pic.file) { setBusy("Sending your picture…"); const data = await socialShrinkPhoto(pic.file); const r = await socialApi.upload(data); body.picture = r.id; }
+      if (pic && pic.file) { setBusy("Sending your picture…"); const data = await socialShrinkPhoto(pic.file); const r = await socialApi.upload(data); body.picture = r.id; socialFaceCache.set(String(r.id), data); }
       else if (pic === null) body.picture = null;
       setBusy("Saving…");
       const r = Object.keys(body).length ? await socialApi.editProfile(body) : {};
@@ -80683,7 +80746,7 @@ function SocialProfileEditor({ p, card, photos, onClose, onSaved, onPhoto, onToa
     <GloobalSealedGate onSetup={() => { try { window.open("https://gloobalv3.netlify.app/", "_blank", "noopener"); } catch (e) { /* fine */ } }} />
     <input ref={logoIn} type="file" accept="image/*" onChange={pickLogo} style={{ display: "none" }} data-testid="social-edit-logo-file" />
     <div data-testid="social-edit" style={{ position: "relative" }}>
-      <button type="button" onClick={() => coverIn.current && coverIn.current.click()} data-testid="social-edit-cover" aria-label="Change cover photo" className="v2-tap" style={{ position: "relative", width: "100%", height: 120, borderRadius: 20, border: "none", padding: 0, overflow: "hidden", cursor: "pointer", background: cover ? `center / cover no-repeat url(${cover.preview})` : `linear-gradient(135deg, ${hue}99 0%, ${hue} 60%, ${hue}CC 100%)`, display: "block" }}>
+      <button type="button" onClick={() => coverIn.current && coverIn.current.click()} data-testid="social-edit-cover" aria-label="Change cover photo" className="v2-tap" style={{ position: "relative", width: "100%", height: 120, borderRadius: 20, border: "none", padding: 0, overflow: "hidden", cursor: "pointer", background: cover ? `center / cover no-repeat url(${cover.preview || savedCover})` : `linear-gradient(135deg, ${hue}99 0%, ${hue} 60%, ${hue}CC 100%)`, display: "block" }}>
         <span style={{ position: "absolute", right: 10, bottom: 10, display: "inline-flex", alignItems: "center", gap: 6, padding: "7px 12px", borderRadius: 999, background: "rgba(0,0,0,0.45)", color: "#fff", fontSize: 12.5, fontWeight: 800 }}><HlCamera size={15} color="#fff" />{cover ? "Change cover" : "Add cover"}</span>
       </button>
       {cover ? <button type="button" onClick={() => setCover(null)} aria-label="Remove cover" className="v2-tap" style={{ position: "absolute", right: 10, top: 10, width: 32, height: 32, borderRadius: "50%", border: "none", background: "rgba(0,0,0,0.45)", display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer" }}><HlX size={16} color="#fff" /></button> : null}
@@ -80714,6 +80777,7 @@ function SocialProfile({ state, me, photos, act, onBack, onOpen, onMessage, onCa
   const [tab, setTab] = useStateH40("posts");
   const p = state.profile;
   const card = p || state.card;
+  const coverSrc = useSocialFaceSrc(p && p.cover);
   const hue = hellooHue(card.accountId || card.name || "");
   const [people, setPeople] = useStateH40("");
   useHellooBackLayer(Boolean(people), () => setPeople(""));
@@ -80725,7 +80789,7 @@ function SocialProfile({ state, me, photos, act, onBack, onOpen, onMessage, onCa
   const btn = (Icon, label, fn, primary) => <button onClick={fn} className="v2-tap" style={{ flex: primary ? 1.4 : 1, minWidth: 0, height: 44, borderRadius: 14, border: "none", background: primary ? T.gradButton : (HT.cardBg || T.surface), boxShadow: primary ? "none" : (HT.cardShadow ?? T.shadowCard), color: primary ? (HT.onAccent || "#fff") : T.ink, display: "flex", alignItems: "center", justifyContent: "center", gap: 6, fontSize: 13.5, fontWeight: 800, cursor: "pointer", fontFamily: T.fontBody, whiteSpace: "nowrap" }}>{Icon ? <Icon size={16} color={primary ? (HT.onAccent || "#fff") : T.accent} /> : null}{label}</button>;
   return <><div data-testid="social-profile" style={{ position: "absolute", inset: 0, zIndex: 40, background: HT.screenBg || T.bg, overflowY: "auto", fontFamily: T.fontBody }}>
     <div style={{ paddingTop: "env(safe-area-inset-top, 0px)" }}><GloobalSealedGate onSetup={() => { try { window.open("https://gloobalv3.netlify.app/", "_blank", "noopener"); } catch (e) { /* fine */ } }} /></div>
-    <div data-testid="social-cover" style={{ position: "relative", height: 150, margin: "calc(8px + env(safe-area-inset-top, 0px)) 8px 0", background: p && p.cover ? `${hue} center / cover no-repeat url(${socialMediaSrc(p.cover)})` : `linear-gradient(135deg, ${hue}99 0%, ${hue} 60%, ${hue}CC 100%)`, borderRadius: 28, overflow: "hidden", boxShadow: `0 14px 30px -18px ${hue}` }}>{p && p.isMe ? <button type="button" onClick={() => setEditing(true)} aria-label="Change cover" className="v2-tap" style={{ position: "absolute", right: 12, bottom: 12, zIndex: 2, width: 36, height: 36, borderRadius: "50%", border: "none", background: "rgba(0,0,0,0.4)", display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer" }}><HlCamera size={17} color="#fff" /></button> : null}<span aria-hidden="true" style={{ position: "absolute", inset: 0, background: "radial-gradient(90% 120% at 100% 0%, rgba(255,255,255,0.35) 0%, transparent 55%), linear-gradient(180deg, transparent 55%, rgba(0,0,0,0.18) 100%)" }} /><div style={{ position: "absolute", left: 12, top: 12 }}><button onClick={onBack} aria-label="Back" className="v2-tap" style={{ width: 40, height: 40, borderRadius: "50%", border: "none", background: "rgba(255,255,255,0.22)", display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer" }}><HlBack size={19} color="#fff" /></button></div></div>
+    <div data-testid="social-cover" style={{ position: "relative", height: 150, margin: "calc(8px + env(safe-area-inset-top, 0px)) 8px 0", background: p && p.cover ? `${hue} center / cover no-repeat url(${coverSrc})` : `linear-gradient(135deg, ${hue}99 0%, ${hue} 60%, ${hue}CC 100%)`, borderRadius: 28, overflow: "hidden", boxShadow: `0 14px 30px -18px ${hue}` }}>{p && p.isMe ? <button type="button" onClick={() => setEditing(true)} aria-label="Change cover" className="v2-tap" style={{ position: "absolute", right: 12, bottom: 12, zIndex: 2, width: 36, height: 36, borderRadius: "50%", border: "none", background: "rgba(0,0,0,0.4)", display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer" }}><HlCamera size={17} color="#fff" /></button> : null}<span aria-hidden="true" style={{ position: "absolute", inset: 0, background: "radial-gradient(90% 120% at 100% 0%, rgba(255,255,255,0.35) 0%, transparent 55%), linear-gradient(180deg, transparent 55%, rgba(0,0,0,0.18) 100%)" }} /><div style={{ position: "absolute", left: 12, top: 12 }}><button onClick={onBack} aria-label="Back" className="v2-tap" style={{ width: 40, height: 40, borderRadius: "50%", border: "none", background: "rgba(255,255,255,0.22)", display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer" }}><HlBack size={19} color="#fff" /></button></div></div>
     <div style={{ position: "relative", zIndex: 2, display: "flex", alignItems: "flex-end", gap: 12, padding: "0 18px", marginTop: -46 }}><span style={{ padding: 4, borderRadius: "50%", background: HT.screenBg && HT.screenBg.startsWith("#") ? HT.screenBg : T.bg, display: "flex" }}><SocialFace card={card} photos={photos} size={88} /></span><span style={{ display: "flex", flex: 1, paddingBottom: 6, minWidth: 0 }}>{p ? <>{stat(p.posts, "posts")}{stat(p.followers, "followers", () => setPeople("followers"))}{stat(p.following, "following", () => setPeople("following"))}</> : null}</span></div>
     <div style={{ padding: "10px 18px 0", display: "flex", alignItems: "flex-start", gap: 10 }}><span style={{ flex: 1, minWidth: 0 }}><SocialName card={card} size={19} />{p && typeof p.visitors === "number" && (p.isMe || p.visitors >= 10) ? <div data-testid="social-visitors" title="Different people who have visited this shop" style={{ display: "flex", width: "fit-content", maxWidth: "100%", whiteSpace: "nowrap", alignItems: "center", gap: 6, marginTop: 6, padding: "4px 10px", borderRadius: 999, background: T.surfaceAlt, color: T.ink, fontSize: 12, fontWeight: 800 }}><SxViews size={13} color={T.accent} strokeWidth={2.6} />{socialCount(p.visitors)} {p.visitors === 1 ? "visitor" : "visitors"}<span style={{ color: T.inkFaint, fontWeight: 700 }}>· different people</span></div> : null}{card.handle && card.name && card.name !== card.handle ? <div style={{ fontSize: 13.5, color: T.inkSoft, marginTop: 3 }}>{card.name}</div> : null}{p && p.bio ? <div data-testid="social-bio" style={{ fontSize: 14, color: T.ink, marginTop: 7, lineHeight: 1.45, whiteSpace: "pre-line", overflowWrap: "anywhere" }}>{p.bio}</div> : p && p.isMe ? <button type="button" onClick={() => setEditing(true)} className="v2-tap" style={{ marginTop: 7, border: "none", background: "none", padding: 0, color: T.accent, fontSize: 13.5, fontWeight: 800, cursor: "pointer", fontFamily: T.fontBody }}>+ Add a few words about you</button> : null}</span></div>
     {state.error ? <SocialNote title="Couldn't open this profile" text={state.error} /> : !p ? <SocialNote title="Loading…" /> : <>
@@ -83191,6 +83255,8 @@ function HellooRoot() {
   // who signed in — money and the PIN are always theirs.
   const meId = hellooFaceNow.as && hellooFaceNow.as !== "self" ? hellooFaceNow.as : (user ? user.accountId : "");
   const activeFace = (faces || []).find((f) => f.as === hellooFaceNow.as) || null;
+  // Your picture at the top: with shops, the "Message as" card; else Me.
+  const openMeOrFaces = () => { if ((faces || []).length > 1) { refreshFaces(); setSheet("face-card"); } else setScreen("me"); };
   const switchFace = (as, url) => {
     if (!user) return;
     hellooFaceSave(user.accountId, as);
@@ -83200,12 +83266,14 @@ function HellooRoot() {
   const refreshFaces = useCallbackH9(() => hellooApi.faces().then((r) => {
     const list = r.faces || [];
     setFaces(list);
+    // Their faces for the "Message as" card: your photo and each shop's logo.
+    if (list.length > 1) askPhotos(list.map((f) => ({ accountId: f.accountId, hasPhoto: true })));
     const as = hellooFaceNow.as;
     if (list.length <= 1) { if (as) hellooFaceSave(hellooFaceNow.account, ""); return; }
     // The side kept on this phone is gone (a shop was closed): personal.
     if (as && !list.some((f) => f.as === as)) { hellooFaceSave(hellooFaceNow.account, "self"); try { window.location.replace("/"); } catch (e) { /* ignore */ } return; }
     // First time here with a shop: ask which side to use.
-    if (!as) setSheet((s) => s || "face");
+    if (!as) setSheet((s) => s || "face-card");
   }).catch(() => {}), []);
   useEffectH9(() => { if (signedIn) refreshFaces(); }, [signedIn, refreshFaces]);
 
@@ -84844,7 +84912,7 @@ function HellooRoot() {
   // Something new on another side: say so, with the way over.
   const otherFresh = hellooFaceNow.as ? (faces || []).filter((f) => f.as !== hellooFaceNow.as && f.fresh > 0) : [];
   const faceBanner = otherFresh.map((f) => <button key={f.as} data-testid="helloo-face-banner" onClick={() => switchFace(f.as)} className="v2-tap" style={{ width: "100%", display: "flex", alignItems: "center", gap: 8, marginBottom: 10, padding: "10px 14px", borderRadius: 16, border: "none", background: T.accentSoft, color: T.ink, fontSize: 12.5, fontWeight: 700, cursor: "pointer", textAlign: "left", fontFamily: T.fontBody }}>{f.kind === "shop" ? <HlStore size={15} color={T.accent} /> : <HlUser size={15} color={T.accent} />}<span style={{ flex: 1, minWidth: 0, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{f.kind === "shop" ? f.name : "Personal"} · {f.fresh} new</span><span style={{ color: T.accent, fontWeight: 800 }}>Switch</span></button>);
-  const faceSheets = <>{sheet === "face" && faces && faces.length > 1 && <HellooFaceSheet faces={faces} current={hellooFaceNow.as} onClose={() => setSheet(null)} onPick={(f) => { if (f.as === hellooFaceNow.as) setSheet(null); else switchFace(f.as); }} />}{sheet === "shop-calls" && activeFace && activeFace.kind === "shop" && <HellooShopCallsSheet calls={activeFace.calls} shopName={activeFace.name} onClose={() => setSheet(null)} onSave={async (calls) => { try { await hellooApi.saveCalls(Object.assign({}, calls, { tz: -new Date().getTimezoneOffset() })); await refreshFaces(); setSheet(null); setToast(calls.mode === "off" ? "Calls off · people message the shop" : calls.mode === "hours" ? `Calls ${calls.from}–${calls.to}` : "Calls on at any time"); } catch (err) { setToast(err.message); } }} />}</>;
+  const faceSheets = <>{sheet === "face-card" && faces && faces.length > 1 && <HellooFaceCard faces={faces} current={hellooFaceNow.as} photos={photos} onClose={() => setSheet(null)} onMe={() => { setSheet(null); setScreen("me"); }} onPick={(f) => { if (f.as === hellooFaceNow.as) setSheet(null); else switchFace(f.as); }} />}{sheet === "face" && faces && faces.length > 1 && <HellooFaceSheet faces={faces} current={hellooFaceNow.as} onClose={() => setSheet(null)} onPick={(f) => { if (f.as === hellooFaceNow.as) setSheet(null); else switchFace(f.as); }} />}{sheet === "shop-calls" && activeFace && activeFace.kind === "shop" && <HellooShopCallsSheet calls={activeFace.calls} shopName={activeFace.name} onClose={() => setSheet(null)} onSave={async (calls) => { try { await hellooApi.saveCalls(Object.assign({}, calls, { tz: -new Date().getTimezoneOffset() })); await refreshFaces(); setSheet(null); setToast(calls.mode === "off" ? "Calls off · people message the shop" : calls.mode === "hours" ? `Calls ${calls.from}–${calls.to}` : "Calls on at any time"); } catch (err) { setToast(err.message); } }} />}</>;
   const contactPick = (p) => openChatWith(p.accountId);
   const empty = chatRows === null
     ? <HellooCard style={{ padding: "22px 16px", textAlign: "center", fontSize: 13, color: T.inkFaint, fontWeight: 700 }}>Loading your chats…</HellooCard>
@@ -84864,7 +84932,7 @@ function HellooRoot() {
     [HlBan, "Blocked people", blocked ? String(blocked.length) : "", "#DC2626"]
   ]).concat(!standalone && (installEvent || isIos) ? [[HlDownload, "Install Helloo", "Home screen app", "#2563EB"]] : []);
   const onMeRow = (title) => {
-    if (title === "Using Helloo as") { refreshFaces(); setSheet("face"); return; }
+    if (title === "Using Helloo as") { refreshFaces(); setSheet("face-card"); return; }
     if (title === "Shop calls") { setSheet("shop-calls"); return; }
     if (title === "On my personal profile") {
       const show = !activeFace.show;
@@ -84961,7 +85029,7 @@ function HellooRoot() {
 
   // ── Tabs ─────────────────────────────────────────────────────────────
   return shell(<div style={{ position: "absolute", inset: 0, display: "flex", flexDirection: "column" }}><div style={{ flex: 1, minHeight: 0, position: "relative" }}>
-    {tab === "chats" && <HellooChatsScreen unreadChats={rows.filter((c) => c.unread > 0 && !c.private)} onBazaar={() => setScreen("bazaar")} paidCards={paidCards} me={me} chats={shownRows} query={query} onSearch={setQuery} filter={filter} onFilter={setFilter} onOpen={(c) => openChat(c.id)} onHold={(c) => setHeldChat(c)} onStart={() => setSheet("start")} onScan={() => setScreen("scan")} onMore={() => setSheet("more")} onMe={() => setScreen("me")} onContacts={() => { setContactQuery(""); refreshContacts(); setScreen("contacts"); }} onAdd={() => setSheet("add")} banner={<>{faceBanner}{banner}</>} empty={empty} requests={asks.map((a) => ({ id: a.id, person: hellooPersonFrom(a.person, photos), text: a.text }))} onRequests={() => { refreshAsks(); setScreen("requests"); }} />}
+    {tab === "chats" && <HellooChatsScreen unreadChats={rows.filter((c) => c.unread > 0 && !c.private)} onBazaar={() => setScreen("bazaar")} paidCards={paidCards} me={me} chats={shownRows} query={query} onSearch={setQuery} filter={filter} onFilter={setFilter} onOpen={(c) => openChat(c.id)} onHold={(c) => setHeldChat(c)} onStart={() => setSheet("start")} onScan={() => setScreen("scan")} onMore={() => setSheet("more")} onMe={openMeOrFaces} onContacts={() => { setContactQuery(""); refreshContacts(); setScreen("contacts"); }} onAdd={() => setSheet("add")} banner={<>{faceBanner}{banner}</>} empty={empty} requests={asks.map((a) => ({ id: a.id, person: hellooPersonFrom(a.person, photos), text: a.text }))} onRequests={() => { refreshAsks(); setScreen("requests"); }} />}
     {heldChat && <HellooChatActions chat={heldChat} onClose={() => setHeldChat(null)} items={[
       hellooIsBusiness(heldChat.person)
         ? [HlHomeIcon, "Show on home", false, (on) => setPrefs(heldChat.id, { offHome: !on }), !((chatRows || []).find((c) => c.id === heldChat.id) || heldChat).offHome, "Its paid messages"]
@@ -84991,7 +85059,7 @@ function HellooRoot() {
       onShop={(card) => Promise.resolve(openChatWith(card.gloobalId)).then(() => openMenu({ gloobalId: card.gloobalId })).catch(() => {})}
       onShopItem={(tag) => { if (user && tag.shop === user.symbolId) { setToast("That is your own shop"); return; } Promise.resolve(openChatWith(tag.shop)).then(() => openMenu({ gloobalId: tag.shop }, tag.itemId)).catch(() => {}); }} />}
     {tab === "earn" && <HellooAdsHome me={me} photos={photos} onCards={askPhotos} onToast={setToast} onReceipt={openGloobalReceipt} />}
-    {tab === "calls" && <HellooCallsHome me={me} calls={callsAll} filter={callFilter} onFilter={setCallFilter} when={callWhen} onWhen={setCallWhen} onCallBack={(c) => startCall(c.person, c.video)} onInfo={(c) => openChatWith(c.person.accountId, true)} onOpenDial={() => { setDial({ value: "", status: "", match: null }); setSheet("dial"); }} onAdd={() => setSheet("add")} onSearch={() => { setContactQuery(""); refreshContacts(); setScreen("contacts"); }} onScan={() => setScreen("scan")} onMe={() => setScreen("me")} />}
+    {tab === "calls" && <HellooCallsHome me={me} calls={callsAll} filter={callFilter} onFilter={setCallFilter} when={callWhen} onWhen={setCallWhen} onCallBack={(c) => startCall(c.person, c.video)} onInfo={(c) => openChatWith(c.person.accountId, true)} onOpenDial={() => { setDial({ value: "", status: "", match: null }); setSheet("dial"); }} onAdd={() => setSheet("add")} onSearch={() => { setContactQuery(""); refreshContacts(); setScreen("contacts"); }} onScan={() => setScreen("scan")} onMe={openMeOrFaces} />}
     {sheet === "dial" && <HellooDialSheet contacts={contacts} saved={Boolean(dial.match && contacts.some((c) => c.accountId === dial.match.accountId && c.saved))} saving={dialSaving} onSave={() => { const m = dial.match; if (!m || dialSaving) return; setDialSaving(true); saveContact(m, true).then(() => setDialSaving(false)); }} onUnsave={() => { const m = dial.match; if (!m || dialSaving) return; setDialSaving(true); saveContact(m, false).then(() => setDialSaving(false)); }} dial={dial.value} onDial={(v) => setDial((d) => Object.assign({}, d, { value: v }))} match={dial.match} status={dial.status} mode={dial.mode === "id" ? "id" : "mobile"} onMode={(m) => setDial((d) => ({ value: "", phone: "", status: "", match: null, mode: m, country: d.country }))} phone={dial.phone || ""} onPhone={(v) => setDial((d) => Object.assign({}, d, { phone: v }))} dialCode={dialCode} dialCountry={dialCountry} onCountry={(c) => setDial((d) => Object.assign({}, d, { country: c, phone: "", status: "", match: null }))} onMessage={() => dial.match && openChatWith(dial.match.gloobalId, false, false, "self")} onCall={() => { if (dial.match) { setSheet(null); startCall(dial.match, false); } }} onVideo={() => { if (dial.match) { setSheet(null); startCall(dial.match, true); } }} onClose={() => setSheet(null)} />}
     {sheet === "add" && addSheet}
     {sheet === "release" && release && releaseSheet}

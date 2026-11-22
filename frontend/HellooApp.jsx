@@ -306,6 +306,8 @@ function HellooRoot() {
   // who signed in — money and the PIN are always theirs.
   const meId = hellooFaceNow.as && hellooFaceNow.as !== "self" ? hellooFaceNow.as : (user ? user.accountId : "");
   const activeFace = (faces || []).find((f) => f.as === hellooFaceNow.as) || null;
+  // Your picture at the top: with shops, the "Message as" card; else Me.
+  const openMeOrFaces = () => { if ((faces || []).length > 1) { refreshFaces(); setSheet("face-card"); } else setScreen("me"); };
   const switchFace = (as, url) => {
     if (!user) return;
     hellooFaceSave(user.accountId, as);
@@ -315,12 +317,14 @@ function HellooRoot() {
   const refreshFaces = useCallbackH9(() => hellooApi.faces().then((r) => {
     const list = r.faces || [];
     setFaces(list);
+    // Their faces for the "Message as" card: your photo and each shop's logo.
+    if (list.length > 1) askPhotos(list.map((f) => ({ accountId: f.accountId, hasPhoto: true })));
     const as = hellooFaceNow.as;
     if (list.length <= 1) { if (as) hellooFaceSave(hellooFaceNow.account, ""); return; }
     // The side kept on this phone is gone (a shop was closed): personal.
     if (as && !list.some((f) => f.as === as)) { hellooFaceSave(hellooFaceNow.account, "self"); try { window.location.replace("/"); } catch (e) { /* ignore */ } return; }
     // First time here with a shop: ask which side to use.
-    if (!as) setSheet((s) => s || "face");
+    if (!as) setSheet((s) => s || "face-card");
   }).catch(() => {}), []);
   useEffectH9(() => { if (signedIn) refreshFaces(); }, [signedIn, refreshFaces]);
 
@@ -1959,7 +1963,7 @@ function HellooRoot() {
   // Something new on another side: say so, with the way over.
   const otherFresh = hellooFaceNow.as ? (faces || []).filter((f) => f.as !== hellooFaceNow.as && f.fresh > 0) : [];
   const faceBanner = otherFresh.map((f) => <button key={f.as} data-testid="helloo-face-banner" onClick={() => switchFace(f.as)} className="v2-tap" style={{ width: "100%", display: "flex", alignItems: "center", gap: 8, marginBottom: 10, padding: "10px 14px", borderRadius: 16, border: "none", background: T.accentSoft, color: T.ink, fontSize: 12.5, fontWeight: 700, cursor: "pointer", textAlign: "left", fontFamily: T.fontBody }}>{f.kind === "shop" ? <HlStore size={15} color={T.accent} /> : <HlUser size={15} color={T.accent} />}<span style={{ flex: 1, minWidth: 0, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{f.kind === "shop" ? f.name : "Personal"} · {f.fresh} new</span><span style={{ color: T.accent, fontWeight: 800 }}>Switch</span></button>);
-  const faceSheets = <>{sheet === "face" && faces && faces.length > 1 && <HellooFaceSheet faces={faces} current={hellooFaceNow.as} onClose={() => setSheet(null)} onPick={(f) => { if (f.as === hellooFaceNow.as) setSheet(null); else switchFace(f.as); }} />}{sheet === "shop-calls" && activeFace && activeFace.kind === "shop" && <HellooShopCallsSheet calls={activeFace.calls} shopName={activeFace.name} onClose={() => setSheet(null)} onSave={async (calls) => { try { await hellooApi.saveCalls(Object.assign({}, calls, { tz: -new Date().getTimezoneOffset() })); await refreshFaces(); setSheet(null); setToast(calls.mode === "off" ? "Calls off · people message the shop" : calls.mode === "hours" ? `Calls ${calls.from}–${calls.to}` : "Calls on at any time"); } catch (err) { setToast(err.message); } }} />}</>;
+  const faceSheets = <>{sheet === "face-card" && faces && faces.length > 1 && <HellooFaceCard faces={faces} current={hellooFaceNow.as} photos={photos} onClose={() => setSheet(null)} onMe={() => { setSheet(null); setScreen("me"); }} onPick={(f) => { if (f.as === hellooFaceNow.as) setSheet(null); else switchFace(f.as); }} />}{sheet === "face" && faces && faces.length > 1 && <HellooFaceSheet faces={faces} current={hellooFaceNow.as} onClose={() => setSheet(null)} onPick={(f) => { if (f.as === hellooFaceNow.as) setSheet(null); else switchFace(f.as); }} />}{sheet === "shop-calls" && activeFace && activeFace.kind === "shop" && <HellooShopCallsSheet calls={activeFace.calls} shopName={activeFace.name} onClose={() => setSheet(null)} onSave={async (calls) => { try { await hellooApi.saveCalls(Object.assign({}, calls, { tz: -new Date().getTimezoneOffset() })); await refreshFaces(); setSheet(null); setToast(calls.mode === "off" ? "Calls off · people message the shop" : calls.mode === "hours" ? `Calls ${calls.from}–${calls.to}` : "Calls on at any time"); } catch (err) { setToast(err.message); } }} />}</>;
   const contactPick = (p) => openChatWith(p.accountId);
   const empty = chatRows === null
     ? <HellooCard style={{ padding: "22px 16px", textAlign: "center", fontSize: 13, color: T.inkFaint, fontWeight: 700 }}>Loading your chats…</HellooCard>
@@ -1979,7 +1983,7 @@ function HellooRoot() {
     [HlBan, "Blocked people", blocked ? String(blocked.length) : "", "#DC2626"]
   ]).concat(!standalone && (installEvent || isIos) ? [[HlDownload, "Install Helloo", "Home screen app", "#2563EB"]] : []);
   const onMeRow = (title) => {
-    if (title === "Using Helloo as") { refreshFaces(); setSheet("face"); return; }
+    if (title === "Using Helloo as") { refreshFaces(); setSheet("face-card"); return; }
     if (title === "Shop calls") { setSheet("shop-calls"); return; }
     if (title === "On my personal profile") {
       const show = !activeFace.show;
@@ -2076,7 +2080,7 @@ function HellooRoot() {
 
   // ── Tabs ─────────────────────────────────────────────────────────────
   return shell(<div style={{ position: "absolute", inset: 0, display: "flex", flexDirection: "column" }}><div style={{ flex: 1, minHeight: 0, position: "relative" }}>
-    {tab === "chats" && <HellooChatsScreen unreadChats={rows.filter((c) => c.unread > 0 && !c.private)} onBazaar={() => setScreen("bazaar")} paidCards={paidCards} me={me} chats={shownRows} query={query} onSearch={setQuery} filter={filter} onFilter={setFilter} onOpen={(c) => openChat(c.id)} onHold={(c) => setHeldChat(c)} onStart={() => setSheet("start")} onScan={() => setScreen("scan")} onMore={() => setSheet("more")} onMe={() => setScreen("me")} onContacts={() => { setContactQuery(""); refreshContacts(); setScreen("contacts"); }} onAdd={() => setSheet("add")} banner={<>{faceBanner}{banner}</>} empty={empty} requests={asks.map((a) => ({ id: a.id, person: hellooPersonFrom(a.person, photos), text: a.text }))} onRequests={() => { refreshAsks(); setScreen("requests"); }} />}
+    {tab === "chats" && <HellooChatsScreen unreadChats={rows.filter((c) => c.unread > 0 && !c.private)} onBazaar={() => setScreen("bazaar")} paidCards={paidCards} me={me} chats={shownRows} query={query} onSearch={setQuery} filter={filter} onFilter={setFilter} onOpen={(c) => openChat(c.id)} onHold={(c) => setHeldChat(c)} onStart={() => setSheet("start")} onScan={() => setScreen("scan")} onMore={() => setSheet("more")} onMe={openMeOrFaces} onContacts={() => { setContactQuery(""); refreshContacts(); setScreen("contacts"); }} onAdd={() => setSheet("add")} banner={<>{faceBanner}{banner}</>} empty={empty} requests={asks.map((a) => ({ id: a.id, person: hellooPersonFrom(a.person, photos), text: a.text }))} onRequests={() => { refreshAsks(); setScreen("requests"); }} />}
     {heldChat && <HellooChatActions chat={heldChat} onClose={() => setHeldChat(null)} items={[
       hellooIsBusiness(heldChat.person)
         ? [HlHomeIcon, "Show on home", false, (on) => setPrefs(heldChat.id, { offHome: !on }), !((chatRows || []).find((c) => c.id === heldChat.id) || heldChat).offHome, "Its paid messages"]
@@ -2106,7 +2110,7 @@ function HellooRoot() {
       onShop={(card) => Promise.resolve(openChatWith(card.gloobalId)).then(() => openMenu({ gloobalId: card.gloobalId })).catch(() => {})}
       onShopItem={(tag) => { if (user && tag.shop === user.symbolId) { setToast("That is your own shop"); return; } Promise.resolve(openChatWith(tag.shop)).then(() => openMenu({ gloobalId: tag.shop }, tag.itemId)).catch(() => {}); }} />}
     {tab === "earn" && <HellooAdsHome me={me} photos={photos} onCards={askPhotos} onToast={setToast} onReceipt={openGloobalReceipt} />}
-    {tab === "calls" && <HellooCallsHome me={me} calls={callsAll} filter={callFilter} onFilter={setCallFilter} when={callWhen} onWhen={setCallWhen} onCallBack={(c) => startCall(c.person, c.video)} onInfo={(c) => openChatWith(c.person.accountId, true)} onOpenDial={() => { setDial({ value: "", status: "", match: null }); setSheet("dial"); }} onAdd={() => setSheet("add")} onSearch={() => { setContactQuery(""); refreshContacts(); setScreen("contacts"); }} onScan={() => setScreen("scan")} onMe={() => setScreen("me")} />}
+    {tab === "calls" && <HellooCallsHome me={me} calls={callsAll} filter={callFilter} onFilter={setCallFilter} when={callWhen} onWhen={setCallWhen} onCallBack={(c) => startCall(c.person, c.video)} onInfo={(c) => openChatWith(c.person.accountId, true)} onOpenDial={() => { setDial({ value: "", status: "", match: null }); setSheet("dial"); }} onAdd={() => setSheet("add")} onSearch={() => { setContactQuery(""); refreshContacts(); setScreen("contacts"); }} onScan={() => setScreen("scan")} onMe={openMeOrFaces} />}
     {sheet === "dial" && <HellooDialSheet contacts={contacts} saved={Boolean(dial.match && contacts.some((c) => c.accountId === dial.match.accountId && c.saved))} saving={dialSaving} onSave={() => { const m = dial.match; if (!m || dialSaving) return; setDialSaving(true); saveContact(m, true).then(() => setDialSaving(false)); }} onUnsave={() => { const m = dial.match; if (!m || dialSaving) return; setDialSaving(true); saveContact(m, false).then(() => setDialSaving(false)); }} dial={dial.value} onDial={(v) => setDial((d) => Object.assign({}, d, { value: v }))} match={dial.match} status={dial.status} mode={dial.mode === "id" ? "id" : "mobile"} onMode={(m) => setDial((d) => ({ value: "", phone: "", status: "", match: null, mode: m, country: d.country }))} phone={dial.phone || ""} onPhone={(v) => setDial((d) => Object.assign({}, d, { phone: v }))} dialCode={dialCode} dialCountry={dialCountry} onCountry={(c) => setDial((d) => Object.assign({}, d, { country: c, phone: "", status: "", match: null }))} onMessage={() => dial.match && openChatWith(dial.match.gloobalId, false, false, "self")} onCall={() => { if (dial.match) { setSheet(null); startCall(dial.match, false); } }} onVideo={() => { if (dial.match) { setSheet(null); startCall(dial.match, true); } }} onClose={() => setSheet(null)} />}
     {sheet === "add" && addSheet}
     {sheet === "release" && release && releaseSheet}
