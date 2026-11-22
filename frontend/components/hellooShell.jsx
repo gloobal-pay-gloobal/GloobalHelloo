@@ -151,6 +151,23 @@ function HellooTabBar({ active, onChange, badges = {} }) {
   })}</div></nav>;
 }
 
+// ── THE ACTION ICONS ─────────────────────────────────────────────────────
+//
+// Message, Call, Video, Pay, Shop — wherever they sit side by side (the
+// contact card, a person's and a shop's profile, the dial pad, Social).
+// One look for all of them: plain line icons in ink on a soft round tile,
+// no words under them and no colour per action. The words stay as each
+// button's label for screen readers and a long-press title.
+//
+// items: [Icon, label, onPress, testid?], or null to leave one out. A
+// missing onPress (or `disabled`) greys the icon and makes it do nothing.
+function HellooActionIcons({ items = [], size = 52, gap = 14, disabled = false, style = null }) {
+  return <div data-testid="helloo-action-icons" style={Object.assign({ display: "flex", justifyContent: "center", alignItems: "center", gap }, style || {})}>{items.filter(Boolean).map(([Icon, label, fn, testid]) => {
+    const off = disabled || !fn;
+    return <button key={label} type="button" onClick={off ? undefined : fn} disabled={off} aria-label={label} title={label} data-testid={testid} className="v2-tap" style={{ width: size, height: size, flexShrink: 0, borderRadius: "50%", border: `1px solid ${T.line}`, background: HT.cardBg || T.surface, display: "flex", alignItems: "center", justifyContent: "center", padding: 0, cursor: off ? "default" : "pointer", opacity: off ? 0.4 : 1, transition: "opacity 0.2s ease" }}><Icon size={Math.round(size * 0.42)} color={off ? T.inkFaint : T.ink} strokeWidth={1.9} /></button>;
+  })}</div>;
+}
+
 function HellooRoundButton({ Icon, label, onClick, solid = false, size = 40, color }) {
   return <button onClick={onClick} aria-label={label} title={label} className="v2-tap" style={{ width: size, height: size, borderRadius: HT.iconRadius ?? "50%", border: solid ? "none" : (HT.cardBorder || "none"), background: solid ? T.gradButton : (HT.cardBg || T.surface), backdropFilter: solid ? undefined : HT.blur, boxShadow: solid ? (HT.buttonGlow || "0 8px 20px -10px rgba(76,29,149,0.9)") : (HT.cardShadow ?? T.shadowCard), display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer", flexShrink: 0, padding: 0 }}><Icon size={size * 0.45} color={solid ? (HT.onAccent || "#fff") : (color || T.ink)} /></button>;
 }
