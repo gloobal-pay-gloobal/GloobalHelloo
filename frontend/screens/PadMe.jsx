@@ -254,9 +254,10 @@ function HellooFaceSheet({ faces = [], current = "", onPick, onClose }) {
 }
 
 // Tapping your picture at the top: who you message as, in a card in the
-// middle — your own face and each shop's logo side by side, with the
-// message icon under each. The one you are now has a ring and a tick.
-function HellooFaceCard({ faces = [], current = "", photos = {}, onPick, onMe, onClose }) {
+// middle — your own face and each shop's logo side by side. Tap a face to
+// open its profile (Me); tap the message icon under it to message as it.
+// The one you are now has a ring and a tick.
+function HellooFaceCard({ faces = [], current = "", photos = {}, onPick, onProfile, onClose }) {
   useHellooBackLayer(true, onClose);
   const many = faces.length > 3;
   const faceOf = (f) => {
@@ -273,7 +274,8 @@ function HellooFaceCard({ faces = [], current = "", photos = {}, onPick, onMe, o
       <div data-testid="helloo-face-card-row" style={{ display: "grid", gridTemplateColumns: `repeat(${many ? 3 : Math.max(1, faces.length)}, minmax(0, 1fr))`, gap: "16px 6px", marginTop: 18 }}>
         {faces.map((f) => {
           const on = f.as === current; const shop = f.kind === "shop"; const who = faceOf(f);
-          return <button key={f.as} type="button" data-testid={`helloo-face-${shop ? f.handle : "self"}`} aria-pressed={on} aria-label={`Message as ${who.name}${shop ? " (shop)" : ""}`} onClick={() => onPick && onPick(f)} className="v2-tap" style={{ minWidth: 0, display: "flex", flexDirection: "column", alignItems: "center", gap: 6, border: "none", background: "none", padding: "2px 2px 4px", cursor: "pointer", fontFamily: T.fontBody }}>
+          return <div key={f.as} style={{ minWidth: 0, display: "flex", flexDirection: "column", alignItems: "center", gap: 4 }}>
+            <button type="button" data-testid={`helloo-face-profile-${shop ? f.handle : "self"}`} aria-label={`${who.name}${shop ? " (shop)" : ""}: profile`} onClick={() => onProfile && onProfile(f)} className="v2-tap" style={{ minWidth: 0, maxWidth: "100%", display: "flex", flexDirection: "column", alignItems: "center", gap: 6, border: "none", background: "none", padding: "2px 2px 0", cursor: "pointer", fontFamily: T.fontBody }}>
             <span style={{ position: "relative", padding: 3, borderRadius: "50%", background: on ? `conic-gradient(${T.accent}, #2563EB, #DB2777, ${T.accent})` : "transparent", display: "flex" }}>
               <span style={{ borderRadius: "50%", padding: 2, background: HT.cardBg || T.surface, display: "flex" }}>
                 {shop && !who.photo
@@ -285,11 +287,14 @@ function HellooFaceCard({ faces = [], current = "", photos = {}, onPick, onMe, o
             </span>
             <span style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 3, maxWidth: "100%", minWidth: 0 }}><span style={{ minWidth: 0, fontSize: 13, fontWeight: 800, color: T.ink, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{shop ? <CreatorHandleText handle={f.handle} icon={false} /> : (who.short || who.name)}</span><HellooBadge tier={f.badge || 1} size={11.5} /></span>
             <span style={{ fontSize: 11, fontWeight: 700, color: T.inkFaint, marginTop: -4, whiteSpace: "nowrap" }}>{shop ? "Shop" : "Personal"}{f.fresh > 0 && !on ? <span style={{ color: "#DB2777", fontWeight: 900 }}> · {f.fresh} new</span> : null}</span>
-            <span style={{ position: "relative", display: "flex", marginTop: 2 }}><HlChat size={26} color={on ? T.accent : "#0E7490"} fill={on ? T.accent : "#0E7490"} strokeWidth={1.6} /></span>
-          </button>;
+            </button>
+            <button type="button" data-testid={`helloo-face-${shop ? f.handle : "self"}`} aria-pressed={on} aria-label={`Message as ${who.name}${shop ? " (shop)" : ""}`} onClick={() => onPick && onPick(f)} className="v2-tap" style={{ width: 44, height: 40, display: "flex", alignItems: "center", justifyContent: "center", border: "none", background: "none", padding: 0, cursor: "pointer" }}>
+              <span style={{ display: "flex" }}><HlChat size={26} color={on ? T.accent : "#0E7490"} fill={on ? T.accent : "#0E7490"} strokeWidth={1.6} /></span>
+            </button>
+          </div>;
         })}
       </div>
-      <button type="button" data-testid="helloo-face-card-me" onClick={onMe} className="v2-tap" style={{ width: "100%", display: "flex", alignItems: "center", gap: 10, marginTop: 18, padding: "12px 14px", border: "none", borderRadius: 16, background: T.surfaceAlt, cursor: "pointer", fontFamily: T.fontBody, textAlign: "left" }}><HlUser size={18} color={T.inkSoft} /><span style={{ flex: 1, fontSize: 13.5, fontWeight: 800, color: T.ink }}>Me · profile, price and settings</span><HlChevron size={16} color={T.inkFaint} /></button>
+      <div style={{ textAlign: "center", fontSize: 11.5, color: T.inkFaint, marginTop: 12 }}>Tap a picture for its profile</div>
     </div>
   </div>;
 }
