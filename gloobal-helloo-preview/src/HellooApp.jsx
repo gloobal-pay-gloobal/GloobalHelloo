@@ -79474,9 +79474,16 @@ function HellooContactsScreen({ me, contacts: given = [], saved = {}, onSaveName
 
 // One contact, on its own card: who they are (your name for them, their
 // GLOOBAL name), where, their GLOOBAL ID, the last payment between you,
-// then Message · Call · Video, and Save name · Full profile · Remove.
-function HellooContactCard({ p, onClose, onMessage, onCall, onVideo, onOpen, onSaveName, onSaveToggle, onRemove }) {
+// then Message · Call · Video (and Shop, for a shop: what it sells), and
+// Save name · Full profile · Remove. Opened from Contacts and from the i
+// on a call in Recents.
+function HellooContactCard({ p, onClose, onMessage, onCall, onVideo, onOpen, onSaveName, onSaveToggle, onRemove, onShop, shops = null, onOpenShop }) {
   const go = (fn) => () => { onClose(); if (fn) fn(p); };
+  // The store: a shop's own menu, or — for a person — the shop they run
+  // (several: tap to pick one).
+  const [pickShop, setPickShop] = useStateH13(false);
+  const theirShops = !p.handle && Array.isArray(shops) ? shops : [];
+  const storeFn = p.handle ? onShop : theirShops.length && onOpenShop ? () => (theirShops.length === 1 ? onOpenShop(theirShops[0]) : setPickShop((v) => !v)) : null;
   return <HellooSheet label={p.name || "Contact"} onClose={onClose}><div data-testid="helloo-contact-card">
     <div style={{ display: "flex", flexDirection: "column", alignItems: "center", textAlign: "center", padding: "4px 6px 14px" }}>
       <HellooAvatar person={p} size={84} online={p.online} flag={false} />
@@ -79486,7 +79493,8 @@ function HellooContactCard({ p, onClose, onMessage, onCall, onVideo, onOpen, onS
       <div style={{ marginTop: 10, padding: "6px 12px", borderRadius: 12, background: T.surfaceAlt, fontSize: 13.5, fontWeight: 800 }}><ColoredGloobalId id={p.gloobalId || ""} /></div>
       {p.lastPaid ? <div style={{ fontSize: 12, fontWeight: 700, color: T.inkFaint, marginTop: 8 }}>{p.lastPaid}</div> : null}
     </div>
-    <div style={{ display: "flex", gap: 8 }}>{[[HlChat, "Message", onMessage, T.accent], [HlPhone, "Call", onCall, HT.free], [HlVideo, "Video", onVideo, "#DB2777"]].map(([I, l, fn, c]) => <button key={l} onClick={go(fn)} aria-label={l} data-testid={`helloo-contact-card-${l.toLowerCase()}`} className="v2-tap" style={{ flex: 1, height: 64, borderRadius: 18, border: "none", background: c + "14", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: 5, cursor: "pointer", fontFamily: T.fontBody }}><I size={21} color={c} /><span style={{ fontSize: 12, fontWeight: 800, color: T.ink }}>{l}</span></button>)}</div>
+    <div style={{ display: "flex", gap: 8 }}>{[[HlChat, "Message", onMessage, T.accent], [HlPhone, "Call", onCall, HT.free], [HlVideo, "Video", onVideo, "#DB2777"]].concat(storeFn ? [[HlStore, "Shop", storeFn, "#D97706"]] : []).map(([I, l, fn, c]) => <button key={l} onClick={l === "Shop" && theirShops.length > 1 ? fn : go(fn)} aria-label={l} data-testid={`helloo-contact-card-${l.toLowerCase()}`} className="v2-tap" style={{ flex: 1, height: 64, borderRadius: 18, border: "none", background: c + "14", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: 5, cursor: "pointer", fontFamily: T.fontBody }}><I size={21} color={c} /><span style={{ fontSize: 12, fontWeight: 800, color: T.ink }}>{l}</span></button>)}</div>
+    {pickShop && theirShops.length > 1 ? <HellooCard style={{ marginTop: 10 }}><div data-testid="helloo-contact-card-shops">{theirShops.map((sp, i) => <HellooRow key={sp.accountId || i} Icon={HlStore} title={sp.handle || sp.name} first={!i} onPress={() => { onClose(); onOpenShop(sp); }} />)}</div></HellooCard> : null}
     <HellooCard style={{ marginTop: 12 }}>
       {onSaveToggle ? <span data-testid="helloo-contact-card-save" data-saved={p.saved ? "yes" : "no"} style={{ display: "block" }}><HellooToggleRow Icon={HlUserPlus} title="Saved contact" note="On all your profiles" on={Boolean(p.saved)} onChange={() => onSaveToggle(p)} color={HT.free} first testid="helloo-contact-save-switch" /></span> : null}
       {onSaveName ? <HellooRow Icon={HlPencil} title={p.accountName ? "Edit name" : "Save name"} value={p.accountName ? p.name : "Only you see it"} first={!onSaveToggle} onPress={go(onSaveName)} /> : null}
@@ -83562,6 +83570,8 @@ function HellooRoot() {
   // somebody shared in a chat is one tap from paying.
   const [photoQr, setPhotoQr] = useStateH9(null);
   const scanFileRef = useRefH9(null);
+  // The person behind a call in Recents, on the same card Contacts opens.
+  const [callCard, setCallCard] = useStateH9(null);
   const [mediaUrls, setMediaUrls] = useStateH9({}); // messageId -> object URL
   const mediaAsked = useRefH9(new Set());
   const liveSend = useRefH9(null);
@@ -85225,22 +85235,23 @@ function HellooRoot() {
   if (screen === "bazaar") {
     return shell(<HellooBazaarScreen query={bazaarQ} onQuery={setBazaarQ} countryIso={user && user.countryIso} ownerKey={user && user.symbolId} onOpen={openBazaarShop} onToast={setToast} onBack={() => setScreen(null)} onEarn={() => { setScreen(null); setTab("earn"); }} onUsedChat={(person) => openChatWith(person.gloobalId, false, false, "self")} onUsedPay={(seller, amount, item) => { Promise.resolve(openChatWith(seller.gloobalId, false, false, "self")).then(() => { setPay({ amount: String(amount), note: String((item && item.title) || "").slice(0, 60), busy: false, error: "" }); setSheet("pay"); }).catch(() => {}); }} />);
   }
+  // For Contacts and the i on a call in Recents.
+  // Names you saved for people (a chat's saved name). A private chat's name
+  // is never shown here: it opens only when its whole name is typed.
+  const chatOf = (accountId) => (chatRows || []).find((c) => c.person && c.person.accountId === accountId && !c.group);
+  const savedNames = {};
+  for (const c of chatRows || []) if (c.person && c.person.accountId && c.savedName && !c.private) savedNames[c.person.accountId] = c.savedName;
+  const saveContactName = async (p) => {
+    let chat = chatOf(p.accountId);
+    if (chat && chat.private) { setToast("That chat is private · open it by its name to change it"); return; }
+    try {
+      if (!chat) { const r = await hellooApi.open(p.accountId); chat = r && r.chat; if (chat) setChatRows((rowsNow) => [chat, ...(rowsNow || []).filter((c) => c.id !== chat.id)]); }
+      if (!chat) { setToast("Couldn't open them right now"); return; }
+      openNameEdit(chat); setSheet("savename");
+    } catch (err) { setToast((err && err.message) || "Couldn't open them right now"); }
+  };
   if (screen === "contacts") {
     const withPresence = contacts.map((p) => { const pr = presence[p.accountId]; return pr ? Object.assign({}, p, { online: Boolean(pr.online) }) : p; });
-    // Names you saved for people (a chat's saved name). A private chat's name
-    // is never shown here: it opens only when its whole name is typed.
-    const chatOf = (accountId) => (chatRows || []).find((c) => c.person && c.person.accountId === accountId && !c.group);
-    const savedNames = {};
-    for (const c of chatRows || []) if (c.person && c.person.accountId && c.savedName && !c.private) savedNames[c.person.accountId] = c.savedName;
-    const saveContactName = async (p) => {
-      let chat = chatOf(p.accountId);
-      if (chat && chat.private) { setToast("That chat is private · open it by its name to change it"); return; }
-      try {
-        if (!chat) { const r = await hellooApi.open(p.accountId); chat = r && r.chat; if (chat) setChatRows((rowsNow) => [chat, ...(rowsNow || []).filter((c) => c.id !== chat.id)]); }
-        if (!chat) { setToast("Couldn't open them right now"); return; }
-        openNameEdit(chat); setSheet("savename");
-      } catch (err) { setToast((err && err.message) || "Couldn't open them right now"); }
-    };
     return shell(<><HellooContactsScreen me={me} contacts={withPresence} saved={savedNames} onSaveName={saveContactName} onSaveToggle={(p) => saveContact(p, !p.saved)} query={contactQuery} onQuery={setContactQuery} onOpen={(p) => openChatWith(p.accountId, true, true)} onMessage={(p) => openChatWith(p.accountId, false, true)} onCall={(p) => startCall(p, false)} onVideo={(p) => startCall(p, true)} onRemove={(p) => { const name = p.handle || (p.name || "").split(" ")[0]; hellooApi.hideContact(p.accountId, true).then(() => { refreshContacts(); setToast(`${name} is out of your contacts · back if you pay or chat again`); }).catch((err) => setToast(err.message || "Couldn't remove them.")); }} onAdd={() => setSheet("add")} onBack={() => setScreen(null)} autoFocus />{sheet === "add" && addSheet}{sheet === "savename" && nameSheet}</>);
   }
   if (screen === "blocked") {
@@ -85279,11 +85290,21 @@ function HellooRoot() {
       onShop={(card) => Promise.resolve(openChatWith(card.gloobalId)).then(() => openMenu({ gloobalId: card.gloobalId })).catch(() => {})}
       onShopItem={(tag) => { if (user && tag.shop === user.symbolId) { setToast("That is your own shop"); return; } Promise.resolve(openChatWith(tag.shop)).then(() => openMenu({ gloobalId: tag.shop }, tag.itemId)).catch(() => {}); }} />}
     {tab === "earn" && <HellooAdsHome me={me} photos={photos} onCards={askPhotos} onToast={setToast} onReceipt={openGloobalReceipt} />}
-    {tab === "calls" && <HellooCallsHome me={me} calls={callsAll} filter={callFilter} onFilter={setCallFilter} when={callWhen} onWhen={setCallWhen} onCallBack={(c) => startCall(c.person, c.video)} onInfo={(c) => openChatWith(c.person.accountId, true)} onOpenDial={() => { setDial({ value: "", status: "", match: null }); setSheet("dial"); }} onAdd={() => setSheet("add")} onSearch={() => { setContactQuery(""); refreshContacts(); setScreen("contacts"); }} onScan={() => setScreen("scan")} onMe={openMeOrFaces} />}
+    {tab === "calls" && <HellooCallsHome me={me} calls={callsAll} filter={callFilter} onFilter={setCallFilter} when={callWhen} onWhen={setCallWhen} onCallBack={(c) => startCall(c.person, c.video)} onInfo={(c) => { setCallCard(c.person); setSheet("callcard"); const who = c.person && c.person.accountId; if (who && !hellooIsBusiness(c.person) && !personShops[who]) hellooApi.personShops(who).then((r) => { const list = r.shops || []; askPhotos(list); setPersonShops((all) => Object.assign({}, all, { [who]: list })); }).catch(() => {}); }} onOpenDial={() => { setDial({ value: "", status: "", match: null }); setSheet("dial"); }} onAdd={() => setSheet("add")} onSearch={() => { setContactQuery(""); refreshContacts(); setScreen("contacts"); }} onScan={() => setScreen("scan")} onMe={openMeOrFaces} />}
     {sheet === "dial" && <HellooDialSheet contacts={contacts} saved={Boolean(dial.match && contacts.some((c) => c.accountId === dial.match.accountId && c.saved))} saving={dialSaving} onSave={() => { const m = dial.match; if (!m || dialSaving) return; setDialSaving(true); saveContact(m, true).then(() => setDialSaving(false)); }} onUnsave={() => { const m = dial.match; if (!m || dialSaving) return; setDialSaving(true); saveContact(m, false).then(() => setDialSaving(false)); }} dial={dial.value} onDial={(v) => setDial((d) => Object.assign({}, d, { value: v }))} match={dial.match} status={dial.status} mode={dial.mode === "id" ? "id" : "mobile"} onMode={(m) => setDial((d) => ({ value: "", phone: "", status: "", match: null, mode: m, country: d.country }))} phone={dial.phone || ""} onPhone={(v) => setDial((d) => Object.assign({}, d, { phone: v }))} dialCode={dialCode} dialCountry={dialCountry} onCountry={(c) => setDial((d) => Object.assign({}, d, { country: c, phone: "", status: "", match: null }))} onMessage={() => dial.match && openChatWith(dial.match.gloobalId, false, false, "self")} onCall={() => { if (dial.match) { setSheet(null); startCall(dial.match, false); } }} onVideo={() => { if (dial.match) { setSheet(null); startCall(dial.match, true); } }} onClose={() => setSheet(null)} />}
     {sheet === "add" && addSheet}
     {sheet === "release" && release && releaseSheet}
     {sheet === "savename" && nameSheet}
+    {sheet === "callcard" && callCard ? (() => {
+      // The i on a call: the contact card (Message · Call · Video, Shop for
+      // a shop, Saved, Save name, Full profile), not the profile itself.
+      const known = contacts.find((x) => x.accountId === callCard.accountId) || null;
+      const base = Object.assign({}, callCard, known || {});
+      const mine = savedNames[base.accountId] || base.savedName || "";
+      const p = mine && mine !== base.name ? Object.assign({}, base, { name: mine, accountName: base.name, saved: true }) : Object.assign({}, base, { saved: Boolean(base.saved || mine) });
+      const pr = presence[p.accountId]; if (pr) p.online = Boolean(pr.online);
+      return <HellooContactCard p={p} onClose={() => { setSheet(null); setCallCard(null); }} onMessage={(x) => openChatWith(x.accountId, false, true)} onCall={(x) => startCall(x, false)} onVideo={(x) => startCall(x, true)} onShop={(x) => { Promise.resolve(openChatWith(x.accountId)).then(() => openMenu(x)).catch(() => {}); }} shops={(personShops[p.accountId] || []).map((c) => Object.assign({}, hellooPersonFrom(c, photos), { handle: c.handle }))} onOpenShop={(sp) => openChatWith(sp.accountId, true)} onOpen={(x) => openChatWith(x.accountId, true, true)} onSaveName={saveContactName} onSaveToggle={(x) => saveContact(x, !x.saved)} onRemove={known ? (x) => { const name = x.handle || (x.name || "").split(" ")[0]; hellooApi.hideContact(x.accountId, true).then(() => { refreshContacts(); setToast(`${name} is out of your contacts · back if you pay or chat again`); }).catch((err) => setToast(err.message || "Couldn't remove them.")); } : undefined} />;
+    })() : null}
     {sheet === "start" && <HellooStartSheet suggested={contacts.slice(0, 8)} onPick={contactPick} onPad={() => { setDial({ value: "", status: "", match: null }); setSheet("dial"); }} onScan={() => { setSheet(null); setScreen("scan"); }} onContacts={() => { setSheet(null); setContactQuery(""); refreshContacts(); setScreen("contacts"); }} onClose={() => setSheet(null)} />}
   <HellooSideRail social fold={tab === "social" || tab === "earn"} active={tab} onChange={(t) => { setTab(t); setSheet(null); }} badges={{ chats: unread, callsDot: missedCount > 0 }} onBazaar={() => setScreen("bazaar")} onScan={() => setScreen("scan")} plusLabel={tab === "social" ? "New post" : tab === "calls" ? "Dial a GLOOBAL ID" : "New chat or call"} onPlus={tab === "social" ? () => setSocialCompose((n) => n + 1) : tab === "calls" ? () => { setDial({ value: "", status: "", match: null }); setSheet("dial"); } : () => setSheet("start")} /></div></div>);
 }

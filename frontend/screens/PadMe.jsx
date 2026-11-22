@@ -362,9 +362,16 @@ function HellooContactsScreen({ me, contacts: given = [], saved = {}, onSaveName
 
 // One contact, on its own card: who they are (your name for them, their
 // GLOOBAL name), where, their GLOOBAL ID, the last payment between you,
-// then Message · Call · Video, and Save name · Full profile · Remove.
-function HellooContactCard({ p, onClose, onMessage, onCall, onVideo, onOpen, onSaveName, onSaveToggle, onRemove }) {
+// then Message · Call · Video (and Shop, for a shop: what it sells), and
+// Save name · Full profile · Remove. Opened from Contacts and from the i
+// on a call in Recents.
+function HellooContactCard({ p, onClose, onMessage, onCall, onVideo, onOpen, onSaveName, onSaveToggle, onRemove, onShop, shops = null, onOpenShop }) {
   const go = (fn) => () => { onClose(); if (fn) fn(p); };
+  // The store: a shop's own menu, or — for a person — the shop they run
+  // (several: tap to pick one).
+  const [pickShop, setPickShop] = useStateH13(false);
+  const theirShops = !p.handle && Array.isArray(shops) ? shops : [];
+  const storeFn = p.handle ? onShop : theirShops.length && onOpenShop ? () => (theirShops.length === 1 ? onOpenShop(theirShops[0]) : setPickShop((v) => !v)) : null;
   return <HellooSheet label={p.name || "Contact"} onClose={onClose}><div data-testid="helloo-contact-card">
     <div style={{ display: "flex", flexDirection: "column", alignItems: "center", textAlign: "center", padding: "4px 6px 14px" }}>
       <HellooAvatar person={p} size={84} online={p.online} flag={false} />
@@ -374,7 +381,8 @@ function HellooContactCard({ p, onClose, onMessage, onCall, onVideo, onOpen, onS
       <div style={{ marginTop: 10, padding: "6px 12px", borderRadius: 12, background: T.surfaceAlt, fontSize: 13.5, fontWeight: 800 }}><ColoredGloobalId id={p.gloobalId || ""} /></div>
       {p.lastPaid ? <div style={{ fontSize: 12, fontWeight: 700, color: T.inkFaint, marginTop: 8 }}>{p.lastPaid}</div> : null}
     </div>
-    <div style={{ display: "flex", gap: 8 }}>{[[HlChat, "Message", onMessage, T.accent], [HlPhone, "Call", onCall, HT.free], [HlVideo, "Video", onVideo, "#DB2777"]].map(([I, l, fn, c]) => <button key={l} onClick={go(fn)} aria-label={l} data-testid={`helloo-contact-card-${l.toLowerCase()}`} className="v2-tap" style={{ flex: 1, height: 64, borderRadius: 18, border: "none", background: c + "14", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: 5, cursor: "pointer", fontFamily: T.fontBody }}><I size={21} color={c} /><span style={{ fontSize: 12, fontWeight: 800, color: T.ink }}>{l}</span></button>)}</div>
+    <div style={{ display: "flex", gap: 8 }}>{[[HlChat, "Message", onMessage, T.accent], [HlPhone, "Call", onCall, HT.free], [HlVideo, "Video", onVideo, "#DB2777"]].concat(storeFn ? [[HlStore, "Shop", storeFn, "#D97706"]] : []).map(([I, l, fn, c]) => <button key={l} onClick={l === "Shop" && theirShops.length > 1 ? fn : go(fn)} aria-label={l} data-testid={`helloo-contact-card-${l.toLowerCase()}`} className="v2-tap" style={{ flex: 1, height: 64, borderRadius: 18, border: "none", background: c + "14", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: 5, cursor: "pointer", fontFamily: T.fontBody }}><I size={21} color={c} /><span style={{ fontSize: 12, fontWeight: 800, color: T.ink }}>{l}</span></button>)}</div>
+    {pickShop && theirShops.length > 1 ? <HellooCard style={{ marginTop: 10 }}><div data-testid="helloo-contact-card-shops">{theirShops.map((sp, i) => <HellooRow key={sp.accountId || i} Icon={HlStore} title={sp.handle || sp.name} first={!i} onPress={() => { onClose(); onOpenShop(sp); }} />)}</div></HellooCard> : null}
     <HellooCard style={{ marginTop: 12 }}>
       {onSaveToggle ? <span data-testid="helloo-contact-card-save" data-saved={p.saved ? "yes" : "no"} style={{ display: "block" }}><HellooToggleRow Icon={HlUserPlus} title="Saved contact" note="On all your profiles" on={Boolean(p.saved)} onChange={() => onSaveToggle(p)} color={HT.free} first testid="helloo-contact-save-switch" /></span> : null}
       {onSaveName ? <HellooRow Icon={HlPencil} title={p.accountName ? "Edit name" : "Save name"} value={p.accountName ? p.name : "Only you see it"} first={!onSaveToggle} onPress={go(onSaveName)} /> : null}
