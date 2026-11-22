@@ -431,6 +431,8 @@ function HellooRoot() {
   // somebody shared in a chat is one tap from paying.
   const [photoQr, setPhotoQr] = useStateH9(null);
   const scanFileRef = useRefH9(null);
+  // For you or Explore: Explore shows only its reels button, not the side menu.
+  const [socialView, setSocialView] = useStateH9("feed");
   // The person behind a call in Recents, on the same card Contacts opens.
   const [callCard, setCallCard] = useStateH9(null);
   const [mediaUrls, setMediaUrls] = useStateH9({}); // messageId -> object URL
@@ -2141,7 +2143,7 @@ function HellooRoot() {
       [HlBan, "Blocked people", () => { setSheet(null); refreshBlocked(); setScreen("blocked"); }],
       [HlPalette, "Colours", () => { setSheet(null); setScreen("theme"); }]
     ].filter(Boolean).map(([Icon, title, onPress], i) => <HellooRow key={title} Icon={Icon} title={title} first={i === 0} onPress={onPress} />)}</HellooCard></HellooSheet>}
-    {tab === "social" && <HellooSocialHome me={me} faces={faces} photos={photos} composeTick={socialCompose}
+    {tab === "social" && <HellooSocialHome onView={setSocialView} me={me} faces={faces} photos={photos} composeTick={socialCompose}
       chats={(chatRows || []).filter((c) => c.person && c.person.accountId && !c.private && !c.group).slice(0, 30).map((c) => ({ id: c.id, person: hellooPersonFrom(c.person, photos), savedName: c.savedName || "" }))}
       onSendPost={(chatId, post) => Promise.resolve(sendMessage(chatId, { kind: "post", postId: post.id, preview: { id: post.id, author: post.author.handle || post.author.name, caption: (post.caption || "").slice(0, 100), media: (post.media || [])[0] || null } }))}
       openPost={socialOpenPost} onPostOpened={() => setSocialOpenPost("")} onPhoto={(key, data) => setPhotos((ph) => Object.assign({}, ph, { [key]: data }))} onCards={askPhotos} onToast={setToast}
@@ -2167,5 +2169,5 @@ function HellooRoot() {
       return <HellooContactCard p={p} onClose={() => { setSheet(null); setCallCard(null); }} onMessage={(x) => openChatWith(x.accountId, false, true)} onCall={(x) => startCall(x, false)} onVideo={(x) => startCall(x, true)} onShop={(x) => { Promise.resolve(openChatWith(x.accountId)).then(() => openMenu(x)).catch(() => {}); }} shops={(personShops[p.accountId] || []).map((c) => Object.assign({}, hellooPersonFrom(c, photos), { handle: c.handle }))} onOpenShop={(sp) => openChatWith(sp.accountId, true)} onOpen={(x) => openChatWith(x.accountId, true, true)} onSaveName={saveContactName} onSaveToggle={(x) => saveContact(x, !x.saved)} onRemove={known ? (x) => { const name = x.handle || (x.name || "").split(" ")[0]; hellooApi.hideContact(x.accountId, true).then(() => { refreshContacts(); setToast(`${name} is out of your contacts · back if you pay or chat again`); }).catch((err) => setToast(err.message || "Couldn't remove them.")); } : undefined} />;
     })() : null}
     {sheet === "start" && <HellooStartSheet suggested={contacts.slice(0, 8)} onPick={contactPick} onPad={() => { setDial({ value: "", status: "", match: null }); setSheet("dial"); }} onScan={() => { setSheet(null); setScreen("scan"); }} onContacts={() => { setSheet(null); setContactQuery(""); refreshContacts(); setScreen("contacts"); }} onClose={() => setSheet(null)} />}
-  <HellooSideRail social fold={tab === "social" || tab === "earn"} active={tab} onChange={(t) => { setTab(t); setSheet(null); }} badges={{ chats: unread, callsDot: missedCount > 0 }} onBazaar={() => setScreen("bazaar")} onScan={() => setScreen("scan")} plusLabel={tab === "social" ? "New post" : tab === "calls" ? "Dial a GLOOBAL ID" : "New chat or call"} onPlus={tab === "social" ? () => setSocialCompose((n) => n + 1) : tab === "calls" ? () => { setDial({ value: "", status: "", match: null }); setSheet("dial"); } : () => setSheet("start")} /></div></div>);
+  {tab === "social" && socialView === "explore" ? null : <HellooSideRail social fold={tab === "social" || tab === "earn"} active={tab} onChange={(t) => { setTab(t); setSheet(null); }} badges={{ chats: unread, callsDot: missedCount > 0 }} onBazaar={() => setScreen("bazaar")} onScan={() => setScreen("scan")} plusLabel={tab === "social" ? "New post" : tab === "calls" ? "Dial a GLOOBAL ID" : "New chat or call"} onPlus={tab === "social" ? () => setSocialCompose((n) => n + 1) : tab === "calls" ? () => { setDial({ value: "", status: "", match: null }); setSheet("dial"); } : () => setSheet("start")} />}</div></div>);
 }
