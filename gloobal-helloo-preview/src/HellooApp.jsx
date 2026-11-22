@@ -79990,8 +79990,9 @@ var socialApi = {
   hashtags: (q) => socialHttp.get(`/api/social/hashtags?q=${encodeURIComponent(q || "")}`),
   search: (q) => socialHttp.get(`/api/social/search?q=${encodeURIComponent(q)}`),
   profile: (gloobalId, side) => socialHttp.get(`/api/social/profile/${encodeURIComponent(gloobalId)}${side ? `?side=${side}` : ""}`),
-  follow: (to, on) => socialHttp.post("/api/social/follow", { to, on }),
-  people: (gloobalId, which) => socialHttp.get(`/api/social/people/${encodeURIComponent(gloobalId)}/${which}`),
+  // A face, not an account: the person, or the shop on the same account.
+  follow: (to, on, side) => socialHttp.post("/api/social/follow", { to, on, side: side === "shop" ? "shop" : "self" }),
+  people: (gloobalId, which, side) => socialHttp.get(`/api/social/people/${encodeURIComponent(gloobalId)}/${which}?side=${side === "shop" ? "shop" : "self"}`),
   like: (id, on) => socialHttp.post(`/api/social/posts/${encodeURIComponent(id)}/like`, { on }),
   comments: (id) => socialHttp.get(`/api/social/posts/${encodeURIComponent(id)}/comments`),
   comment: (id, text, mentions) => socialHttp.post(`/api/social/posts/${encodeURIComponent(id)}/comments`, { text, mentions: mentions || [] }),
@@ -80045,6 +80046,8 @@ var SOCIAL_VIDEO_MAX = 8 * 1024 * 1024;
 var SOCIAL_PHOTO_MAX = 700 * 1024;
 // Sealed: post media opens only with the signed-in viewer's pass (GLOOBAL
 // features/viewpass). No pass yet → no address, nothing asked anonymously.
+// Follows are per face: the person and the shop on one account apart.
+function socialFollowKey(card) { return `${card.accountId}:${card.side === "shop" ? "shop" : "self"}`; }
 function socialMediaSrc(m) { return m && m.url ? gloobalSealedSrc(m.url) : ""; }
 // A profile's own picture or cover: shown to anyone signed in, with no
 // "Confirm it's you" first (it is a face beside a name, not a post). Asked
@@ -80410,7 +80413,7 @@ function HellooSocialHome({ me, faces, photos, chats = [], onSendPost, openPost 
   };
   const openProfile = (card) => {
     setProfile({ card, loading: true });
-    socialApi.profile(card.gloobalId, card.side === "self" ? "self" : "").then((r) => { setProfile({ card: r.profile, profile: r.profile, grid: r.grid || [] }); setFollows((f) => Object.assign({}, f, { [r.profile.accountId]: r.profile.isFollowing })); seen([r.profile]); }).catch((err) => setProfile({ card, error: (err && err.message) || "Couldn't open that profile." }));
+    socialApi.profile(card.gloobalId, card.side === "self" ? "self" : "").then((r) => { setProfile({ card: r.profile, profile: r.profile, grid: r.grid || [] }); setFollows((f) => Object.assign({}, f, { [socialFollowKey(r.profile)]: r.profile.isFollowing })); seen([r.profile]); }).catch((err) => setProfile({ card, error: (err && err.message) || "Couldn't open that profile." }));
   };
   const openMine = () => openProfile({ gloobalId: face.gloobalId || me.gloobalId, accountId: face.accountId || myId, name: face.name || me.name, side: face.kind === "shop" ? "shop" : "self" });
   const useAs = (f) => { setWho(false); if (f.as === as) return; socialFaceSave(myId, f.as); setFeed(null); setEx(null); setStories([]); setProfile(null); setOpen(null); setFollows({}); setAs(f.as); onToast(f.kind === "shop" ? `Social as ${f.name || "your shop"}` : "Social as yourself"); };
@@ -80430,10 +80433,11 @@ function HellooSocialHome({ me, faces, photos, chats = [], onSendPost, openPost 
     like: (post, on) => { patch(post.id, (p) => Object.assign({}, p, { liked: on, likes: Math.max(0, p.likes + (on ? 1 : -1)) })); socialApi.like(post.id, on).then((r) => patch(post.id, (p) => Object.assign({}, p, { liked: r.liked, likes: r.likes }))).catch(() => patch(post.id, (p) => Object.assign({}, p, { liked: !on, likes: Math.max(0, p.likes + (on ? -1 : 1)) }))); },
     // Follow / unfollow. The button flips at once and goes back if the server
     // says no — with the server's own reason (e.g. your profile is off).
-    follow: (card, on) => { const was = act.isFollowing(card); setFollows((f) => Object.assign({}, f, { [card.accountId]: on })); socialApi.follow(card.accountId, on).then((r) => { setFollows((f) => Object.assign({}, f, { [card.accountId]: Boolean(r.following) })); setProfile((pr) => (pr && pr.profile && pr.profile.accountId === card.accountId ? Object.assign({}, pr, { profile: Object.assign({}, pr.profile, { isFollowing: r.following, followsMe: r.followsMe, followers: r.followers }) }) : pr && pr.profile && pr.profile.isMe && was !== Boolean(r.following) ? Object.assign({}, pr, { profile: Object.assign({}, pr.profile, { following: Math.max(0, (pr.profile.following || 0) + (r.following ? 1 : -1)) }) }) : pr)); onToast(r.following ? `Following ${card.handle || card.name || ""}`.trim() : "Unfollowed"); }).catch((e) => { setFollows((f) => Object.assign({}, f, { [card.accountId]: was })); onToast((e && e.message) || (on ? "Couldn't follow right now." : "Couldn't unfollow right now.")); }); },
+    follow: (card, on) => { const was = act.isFollowing(card); const fk = socialFollowKey(card); setFollows((f) => Object.assign({}, f, { [fk]: on })); socialApi.follow(card.accountId, on, card.side).then((r) => { setFollows((f) => Object.assign({}, f, { [fk]: Boolean(r.following) })); setProfile((pr) => (pr && pr.profile && pr.profile.accountId === card.accountId && (pr.profile.side || "self") === (card.side || "self") ? Object.assign({}, pr, { profile: Object.assign({}, pr.profile, { isFollowing: r.following, followsMe: r.followsMe, followers: r.followers }) }) : pr && pr.profile && pr.profile.isMe && was !== Boolean(r.following) ? Object.assign({}, pr, { profile: Object.assign({}, pr.profile, { following: Math.max(0, (pr.profile.following || 0) + (r.following ? 1 : -1)) }) }) : pr)); onToast(r.following ? `Following ${card.handle || card.name || ""}`.trim() : "Unfollowed"); }).catch((e) => { setFollows((f) => Object.assign({}, f, { [fk]: was })); onToast((e && e.message) || (on ? "Couldn't follow right now." : "Couldn't unfollow right now.")); }); },
     askUnfollow: (card) => setUnfollow(card),
     followsMe: (card) => Boolean(card && card.followsMe),
-    isFollowing: (card) => Boolean(card && (follows[card.accountId] ?? card.following ?? card.isFollowing ?? false)),
+    // (On a profile, `following` is how many it follows — a number, not a yes.)
+    isFollowing: (card) => Boolean(card && (follows[socialFollowKey(card)] ?? (typeof card.following === "boolean" ? card.following : undefined) ?? card.isFollowing ?? false)),
     profile: openProfile,
     comments: (post) => setTalk(post),
     more: (post) => setMore(post),
@@ -80505,7 +80509,7 @@ function SocialExplore({ ex, see, tag, onTag, onFilter, q, onQ, found, photos, a
   const search = <div style={{ display: "flex", gap: 8, padding: "2px 16px 6px" }}><label style={{ flex: 1, minWidth: 0, display: "flex", alignItems: "center", gap: 10, height: 48, borderRadius: 16, background: HT.cardBg || T.surface, boxShadow: HT.cardShadow ?? T.shadowCard, padding: "0 16px" }}><HlSearch size={18} color={T.inkFaint} /><input value={q} onChange={(e) => onQ(e.target.value)} placeholder="People, shops, #hashtags" data-testid="social-search" style={{ flex: 1, minWidth: 0, border: "none", outline: "none", background: "transparent", fontSize: 15, color: T.ink, fontFamily: T.fontBody }} />{q ? <button onClick={() => onQ("")} aria-label="Clear" style={{ border: "none", background: "none", padding: 0, cursor: "pointer", display: "flex" }}><HlX size={17} color={T.inkFaint} /></button> : null}</label><button onClick={onFilter} aria-label="Filter" data-testid="social-filter" className="v2-tap" style={{ position: "relative", width: 48, height: 48, borderRadius: 16, border: "none", background: n ? T.accentSoft : (HT.cardBg || T.surface), boxShadow: n ? `inset 0 0 0 1.5px ${T.accent}` : (HT.cardShadow ?? T.shadowCard), display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer", flexShrink: 0 }}><SxFilter size={19} color={n ? T.accent : T.ink} />{n ? <span style={{ position: "absolute", right: -3, top: -3, minWidth: 18, height: 18, borderRadius: 9, background: T.accent, color: "#fff", fontSize: 10.5, fontWeight: 800, display: "flex", alignItems: "center", justifyContent: "center" }}>{n}</span> : null}</button></div>;
   if (q.trim().length >= 2) {
     return <>{search}{!found ? <SocialNote title="Looking…" /> : (found.people || []).length + (found.posts || []).length === 0 ? <SocialNote title="Nothing by that name yet" text="Try a shop's handle, part of a name, or a #hashtag." /> : <>
-      {(found.people || []).length ? <div style={{ padding: "8px 16px" }}><HellooCard>{found.people.map((c, i) => <SocialPersonRow key={c.accountId + c.side} card={c} photos={photos} first={i === 0} act={act} following={follows[c.accountId]} />)}</HellooCard></div> : null}
+      {(found.people || []).length ? <div style={{ padding: "8px 16px" }}><HellooCard>{found.people.map((c, i) => <SocialPersonRow key={c.accountId + c.side} card={c} photos={photos} first={i === 0} act={act} following={follows[socialFollowKey(c)]} />)}</HellooCard></div> : null}
       {(found.posts || []).length ? <div style={{ paddingTop: 8 }}><SocialGrid posts={found.posts} onOpen={onOpen} /></div> : null}
       <div style={{ height: 120 }} /></>}</>;
   }
@@ -80629,7 +80633,7 @@ function SocialFollowButton({ card, act, kind = "pill", testid = "social-follow"
 function SocialPeopleList({ of, which, onWhich, photos, act, onBack }) {
   const [data, setData] = useStateH40({});
   const [err, setErr] = useStateH40("");
-  useEffectH40(() => { let live = true; if (data[which]) return undefined; setErr(""); socialApi.people(of.gloobalId, which).then((r) => { if (live) setData((d) => Object.assign({}, d, { [which]: r.people || [] })); }).catch((e) => { if (live) setErr((e && e.message) || "Couldn't load."); }); return () => { live = false; }; }, [which, of.gloobalId]);
+  useEffectH40(() => { let live = true; if (data[which]) return undefined; setErr(""); socialApi.people(of.gloobalId, which, of.side).then((r) => { if (live) setData((d) => Object.assign({}, d, { [which]: r.people || [] })); }).catch((e) => { if (live) setErr((e && e.message) || "Couldn't load."); }); return () => { live = false; }; }, [which, of.gloobalId]);
   const list = data[which];
   const tab = (k, label, n) => <button key={k} onClick={() => onWhich(k)} data-testid={`social-people-tab-${k}`} aria-pressed={which === k} className="v2-tap" style={{ flex: 1, height: 40, border: "none", borderBottom: `2.5px solid ${which === k ? T.ink : "transparent"}`, background: "none", color: which === k ? T.ink : T.inkSoft, fontSize: 14, fontWeight: 800, cursor: "pointer", fontFamily: T.fontBody }}>{typeof n === "number" ? `${socialCount(n)} ` : ""}{label}</button>;
   return <div data-testid="social-people" style={{ position: "absolute", inset: 0, zIndex: 45, background: HT.screenBg || T.bg, display: "flex", flexDirection: "column", fontFamily: T.fontBody }}>
