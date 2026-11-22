@@ -259,8 +259,11 @@ function SocialVideo({ src, fill, muted, onMuted }) {
   }, [src]);
   return <div style={{ position: "relative", width: "100%", height: "100%", background: "#000" }}><video ref={ref} src={src} muted={muted} loop playsInline preload="metadata" onClick={() => onMuted(!muted)} style={{ width: "100%", height: "100%", objectFit: fill ? "cover" : "contain", display: "block" }} /><button onClick={() => onMuted(!muted)} aria-label={muted ? "Sound on" : "Sound off"} className="v2-tap" style={{ position: "absolute", right: 12, bottom: 12, width: 34, height: 34, borderRadius: "50%", border: "none", background: "rgba(0,0,0,0.45)", display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer" }}>{muted ? <SxMute size={16} color="#fff" /> : <SxSound size={16} color="#fff" />}</button></div>;
 }
+// The item a post is selling. Its CEL button is the one way to pay from a
+// post: it opens the shop with this item picked. Sold out (or taken off
+// the shop's list): it says so and has no button.
 function SocialTagCard({ tag, onShopItem }) {
-  return <span style={{ display: "flex", alignItems: "center", gap: 10, padding: "8px 8px 8px 12px", borderRadius: 18, background: "rgba(255,255,255,0.94)", backdropFilter: "blur(10px)", WebkitBackdropFilter: "blur(10px)", boxShadow: "0 10px 26px -14px rgba(0,0,0,0.5)", minWidth: 0 }}><HlStore size={18} color={T.accent} style={{ flexShrink: 0 }} /><span style={{ flex: 1, minWidth: 0 }}><span style={{ display: "block", fontSize: 13, fontWeight: 800, color: "#111", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{tag.title}</span><span style={{ display: "block", fontSize: 12, fontWeight: 800, color: T.accent, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{hellooMoneyText(tag.price, tag.currency)}</span></span><button onClick={(e) => { e.stopPropagation(); onShopItem(tag); }} data-testid="social-tag-pay" className="v2-tap" style={{ height: 36, padding: "0 14px", borderRadius: 999, border: "none", background: T.gradButton, color: HT.onAccent || "#fff", display: "flex", alignItems: "center", fontSize: 13, fontWeight: 800, cursor: "pointer", flexShrink: 0, fontFamily: T.fontBody, whiteSpace: "nowrap" }}>CEL | {hellooCelSign(tag.currency)}</button></span>;
+  return <span style={{ display: "flex", alignItems: "center", gap: 10, padding: "8px 8px 8px 12px", borderRadius: 18, background: "rgba(255,255,255,0.94)", backdropFilter: "blur(10px)", WebkitBackdropFilter: "blur(10px)", boxShadow: "0 10px 26px -14px rgba(0,0,0,0.5)", minWidth: 0 }}><HlStore size={18} color={T.accent} style={{ flexShrink: 0 }} /><span style={{ flex: 1, minWidth: 0 }}><span style={{ display: "block", fontSize: 13, fontWeight: 800, color: "#111", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{tag.title}</span><span style={{ display: "block", fontSize: 12, fontWeight: 800, color: T.accent, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{hellooMoneyText(tag.price, tag.currency)}</span></span>{tag.live === false ? <span data-testid="social-tag-soldout" style={{ height: 36, padding: "0 12px", borderRadius: 999, background: "rgba(0,0,0,0.07)", color: "#555", display: "flex", alignItems: "center", fontSize: 12.5, fontWeight: 800, flexShrink: 0, whiteSpace: "nowrap" }}>Sold out</span> : <button onClick={(e) => { e.stopPropagation(); onShopItem(tag); }} data-testid="social-tag-pay" className="v2-tap" style={{ height: 36, padding: "0 14px", borderRadius: 999, border: "none", background: T.gradButton, color: HT.onAccent || "#fff", display: "flex", alignItems: "center", fontSize: 13, fontWeight: 800, cursor: "pointer", flexShrink: 0, fontFamily: T.fontBody, whiteSpace: "nowrap" }}>CEL | {hellooCelSign(tag.currency)}</button>}</span>;
 }
 
 // ── One post in the feed ────────────────────────────────────────────────
@@ -293,8 +296,9 @@ function SocialPostCard({ post, photos, act, muted, onMuted }) {
     {(() => {
       // One row, one size: every action is a 24px line icon in a 34px-high
       // cell, its count (when there is one) beside it in the same type.
-      // Like · Comment · Repost · Share on the left; Views · Tip · Save on
-      // the right, the bookmark always last. No words, so it fits a small
+      // Like · Comment · Repost · Share on the left; Views · Save on the
+      // right, the bookmark always last. Paying is the CEL button on the
+      // item card, shown while the post is selling. No words, so it fits a small
       // phone with every count showing.
       const cell = { height: 34, minWidth: 24, border: "none", background: "none", padding: 0, margin: 0, display: "inline-flex", alignItems: "center", gap: 5, fontSize: 13, fontWeight: 800, lineHeight: 1, fontFamily: T.fontBody, fontVariantNumeric: "tabular-nums", color: T.ink, flexShrink: 0 };
       const n = (v) => (v ? <span>{socialCount(v)}</span> : null);
@@ -305,7 +309,6 @@ function SocialPostCard({ post, photos, act, muted, onMuted }) {
         <button onClick={() => act.share(post)} aria-label="Share" className="v2-tap" style={Object.assign({}, cell, { cursor: "pointer" })}><HlSend size={24} strokeWidth={1.9} color={T.ink} /></button>
         <span style={{ flex: 1, minWidth: 0 }} />
         <span data-testid="social-views" title="Different people who saw this" aria-label={`${post.views || 0} ${(post.views || 0) === 1 ? "person" : "people"} saw this`} style={Object.assign({}, cell, { color: T.inkSoft })}><SxViews size={24} strokeWidth={1.9} color={T.inkSoft} /><span>{socialCount(post.views || 0)}</span></span>
-        {!post.mine && post.selling ? <button onClick={() => act.tip(a)} aria-label="Tip" data-testid="social-tip" className="v2-tap" title="Tip" style={Object.assign({}, cell, { cursor: "pointer" })}><SxCoins size={24} strokeWidth={1.9} color={T.accent} /></button> : null}
         <button onClick={() => act.save(post, !post.saved)} data-testid="social-save" aria-label={post.saved ? "Remove from saved" : "Save"} aria-pressed={Boolean(post.saved)} className="v2-tap" style={Object.assign({}, cell, { cursor: "pointer" })}><SxSave size={24} strokeWidth={1.9} color={T.ink} fill={post.saved ? T.ink : "none"} /></button>
       </div>;
     })()}
@@ -973,6 +976,15 @@ function SocialViewer({ post, photos, act, muted, onMuted, onBack, embedded = fa
     const dx = t.clientX - st.x, dy = t.clientY - st.y;
     if (Math.abs(dx) > 70 && Math.abs(dy) < Math.abs(dx) * 0.6) act.fullVideo(post);
   };
+  // Double tap the picture or video to like it (a second double tap does
+  // not take the like back).
+  const [burst, setBurst] = useStateH40(false);
+  const lastTap = useRefH40(0);
+  const onTap = () => {
+    const now = Date.now();
+    if (now - lastTap.current < 320) { if (!post.liked) act.like(post, true); setBurst(true); setTimeout(() => setBurst(false), 650); lastTap.current = 0; return; }
+    lastTap.current = now;
+  };
   const m = post.media || [];
   const video = m[0] && m[0].kind === "video";
   const tag = (post.tags || [])[0];
@@ -987,7 +999,8 @@ function SocialViewer({ post, photos, act, muted, onMuted, onBack, embedded = fa
   return <div data-testid="social-viewer" onTouchStart={onAcrossStart} onTouchEnd={onAcrossEnd} style={{ position: "absolute", inset: 0, zIndex: embedded ? 1 : 50, background: "#000", overflow: "hidden", fontFamily: T.fontBody }}>
     {/* No picture without "Confirm it's you": say so here, not a black screen. */}
     <div style={{ position: "absolute", left: 10, right: 10, top: "34%", zIndex: 6 }}><GloobalSealedGate onSetup={() => { try { window.open("https://gloobalv3.netlify.app/", "_blank", "noopener"); } catch (e) { /* fine */ } }} /></div>
-    {video ? <SocialVideo src={socialMediaSrc(m[0])} muted={muted} onMuted={onMuted} /> : <div style={{ display: "flex", width: "100%", height: "100%", overflowX: "auto", scrollSnapType: "x mandatory", scrollbarWidth: "none" }}>{m.map((x) => <img key={x.id} src={socialMediaSrc(x)} alt="" style={{ flex: "0 0 100%", width: "100%", height: "100%", objectFit: "contain", scrollSnapAlign: "start" }} />)}</div>}
+    <div data-testid="social-viewer-media" onClick={onTap} style={{ position: "absolute", inset: 0 }}>{video ? <SocialVideo src={socialMediaSrc(m[0])} muted={muted} onMuted={onMuted} /> : <div style={{ display: "flex", width: "100%", height: "100%", overflowX: "auto", scrollSnapType: "x mandatory", scrollbarWidth: "none" }}>{m.map((x) => <img key={x.id} src={socialMediaSrc(x)} alt="" style={{ flex: "0 0 100%", width: "100%", height: "100%", objectFit: "contain", scrollSnapAlign: "start" }} />)}</div>}</div>
+    {burst ? <span data-testid="social-viewer-burst" style={{ position: "absolute", inset: 0, zIndex: 2, display: "flex", alignItems: "center", justifyContent: "center", pointerEvents: "none" }}><SxHeart size={110} color="#fff" fill="#fff" style={{ filter: "drop-shadow(0 8px 24px rgba(0,0,0,0.45))" }} /></span> : null}
     <div style={{ position: "absolute", inset: 0, background: "linear-gradient(180deg, rgba(0,0,0,0.4) 0%, transparent 20%, transparent 55%, rgba(0,0,0,0.75) 100%)", pointerEvents: "none" }} />
     {top}
     <button onClick={onBack} aria-label="Back" className="v2-tap" style={{ position: "absolute", zIndex: 3, left: 12, top: "calc(12px + env(safe-area-inset-top, 0px))", width: 40, height: 40, borderRadius: "50%", border: "none", background: "rgba(0,0,0,0.35)", display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer" }}><HlBack size={21} color="#fff" /></button>
@@ -998,7 +1011,6 @@ function SocialViewer({ post, photos, act, muted, onMuted, onBack, embedded = fa
       {side(HlSend, "", () => act.share(post), null, "Share", "social-viewer-share")}
       {side(SxSave, socialCount(post.saves || 0), () => act.save(post, !post.saved), post.saved ? "#FACC15" : null, post.saved ? "Remove from saved" : "Save", "social-viewer-save", Boolean(post.saved))}
       {side(SxViews, socialCount(post.views || 0), null, null, `${post.views || 0} ${(post.views || 0) === 1 ? "person" : "people"} saw this`, "social-viewer-views")}
-      {!post.mine && post.selling ? side(SxCoins, "", () => act.tip(post.author), null, "Tip", "social-viewer-tip") : null}
       {side(SxLines, "", () => act.more(post), null, "More", "social-viewer-more")}
     </div>
     <div style={{ position: "absolute", left: 16, right: 76, bottom: `calc(${tag ? 100 : 30}px + env(safe-area-inset-bottom, 0px))`, color: "#fff" }}>{chip}{post.fullVideo ? <button type="button" data-testid="social-viewer-fullvideo" onClick={() => act.fullVideo(post)} aria-label="Watch the full video" className="v2-tap" style={{ display: "inline-flex", alignItems: "center", gap: 7, height: 32, padding: "0 12px 0 10px", marginBottom: 10, borderRadius: 10, border: "none", background: "rgba(255,255,255,0.22)", backdropFilter: "blur(10px)", WebkitBackdropFilter: "blur(10px)", color: "#fff", fontSize: 13, fontWeight: 800, cursor: "pointer", fontFamily: T.fontBody, textShadow: "0 1px 3px rgba(0,0,0,0.4)" }}><SxVideo size={16} color="#fff" />Full video<HlChevron size={15} color="#fff" /></button> : null}<div style={{ display: "flex", alignItems: "center", gap: 10, minWidth: 0 }}><button onClick={() => { onBack(); act.profile(post.author); }} className="v2-tap" style={{ display: "flex", alignItems: "center", gap: 8, border: "none", background: "none", padding: 0, cursor: "pointer", minWidth: 0, flexShrink: 1 }}><SocialFace card={post.author} photos={photos} size={34} /><SocialName card={post.author} size={14.5} color="#fff" /></button>{!post.mine && !act.isFollowing(post.author) ? <span style={{ display: "inline-flex", flexShrink: 0 }}><SocialFollowButton card={post.author} act={act} kind="glass" testid="social-viewer-follow" /></span> : null}</div>{post.caption ? <div style={{ fontSize: 14, marginTop: 9, lineHeight: 1.4, maxHeight: 80, overflowY: "auto", whiteSpace: "pre-wrap", overflowWrap: "anywhere" }}><SocialCaption text={post.caption} onTag={(t) => { onBack(); act.tag(t); }} mentions={post.mentions} onMention={(c) => { onBack(); act.profile(c); }} color="#fff" /></div> : null}</div>
