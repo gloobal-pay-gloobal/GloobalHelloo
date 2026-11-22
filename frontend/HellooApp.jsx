@@ -20,12 +20,15 @@ function hellooSignedInUser() {
 
 // Path or query that should open a chat once signed in:
 //   ?chat=<chatId>                       a Helloo notification
+//   ?collection=<id>                     a saved collection somebody shared
 //   /p/<digits>, /u/<digits>, /s/<digits> a GLOOBAL QR or pay link
 function hellooDeepLink() {
   try {
     const url = new URL(window.location.href);
     const chat = url.searchParams.get("chat");
     if (chat) return { chatId: chat, reply: url.searchParams.get("reply") === "1" };
+    const shelf = url.searchParams.get("collection");
+    if (shelf && /^[a-f0-9]{24}$/i.test(shelf)) return { collection: shelf };
     if (url.searchParams.get("requests")) return { requests: true };
     if (url.searchParams.get("calls") || url.searchParams.get("call")) return { calls: true };
     const parsed = typeof parseGloobalPayPayload === "function" ? parseGloobalPayPayload(`${HELLOO_GLOOBAL_SITE}${url.pathname}`) : null;
@@ -357,6 +360,13 @@ function HellooRoot() {
     window.addEventListener("helloo:open-post", go);
     return () => window.removeEventListener("helloo:open-post", go);
   }, []);
+  // A shared collection tapped in a chat (or opened by its link) opens in Social.
+  const [socialOpenShelf, setSocialOpenShelf] = useStateH9("");
+  useEffectH9(() => {
+    const go = (e) => { const id = e && e.detail; if (!id) return; setOpenId(null); setSheet(null); setScreen(null); setTab("social"); setSocialOpenShelf(String(id)); };
+    window.addEventListener("helloo:open-collection", go);
+    return () => window.removeEventListener("helloo:open-collection", go);
+  }, []);
   const [dialSaving, setDialSaving] = useStateH9(false);
   const [openId, setOpenId] = useStateH9(null);
   const [screen, setScreen] = useStateH9(null);
@@ -602,6 +612,7 @@ function HellooRoot() {
     hellooClearDeepLink();
     if (link.requests) { setScreen("requests"); return; }
     if (link.calls) { setTab("calls"); return; }
+    if (link.collection) { setTab("social"); setSocialOpenShelf(link.collection); return; }
     if (link.chatId) {
       openChat(link.chatId);
       // "Reply" on a notification where the phone can't type in it: the
@@ -2146,7 +2157,7 @@ function HellooRoot() {
     {tab === "social" && <HellooSocialHome onView={setSocialView} me={me} faces={faces} photos={photos} composeTick={socialCompose}
       chats={(chatRows || []).filter((c) => c.person && c.person.accountId && !c.private && !c.group).slice(0, 30).map((c) => ({ id: c.id, person: hellooPersonFrom(c.person, photos), savedName: c.savedName || "" }))}
       onSendPost={(chatId, post) => Promise.resolve(sendMessage(chatId, { kind: "post", postId: post.id, preview: { id: post.id, author: post.author.handle || post.author.name, caption: (post.caption || "").slice(0, 100), media: (post.media || [])[0] || null } }))}
-      openPost={socialOpenPost} onPostOpened={() => setSocialOpenPost("")} onPhoto={(key, data) => setPhotos((ph) => Object.assign({}, ph, { [key]: data }))} onCards={askPhotos} onToast={setToast}
+      openPost={socialOpenPost} onPostOpened={() => setSocialOpenPost("")} openCollection={socialOpenShelf} onCollectionOpened={() => setSocialOpenShelf("")} onSendText={(chatId, text) => Promise.resolve(sendMessage(chatId, { kind: "text", text }))} onPhoto={(key, data) => setPhotos((ph) => Object.assign({}, ph, { [key]: data }))} onCards={askPhotos} onToast={setToast}
       onOpenChat={(card, draft) => openChatWith(card.gloobalId, false, false, card.side === "self" ? "self" : undefined, draft)}
       onCall={(card) => startCall(hellooPersonFrom(card, photos), false)}
       onTip={(card) => payGloobalId(card.gloobalId)}

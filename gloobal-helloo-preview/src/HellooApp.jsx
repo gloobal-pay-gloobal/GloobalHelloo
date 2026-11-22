@@ -526,7 +526,7 @@ import { useState as useStateH7, useEffect as useEffectH7, useRef as useRefH7 } 
 import { useState as useStateH8 } from "react";
 import { useState as useStateH10 } from "react";
 import { useState as useStateH40, useEffect as useEffectH40, useRef as useRefH40, useCallback as useCallbackH40 } from "react";
-import { BarChart2 as SxViews, Users as SxVisitors, Heart as SxHeart, MessageCircle as SxComment, Coins as SxCoins, Grid3x3 as SxGrid, Clapperboard as SxReels, PlaySquare as SxVideo, CircleDashed as SxStory, Images as SxPost, MoreHorizontal as SxMore, Volume2 as SxSound, VolumeX as SxMute, ImagePlus as SxAddPic, Tag as SxTag, TrendingUp as SxTrend, SlidersHorizontal as SxFilter, Hash as SxHash, Copy as SxCopy, Clock as SxClock, Eye as SxEye, EyeOff as SxEyeOff, Repeat2 as SxRepost, Bookmark as SxSave, AtSign as SxAt, History as SxMine, Menu as SxLines } from "lucide-react";
+import { BarChart2 as SxViews, Users as SxVisitors, Heart as SxHeart, MessageCircle as SxComment, Coins as SxCoins, Grid3x3 as SxGrid, Clapperboard as SxReels, PlaySquare as SxVideo, CircleDashed as SxStory, Images as SxPost, MoreHorizontal as SxMore, Volume2 as SxSound, VolumeX as SxMute, ImagePlus as SxAddPic, Tag as SxTag, TrendingUp as SxTrend, SlidersHorizontal as SxFilter, Hash as SxHash, Copy as SxCopy, Clock as SxClock, Eye as SxEye, EyeOff as SxEyeOff, Repeat2 as SxRepost, Bookmark as SxSave, AtSign as SxAt, History as SxMine, Menu as SxLines, Library as SxSaved, FolderPlus as SxNewFolder, Globe2 as SxGlobe, Lock as SxLock } from "lucide-react";
 import { useState as useStateH43, useEffect as useEffectH43, useRef as useRefH43, useCallback as useCallbackH43 } from "react";
 import { Coins as AxCoins, ThumbsUp as AxYes, ThumbsDown as AxNo, Megaphone as AxHorn, Pause as AxPause, CircleStop as AxStop } from "lucide-react";
 import { useState as useStateH44, useRef as useRefH50 } from "react";
@@ -78720,6 +78720,14 @@ function HellooBubble({ m, person, prevSame }) {
   // itself), who made it and its first words. A tap opens it in Social.
   if (m.kind === "post") { const sp = m.post || {}; const src = sp.media && sp.media.kind === "photo" && typeof gloobalSealedSrc === "function" ? gloobalSealedSrc(sp.media.url) : ""; return <div data-helloo-msg={m.from} style={{ alignSelf: mine ? "flex-end" : "flex-start", display: "flex", flexDirection: "column", alignItems: mine ? "flex-end" : "flex-start", marginTop: prevSame ? 6 : 12, opacity: m.failed ? 0.5 : 1 }}><button onClick={() => { try { window.dispatchEvent(new CustomEvent("helloo:open-post", { detail: sp.id })); } catch (e) { /* old browser */ } }} data-testid="helloo-post-msg" aria-label={`Post by ${sp.author || "someone"}. Open`} className="v2-tap" style={{ width: 220, maxWidth: "70vw", padding: 0, border: `1px solid ${T.line}`, borderRadius: 18, overflow: "hidden", background: T.surface, boxShadow: T.shadowCard, cursor: "pointer", textAlign: "left", fontFamily: T.fontBody, display: "block" }}><span style={{ display: "flex", alignItems: "center", gap: 7, padding: "9px 11px", fontSize: 12.5, fontWeight: 800, color: T.ink }}><HlSend size={13} color={T.accent} style={{ flexShrink: 0 }} /><span style={{ minWidth: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{sp.author || "A post"}</span></span><span style={{ display: "flex", alignItems: "center", justifyContent: "center", width: "100%", aspectRatio: "1 / 1", background: T.surfaceSunk, position: "relative" }}>{src ? <img src={src} alt="" loading="lazy" style={{ width: "100%", height: "100%", objectFit: "cover", display: "block" }} /> : <HlPlay size={34} color={T.inkFaint} />}</span>{sp.caption ? <span style={{ display: "block", padding: "8px 11px 2px", fontSize: 12.5, color: T.inkSoft, lineHeight: 1.4, overflow: "hidden", display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical" }}>{sp.caption}</span> : null}<span style={{ display: "block", padding: "6px 11px 10px", fontSize: 12, fontWeight: 800, color: T.accent }}>Open in Social</span></button><span style={{ fontSize: 10, color: T.inkFaint, marginTop: 5, padding: "0 6px" }}>{hellooClockSec(m.at)}</span></div>; }
   if (m.kind === "sticker") return <div data-helloo-msg={m.from} data-testid="helloo-sticker-msg" style={{ alignSelf: mine ? "flex-end" : "flex-start", display: "flex", flexDirection: "column", alignItems: mine ? "flex-end" : "flex-start", marginTop: prevSame ? 6 : 12, padding: "0 6px", opacity: m.failed ? 0.5 : 1 }}><HellooSticker id={m.stickerId} mine={m.stickerMine || (m.sticker && m.sticker.id === "mine" ? m.sticker : null)} size={118} /><span style={{ fontSize: 10, color: T.inkFaint, marginTop: 6 }}>{hellooClockSec(m.at)}</span></div>;
+  // A saved collection somebody shared (its link in a message): a card,
+  // and a tap opens it in Social, where it can be saved as a copy.
+  const shelf = m.kind === "text" && !m.failed ? /[?&]collection=([a-f0-9]{24})\b/i.exec(m.text || "") : null;
+  if (shelf) {
+    const title = String(m.text || "").split("\n")[0].split(" · ")[0].trim().slice(0, 40) || "A collection";
+    const sub = (String(m.text || "").split("\n")[0].split(" · ")[1] || "Saved posts on GLOOBAL Social").trim().slice(0, 60);
+    return <div data-helloo-msg={m.from} style={{ alignSelf: mine ? "flex-end" : "flex-start", display: "flex", flexDirection: "column", alignItems: mine ? "flex-end" : "flex-start", marginTop: prevSame ? 6 : 12 }}><button onClick={() => { try { window.dispatchEvent(new CustomEvent("helloo:open-collection", { detail: shelf[1] })); } catch (e) { /* old browser */ } }} data-testid="helloo-collection-msg" aria-label={`${title}. Open collection`} className="v2-tap" style={{ width: 230, maxWidth: "72vw", padding: "12px 13px", border: `1px solid ${T.line}`, borderRadius: 18, background: T.surface, boxShadow: T.shadowCard, cursor: "pointer", textAlign: "left", fontFamily: T.fontBody, display: "flex", alignItems: "center", gap: 11 }}><span style={{ width: 44, height: 44, borderRadius: 13, background: T.accentSoft, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}><SxSave size={21} color={T.accent} /></span><span style={{ flex: 1, minWidth: 0 }}><b style={{ display: "block", fontSize: 14.5, color: T.ink, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{title}</b><span style={{ display: "block", fontSize: 12, color: T.inkSoft, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{sub}</span><span style={{ display: "block", fontSize: 12, fontWeight: 800, color: T.accent, marginTop: 3 }}>Open collection</span></span></button><span style={{ fontSize: 10, color: T.inkFaint, marginTop: 3 }}>{hellooClockSec(m.at)}</span></div>;
+  }
   const card = m.kind === "receipt" ? <HellooReceiptCard m={m} person={person} /> : m.kind === "request" ? <HellooRequestCard m={m} person={person} /> : m.kind === "order" ? <HellooOrderCard m={m} person={person} /> : m.kind === "split" ? <HellooSplitCard m={m} /> : m.kind === "refund" ? <HellooRefundCard m={m} person={person} /> : m.kind === "offer" ? <HellooOfferCard m={m} person={person} /> : m.kind === "letter" ? <HellooLetterCard m={m} person={person} /> : null;
   return <div data-helloo-msg={m.from} style={{ alignSelf: mine ? "flex-end" : "flex-start", maxWidth: "82%", display: "flex", flexDirection: "column", alignItems: mine ? "flex-end" : "flex-start", marginTop: prevSame ? 2 : 8 }}>{card ? <>{card}<span style={{ fontSize: 10, color: T.inkFaint, marginTop: 3 }}>{hellooClockSec(m.at)}</span></> : <span style={{ padding: m.kind === "photo" ? 2 : "9px 12px", borderRadius: mine ? `${HT.bubbleRadius ?? 18}px ${HT.bubbleRadius ?? 18}px ${HT.bubbleTail ?? 5}px ${HT.bubbleRadius ?? 18}px` : `${HT.bubbleRadius ?? 18}px ${HT.bubbleRadius ?? 18}px ${HT.bubbleRadius ?? 18}px ${HT.bubbleTail ?? 5}px`, border: mine ? "none" : (HT.bubbleBorder || "none"), background: mine ? HT.bubbleMe : HT.bubbleThem, color: mine ? (HT.bubbleMeInk || "#fff") : T.ink, boxShadow: mine ? (HT.bubbleMeShadow || "none") : (HT.cardShadow ?? T.shadowCard), fontSize: 14.5, lineHeight: 1.4, overflowWrap: "anywhere", position: "relative" }}>{m.paidText && <span style={{ display: "block" }}><HellooPaidBadge amountText={m.paidText} earnedText={m.earnedText} mine={mine} /></span>}{quote}{m.kind === "voice" ? <HellooVoiceNote m={m} mine={mine} /> : m.kind === "photo" ? <span style={{ display: "block" }}><button onClick={m.onOpen} aria-label="Open photo" style={{ display: "block", padding: 0, border: "none", background: "none", cursor: m.onOpen ? "zoom-in" : "default", position: "relative" }}>{!mine && m.watchId ? <HellooWatchMark id={m.watchId} small /> : null}{m.src ? <img src={m.src} alt={m.text || "Photo"} style={{ filter: hellooFx(m.fx), display: "block", width: 230, height: m.width && m.height ? Math.round(230 * Math.min(1.4, Math.max(0.6, m.height / m.width))) : 172, objectFit: "cover", borderRadius: 15 }} /> : <span style={{ display: "block", width: 230, height: m.width && m.height ? Math.round(230 * Math.min(1.4, Math.max(0.6, m.height / m.width))) : 172, borderRadius: 15, background: `linear-gradient(135deg, ${hellooHue(String(m.id))}33, ${hellooHue(String(m.id) + "x")}66)` }} />}</button>{m.text ? <span style={{ display: "block", padding: "6px 8px 14px" }}>{m.text}</span> : null}</span> : m.text}<span style={{ display: m.kind === "photo" ? "inline-flex" : "flex", justifyContent: "flex-end", alignItems: "center", fontSize: 10, color: mine ? "rgba(255,255,255,0.75)" : T.inkFaint, marginTop: m.kind === "photo" ? 0 : 3, position: m.kind === "photo" ? "absolute" : "static", right: 10, bottom: 8 }}>{hellooClockSec(m.at)}{mine && <HellooTick read={m.read} delivered={m.delivered} seenAt={m.seenAt} />}</span></span>}{m.kind === "photo" ? <HellooSnapFoot m={m} /> : null}</div>;
 }
@@ -80026,8 +80034,21 @@ var socialApi = {
   activitySeen: () => socialHttp.post("/api/social/activity/seen", {}),
   // Your social profiles, each off until you turn it on.
   accounts: () => gloobalApiClient.get("/api/social/accounts"),
-  setOn: (as, on) => gloobalApiClient.post(`/api/social/on?as=${encodeURIComponent(as || "self")}`, { on })
+  setOn: (as, on) => gloobalApiClient.post(`/api/social/on?as=${encodeURIComponent(as || "self")}`, { on }),
+  // Saved posts in collections of your own: Funny, Movies, Must watch…
+  collections: (post) => socialHttp.get(`/api/social/collections${post ? `?post=${encodeURIComponent(post)}` : ""}`),
+  newCollection: (name, emoji, post) => socialHttp.post("/api/social/collections", { name, emoji, post: post || undefined }),
+  editCollection: (id, body) => gloobalApiClient.put(socialAs(`/api/social/collections/${encodeURIComponent(id)}`), body),
+  dropCollection: (id) => gloobalApiClient.delete(socialAs(`/api/social/collections/${encodeURIComponent(id)}`)),
+  collect: (id, post, on) => socialHttp.post(`/api/social/collections/${encodeURIComponent(id)}/posts`, { post, on }),
+  collection: (id) => socialHttp.get(`/api/social/collections/${encodeURIComponent(id)}`),
+  copyCollection: (id) => socialHttp.post(`/api/social/collections/${encodeURIComponent(id)}/copy`, {})
 };
+// Names to start a collection with, one tap each.
+var SOCIAL_COLLECTION_IDEAS = [["😂", "Funny"], ["🎬", "Movies"], ["⭐", "Must watch"], ["🔁", "Rewatch"], ["📚", "Learning"], ["🍳", "Recipes"], ["🎵", "Music"], ["✈️", "Travel"]];
+var SOCIAL_COLLECTION_EMOJI = ["📁", "😂", "🎬", "⭐", "🔁", "📚", "🍳", "🎵", "✈️", "💪", "❤️", "🔥"];
+// The link a collection is shared by: opens it in Helloo.
+function socialCollectionLink(id) { return `${typeof HELLOO_SITE === "string" ? HELLOO_SITE : "https://gloobalhelloo.netlify.app"}/?collection=${encodeURIComponent(id)}`; }
 // "now", "5m", "3h", "2d", or a date.
 function socialAgo(at) {
   const s = Math.max(0, (Date.now() - new Date(at).getTime()) / 1000);
@@ -80349,7 +80370,7 @@ function SocialProfilesSheet({ me, list, face, photos, accounts, onUse, onSet, o
   </div>;
 }
 
-function HellooSocialHome({ me, faces, photos, chats = [], onSendPost, openPost = "", onPostOpened, onCards, onOpenChat, onCall, onTip, onShopItem, onShop, onToast, composeTick, onPhoto, onView }) {
+function HellooSocialHome({ me, faces, photos, chats = [], onSendPost, openPost = "", onPostOpened, onCards, onOpenChat, onCall, onTip, onShopItem, onShop, onToast, composeTick, onPhoto, onView, onSendText, openCollection = "", onCollectionOpened }) {
   useGloobalViewPass();
   const myId = me.accountId || me.id || "";
   const [as, setAs] = useStateH40(() => socialFaceLoad(myId));
@@ -80411,6 +80432,13 @@ function HellooSocialHome({ me, faces, photos, chats = [], onSendPost, openPost 
   useEffectH40(() => { if (onView) onView(view); }, [view]);
   useEffectH40(() => () => { if (onView) onView("feed"); }, []);
   useHellooBackLayer(Boolean(reels), () => setReels(""));
+  // Saved: the screen, one collection, and "which collection?" after a save.
+  const [saved, setSaved] = useStateH40(false);
+  const [shelf, setShelf] = useStateH40(null); // { all } | { id }
+  const [collectFor, setCollectFor] = useStateH40(null);
+  const [savedTick, setSavedTick] = useStateH40(0);
+  // A collection somebody shared, tapped in a chat or opened by its link.
+  useEffectH40(() => { if (!openCollection) return; setShelf({ id: openCollection }); if (onCollectionOpened) onCollectionOpened(); }, [openCollection]);
   useHellooBackLayer(mine, () => setMine(false));
   useHellooBackLayer(Boolean(activity), () => setActivity(false));
   useHellooBackLayer(Boolean(profile), () => setProfile(null));
@@ -80494,10 +80522,13 @@ function HellooSocialHome({ me, faces, photos, chats = [], onSendPost, openPost 
     share: (post) => setSharing(post),
     // Share again to your followers, and keep for later (only you see it).
     repost: (post, on) => { patch(post.id, (p) => Object.assign({}, p, { reposted: on, reposts: Math.max(0, (p.reposts || 0) + (on ? 1 : -1)) })); socialApi.repost(post.id, on).then((r) => { patch(post.id, (p) => Object.assign({}, p, { reposted: r.reposted, reposts: r.reposts })); onToast(on ? "Shared to your followers" : "Taken back"); }).catch((e) => { patch(post.id, (p) => Object.assign({}, p, { reposted: !on, reposts: Math.max(0, (p.reposts || 0) + (on ? -1 : 1)) })); onToast((e && e.message) || "Couldn't do that."); }); },
-    save: (post, on) => { patch(post.id, (p) => Object.assign({}, p, { saved: on, saves: Math.max(0, (p.saves || 0) + (on ? 1 : -1)) })); socialApi.save(post.id, on).then((r) => { patch(post.id, (p) => Object.assign({}, p, { saved: r.saved, saves: r.saves })); onToast(on ? "Saved · in My activity" : "Removed from saved"); }).catch(() => patch(post.id, (p) => Object.assign({}, p, { saved: !on, saves: Math.max(0, (p.saves || 0) + (on ? -1 : 1)) }))); },
+    save: (post, on) => { patch(post.id, (p) => Object.assign({}, p, { saved: on, saves: Math.max(0, (p.saves || 0) + (on ? 1 : -1)) })); socialApi.save(post.id, on).then((r) => { patch(post.id, (p) => Object.assign({}, p, { saved: r.saved, saves: r.saves })); if (on) setCollectFor(post); else onToast("Removed from saved"); }).catch(() => patch(post.id, (p) => Object.assign({}, p, { saved: !on, saves: Math.max(0, (p.saves || 0) + (on ? -1 : 1)) }))); },
     // Reels ⇄ Videos, one after another, full screen.
     reels: (format) => setReels(format === "video" ? "video" : "reel"),
     open: (post) => setOpen(post),
+    // Saved, in collections of your own.
+    saved: () => setSaved(true),
+    collect: (post) => setCollectFor(post),
     mine: () => setMine(true),
     // From a reel to its full video.
     fullVideo: (reel) => { if (!reel.fullVideo) return; socialApi.one(reel.fullVideo).then((r) => { if (r && r.post) setOpen(r.post); }).catch(() => onToast("That video isn't up any more.")); }
@@ -80528,11 +80559,13 @@ function HellooSocialHome({ me, faces, photos, chats = [], onSendPost, openPost 
   }
 
   return <HellooScreen><div data-testid="social-home" onTouchStart={onSwipeStart} onTouchEnd={onSwipeEnd} style={{ flex: 1, minHeight: 0, overflowY: "auto", display: "block" }}>{head}{view === "feed" ? statusRow : null}{isOff ? <div data-testid="social-off-banner" style={{ margin: "4px 14px 10px", padding: "12px 14px", borderRadius: 18, background: HT.cardBg || T.surface, boxShadow: HT.cardShadow ?? T.shadowCard, display: "flex", alignItems: "center", gap: 12 }}><span style={{ flex: 1, minWidth: 0 }}><span style={{ display: "block", fontSize: 14, fontWeight: 800, color: T.ink }}>{face.kind === "shop" ? `${face.handle || face.name} is off` : "Your social profile is off"}</span><span style={{ display: "block", fontSize: 12.5, color: T.inkSoft, marginTop: 2, lineHeight: 1.4 }}>You can look around. Turn it on to post, follow, like and comment.</span></span><button onClick={() => setWho(true)} data-testid="social-turn-on" className="v2-tap" style={{ flexShrink: 0, border: "none", borderRadius: 999, padding: "9px 14px", background: T.gradButton, color: HT.onAccent || "#fff", fontSize: 13, fontWeight: 800, cursor: "pointer", fontFamily: T.fontBody }}>Turn on</button></div> : null}<div key={view} className="social-swap" style={{ animation: "socialSwap 0.22s ease-out" }}>{body}</div></div>
-    {view === "explore" && !reels && !open && !profile && !activity && !mine && !compose ? <button onClick={() => setReels("reel")} aria-label="Reels and videos" title="Reels and videos" data-testid="social-reels-fab" className="v2-tap" style={{ position: "absolute", left: "50%", transform: "translateX(-50%)", bottom: "calc(22px + env(safe-area-inset-bottom, 0px))", zIndex: 20, width: 62, height: 62, borderRadius: "50%", border: "none", background: T.gradButton, boxShadow: `0 14px 30px -10px rgba(${T.accentRgb},0.65)`, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", color: "#fff" }}><SxReels size={27} color="currentColor" /></button> : null}
+    {view === "explore" && !reels && !open && !profile && !activity && !mine && !compose && !saved && !shelf ? <button onClick={() => setReels("reel")} aria-label="Reels and videos" title="Reels and videos" data-testid="social-reels-fab" className="v2-tap" style={{ position: "absolute", left: "50%", transform: "translateX(-50%)", bottom: "calc(22px + env(safe-area-inset-bottom, 0px))", zIndex: 20, width: 62, height: 62, borderRadius: "50%", border: "none", background: T.gradButton, boxShadow: `0 14px 30px -10px rgba(${T.accentRgb},0.65)`, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", color: "#fff" }}><SxReels size={27} color="currentColor" /></button> : null}
     <style>{"@keyframes socialSwap{from{opacity:0.35;transform:translateX(" + (view === "explore" ? "18px" : "-18px") + ")}to{opacity:1;transform:none}}"}</style>
     {activity ? <SocialActivity onMine={() => { setActivity(false); setMine(true); }} photos={photos} onBack={() => { setActivity(false); countActivity(); }} onSeen={() => setUnread(0)} onProfile={(c) => { setActivity(false); openProfile(c); }} act={act} /> : null}
     {profile ? <SocialProfile state={profile} me={me} photos={photos} act={act} onEdited={(patch) => setProfile((st) => st && st.profile ? Object.assign({}, st, { profile: Object.assign({}, st.profile, patch) }) : st)} onPhoto={onPhoto} onBack={() => setProfile(null)} onOpen={setOpen} onMessage={onOpenChat} onCall={onCall} onShop={onShop} onCompose={() => setCompose("pick")} /> : null}
     {reels ? <SocialReels format={reels} onFormat={setReels} list={reelList} setList={setReelList} photos={photos} act={act} muted={muted} onMuted={setMuted} onBack={() => setReels("")} /> : null}
+    {saved ? <SocialSaved key={savedTick} onBack={() => setSaved(false)} onOpen={(c) => setShelf(c)} onToast={onToast} /> : null}
+    {shelf ? <SocialCollectionPage which={shelf} chats={chats} photos={photos} onSend={onSendText} onToast={onToast} onOpen={setOpen} onChanged={() => setSavedTick((n) => n + 1)} onBack={() => setShelf(null)} /> : null}
     {mine ? <SocialMyActivity list={mineList} setList={setMineList} photos={photos} act={act} onBack={() => setMine(false)} /> : null}
     {open ? <SocialViewer post={open} photos={photos} act={act} muted={muted} onMuted={setMuted} onBack={() => setOpen(null)} /> : null}
     {talk ? <SocialComments post={talk} photos={photos} onCards={seen} onCount={(n) => patch(talk.id, (p) => Object.assign({}, p, { comments: n }))} onClose={() => setTalk(null)} onToast={onToast} onMention={(c) => { setTalk(null); setOpen(null); act.profile(c); }} /> : null}
@@ -80544,6 +80577,7 @@ function HellooSocialHome({ me, faces, photos, chats = [], onSendPost, openPost 
     {story !== null && stories[story] ? <SocialStatusViewer people={stories} start={story} photos={photos} muted={muted} onMuted={setMuted} onClose={() => setStory(null)} onProfile={(c) => { setStory(null); openProfile(c); }} onDelete={(id) => { setStory(null); socialApi.remove(id).then(() => { loadStories(); onToast("Status removed"); }).catch(() => onToast("Couldn't remove it.")); }} /> : null}
     {who ? <SocialProfilesSheet me={me} list={list} face={face} photos={photos} accounts={accounts} onUse={useAs} onSet={setOn} onOpen={(f) => { setWho(false); if (f.as !== face.as) useAs(f); openProfile({ gloobalId: f.gloobalId || me.gloobalId, accountId: f.accountId || myId, name: f.name || me.name, side: f.kind === "shop" ? "shop" : "self" }); }} onClose={() => setWho(false)} /> : null}
     {filter ? <SocialFilter see={see} tag={tag} tags={(ex && ex.tags) || []} onClose={() => setFilter(false)} onSave={(nextSee, nextTag) => { socialSeeWrite(nextSee); setSee(nextSee); setTag(nextTag); setFilter(false); onToast(nextSee.length ? "Saved · Explore shows what you picked" : "Explore shows everything"); }} /> : null}
+    {collectFor ? <SocialCollectPick post={collectFor} onToast={onToast} onSaved={() => setSavedTick((n) => n + 1)} onOpenSaved={() => { setSaved(true); }} onClose={() => setCollectFor(null)} /> : null}
     {sharing ? <SocialShareSheet post={sharing} chats={chats} photos={photos} onClose={() => setSharing(null)} onToast={onToast} onSend={onSendPost} /> : null}
     {unfollow ? <HellooSheet title="Unfollow?" label="Unfollow" zIndex={70} onClose={() => setUnfollow(null)}><div data-testid="social-unfollow-sheet" style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 10, padding: "4px 4px 6px", fontFamily: T.fontBody }}>
       <SocialFace card={unfollow} photos={photos} size={64} />
@@ -80924,12 +80958,176 @@ function SocialReels({ format, onFormat, list, setList, photos, act, muted, onMu
   const tabs = <div data-testid="social-reels-tabs" style={{ position: "absolute", top: "calc(14px + env(safe-area-inset-top, 0px))", left: 0, right: 0, zIndex: 5, display: "flex", justifyContent: "center", gap: 22, pointerEvents: "none" }}>{[["reel", "Reels"], ["video", "Videos"]].map(([k, l]) => <button key={k} type="button" data-testid={`social-reels-${k}`} aria-pressed={format === k} onClick={() => onFormat(k)} className="v2-tap" style={{ pointerEvents: "auto", border: "none", background: "none", padding: "4px 2px", cursor: "pointer", color: "#fff", opacity: format === k ? 1 : 0.6, fontSize: 17, fontWeight: 900, fontFamily: T.fontDisplay, textShadow: "0 1px 4px rgba(0,0,0,0.6)", borderBottom: format === k ? "2.5px solid #fff" : "2.5px solid transparent" }}>{l}</button>)}</div>;
   return <div data-testid="social-reels" style={{ position: "absolute", inset: 0, zIndex: 45, background: "#000", fontFamily: T.fontBody }}>
     {tabs}
+    <button type="button" onClick={() => act.saved()} aria-label="Saved" title="Saved" data-testid="social-reels-saved" className="v2-tap" style={{ position: "absolute", top: "calc(8px + env(safe-area-inset-top, 0px))", right: 10, zIndex: 6, width: 44, height: 44, borderRadius: "50%", border: "none", background: "none", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", padding: 0 }}><SxSaved size={24} color="#fff" style={{ filter: "drop-shadow(0 1px 3px rgba(0,0,0,0.6))" }} /></button>
     <div ref={box} onScroll={onScroll} style={{ position: "absolute", inset: 0, overflowY: "auto", scrollSnapType: "y mandatory", scrollbarWidth: "none" }}>
       {posts === null ? <div style={{ height: "100%", display: "flex", alignItems: "center", justifyContent: "center", color: "#fff", opacity: 0.7, fontSize: 14 }}>{err || "Loading…"}</div>
         : posts.length === 0 ? <div style={{ height: "100%", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: 10, color: "#fff", padding: 30, textAlign: "center" }}>{format === "reel" ? <SxReels size={40} color="#fff" /> : <SxVideo size={40} color="#fff" />}<b style={{ fontSize: 17 }}>{format === "reel" ? "No reels yet" : "No videos yet"}</b><span style={{ fontSize: 13.5, opacity: 0.75 }}>{format === "reel" ? "Short videos people share show up here, one after another." : "Longer videos people share show up here."}</span></div>
           : posts.map((p, i) => <div key={p.id} data-testid="social-reels-page" style={{ position: "relative", height: "100%", scrollSnapAlign: "start", scrollSnapStop: "always" }}>{Math.abs(i - at) <= 1 ? <SocialViewer post={p} photos={photos} act={act} muted={muted} onMuted={onMuted} onBack={onBack} embedded /> : null}</div>)}
     </div>
   </div>;
+}
+
+// ── SAVED, IN COLLECTIONS ───────────────────────────────────────────────
+//
+// Everything you saved, and collections of your own: Funny, Movies, Must
+// watch, Rewatch, Learning — whatever you name them. Only you see them,
+// until you share one: then the people you send it to can look through it
+// and save a copy of their own.
+
+// A collection's picture: its newest post, or its emoji on a soft tile.
+function SocialCollectionCover({ c, size = "100%", radius = 18, big = false }) {
+  const m = c && c.cover && (c.cover.media || [])[0];
+  const src = m ? socialMediaSrc(m) : "";
+  const isVideo = m && m.kind === "video";
+  return <span style={{ position: "relative", display: "block", width: size, aspectRatio: big ? undefined : "1 / 1", height: big ? "100%" : undefined, borderRadius: radius, overflow: "hidden", background: T.surfaceSunk || T.surfaceAlt, flexShrink: 0 }}>
+    {src ? (isVideo ? <video src={src} muted playsInline preload="metadata" style={{ width: "100%", height: "100%", objectFit: "cover", display: "block" }} /> : <img src={src} alt="" loading="lazy" style={{ width: "100%", height: "100%", objectFit: "cover", display: "block" }} />)
+      : <span style={{ position: "absolute", inset: 0, display: "flex", alignItems: "center", justifyContent: "center", fontSize: big ? 44 : 26 }}>{(c && c.emoji) || <SxSaved size={big ? 34 : 22} color={T.inkFaint} />}</span>}
+  </span>;
+}
+
+// Name a new collection (or rename one): a name and an emoji.
+function SocialCollectionNameSheet({ title = "New collection", start = null, busy = false, onSave, onClose }) {
+  const [name, setName] = useStateH40((start && start.name) || "");
+  const [emoji, setEmoji] = useStateH40((start && start.emoji) || "📁");
+  const ok = name.trim().length > 0 && !busy;
+  return <HellooSheet title={title} onClose={onClose} zIndex={74}><div data-testid="social-collection-name" style={{ fontFamily: T.fontBody }}>
+    <div style={{ display: "flex", alignItems: "center", gap: 10 }}><span style={{ width: 52, height: 52, borderRadius: 16, background: T.surfaceAlt, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 28, flexShrink: 0 }}>{emoji}</span><input autoFocus value={name} maxLength={24} onChange={(e) => setName(e.target.value)} onKeyDown={(e) => { if (e.key === "Enter" && ok) onSave(name.trim(), emoji); }} placeholder="Funny, Movies, Must watch…" data-testid="social-collection-name-input" style={{ flex: 1, minWidth: 0, height: 50, borderRadius: 14, border: `1px solid ${T.line}`, padding: "0 14px", fontSize: 15.5, fontWeight: 700, color: T.ink, background: T.surface, fontFamily: T.fontBody, outline: "none" }} /></div>
+    <div style={{ display: "flex", flexWrap: "wrap", gap: 6, marginTop: 12 }}>{SOCIAL_COLLECTION_EMOJI.map((e) => <button key={e} type="button" onClick={() => setEmoji(e)} aria-pressed={emoji === e} className="v2-tap" style={{ width: 42, height: 42, borderRadius: 12, border: emoji === e ? `2px solid ${T.accent}` : `1px solid ${T.line}`, background: emoji === e ? T.accentSoft : T.surface, fontSize: 21, cursor: "pointer", padding: 0 }}>{e}</button>)}</div>
+    <div style={{ marginTop: 16 }}><HellooPrimary disabled={!ok} onClick={() => onSave(name.trim(), emoji)}>{busy ? "Saving…" : start ? "Save" : "Create"}</HellooPrimary></div>
+  </div></HellooSheet>;
+}
+
+// After the bookmark: which collections this post goes in. It is saved
+// already; ticking a collection puts it there too.
+function SocialCollectPick({ post, onClose, onToast, onOpenSaved, onSaved }) {
+  const [data, setData] = useStateH40(null);
+  const [err, setErr] = useStateH40("");
+  const [busyId, setBusyId] = useStateH40("");
+  const [naming, setNaming] = useStateH40(null); // null | { name, emoji }
+  const [making, setMaking] = useStateH40(false);
+  const load = () => socialApi.collections(post.id).then((r) => setData(r)).catch((e) => setErr((e && e.message) || "Couldn't load your collections."));
+  useEffectH40(() => { load(); }, [post.id]);
+  const flip = (c) => {
+    if (busyId) return;
+    const on = !c.has; setBusyId(c.id);
+    setData((d) => Object.assign({}, d, { collections: d.collections.map((x) => (x.id === c.id ? Object.assign({}, x, { has: on, count: Math.max(0, x.count + (on ? 1 : -1)) }) : x)) }));
+    socialApi.collect(c.id, post.id, on).then(() => { onToast(on ? `In ${c.name}` : `Out of ${c.name}`); if (on && onSaved) onSaved(); }).catch((e) => { onToast((e && e.message) || "Couldn't do that."); load(); }).finally(() => setBusyId(""));
+  };
+  const make = (name, emoji) => {
+    setMaking(true);
+    socialApi.newCollection(name, emoji, post.id).then((r) => { setNaming(null); onToast(`Saved to ${r.collection.name}`); if (onSaved) onSaved(); load(); }).catch((e) => onToast((e && e.message) || "Couldn't make it.")).finally(() => setMaking(false));
+  };
+  const list = (data && data.collections) || [];
+  const ideas = SOCIAL_COLLECTION_IDEAS.filter(([, n]) => !list.some((c) => c.name.toLowerCase() === n.toLowerCase())).slice(0, 5);
+  const m = (post.media || [])[0]; const src = m ? socialMediaSrc(m) : "";
+  return <><HellooSheet label="Save to a collection" onClose={onClose} zIndex={72}><div data-testid="social-collect" style={{ fontFamily: T.fontBody }}>
+    <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 12 }}><span style={{ width: 48, height: 48, borderRadius: 12, overflow: "hidden", background: T.surfaceSunk || T.surfaceAlt, flexShrink: 0 }}>{src ? (m.kind === "video" ? <video src={src} muted playsInline preload="metadata" style={{ width: "100%", height: "100%", objectFit: "cover" }} /> : <img src={src} alt="" style={{ width: "100%", height: "100%", objectFit: "cover" }} />) : null}</span><span style={{ flex: 1, minWidth: 0 }}><b style={{ display: "block", fontSize: 16, color: T.ink, fontFamily: T.fontDisplay }}>Saved</b><span style={{ fontSize: 12.5, color: T.inkSoft }}>Put it in a collection too</span></span>{onOpenSaved ? <button type="button" onClick={() => { onClose(); onOpenSaved(); }} data-testid="social-collect-all" className="v2-tap" style={{ border: "none", background: T.surfaceAlt, color: T.ink, borderRadius: 999, padding: "8px 12px", fontSize: 12.5, fontWeight: 800, cursor: "pointer", fontFamily: T.fontBody }}>See all</button> : null}</div>
+    {data === null ? <div style={{ padding: "18px 0", textAlign: "center", color: T.inkSoft, fontSize: 13 }}>{err || "Loading…"}</div> : <>
+      {list.length ? <HellooCard style={{ maxHeight: "38vh", overflowY: "auto" }}>{list.map((c, i) => <button key={c.id} type="button" onClick={() => flip(c)} data-testid="social-collect-row" aria-pressed={Boolean(c.has)} className="v2-tap" style={{ width: "100%", display: "flex", alignItems: "center", gap: 12, padding: "10px 12px", border: "none", borderTop: i ? `1px solid ${T.line}` : "none", background: "none", cursor: "pointer", textAlign: "left", fontFamily: T.fontBody }}><span style={{ width: 44 }}><SocialCollectionCover c={c} radius={12} /></span><span style={{ flex: 1, minWidth: 0 }}><b style={{ display: "block", fontSize: 14.5, color: T.ink, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{c.emoji ? `${c.emoji} ` : ""}{c.name}</b><span style={{ fontSize: 12, color: T.inkSoft }}>{c.count} {c.count === 1 ? "post" : "posts"}{c.shared ? " · shared" : ""}</span></span><span style={{ width: 26, height: 26, borderRadius: "50%", border: c.has ? "none" : `2px solid ${T.line}`, background: c.has ? T.ink : "none", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>{c.has ? <HlCheck size={15} color={T.surface} strokeWidth={3} /> : null}</span></button>)}</HellooCard> : null}
+      <div style={{ fontSize: 11.5, fontWeight: 800, letterSpacing: 0.8, color: T.inkSoft, margin: "14px 2px 8px" }}>{list.length ? "OR START ONE" : "START A COLLECTION"}</div>
+      <div data-testid="social-collect-ideas" style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>{ideas.map(([e, n]) => <button key={n} type="button" onClick={() => make(n, e)} disabled={making} className="v2-tap" style={{ border: `1px solid ${T.line}`, background: T.surface, color: T.ink, borderRadius: 999, padding: "8px 13px", fontSize: 13, fontWeight: 800, cursor: "pointer", fontFamily: T.fontBody }}>{e} {n}</button>)}<button type="button" onClick={() => setNaming({})} data-testid="social-collect-new" className="v2-tap" style={{ border: "none", background: T.ink, color: T.surface, borderRadius: 999, padding: "8px 13px", fontSize: 13, fontWeight: 800, cursor: "pointer", fontFamily: T.fontBody, display: "inline-flex", alignItems: "center", gap: 6 }}><SxNewFolder size={15} />New</button></div>
+    </>}
+  </div></HellooSheet>{naming ? <SocialCollectionNameSheet busy={making} onSave={make} onClose={() => setNaming(null)} /> : null}</>;
+}
+
+// The Saved screen: everything you saved, then your collections.
+function SocialSaved({ onBack, onOpen, onToast }) {
+  const [data, setData] = useStateH40(null);
+  const [err, setErr] = useStateH40("");
+  const [naming, setNaming] = useStateH40(false);
+  const [busy, setBusy] = useStateH40(false);
+  useHellooBackLayer(true, onBack);
+  const load = () => socialApi.collections().then((r) => setData(r)).catch((e) => setErr((e && e.message) || "Couldn't load it."));
+  useEffectH40(() => { load(); }, []);
+  const make = (name, emoji) => { setBusy(true); socialApi.newCollection(name, emoji).then((r) => { setNaming(false); onToast(`${r.collection.name} made · save reels into it`); load(); }).catch((e) => onToast((e && e.message) || "Couldn't make it.")).finally(() => setBusy(false)); };
+  const list = (data && data.collections) || [];
+  const ideas = SOCIAL_COLLECTION_IDEAS.filter(([, n]) => !list.some((c) => c.name.toLowerCase() === n.toLowerCase())).slice(0, 6);
+  const tile = (c, key, label, sub, fn, testid, badge) => <button key={key} type="button" onClick={fn} data-testid={testid} className="v2-tap" style={{ border: "none", background: "none", padding: 0, cursor: "pointer", textAlign: "left", fontFamily: T.fontBody, minWidth: 0 }}><span style={{ position: "relative", display: "block" }}><SocialCollectionCover c={c} radius={20} />{badge ? <span style={{ position: "absolute", top: 8, right: 8, width: 26, height: 26, borderRadius: "50%", background: "rgba(0,0,0,0.55)", display: "flex", alignItems: "center", justifyContent: "center" }}>{badge}</span> : null}</span><b style={{ display: "block", marginTop: 7, fontSize: 14.5, color: T.ink, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{label}</b><span style={{ fontSize: 12, color: T.inkSoft }}>{sub}</span></button>;
+  return <div data-testid="social-saved" style={{ position: "absolute", inset: 0, zIndex: 46, background: HT.screenBg && HT.screenBg.startsWith("#") ? HT.screenBg : T.bg, display: "flex", flexDirection: "column", fontFamily: T.fontBody }}>
+    <div style={{ display: "flex", alignItems: "center", gap: 10, padding: "calc(10px + env(safe-area-inset-top, 0px)) 14px 8px" }}><NavBackButton onClick={onBack} /><b style={{ flex: 1, fontSize: 20, fontWeight: 900, color: T.ink, fontFamily: T.fontDisplay, letterSpacing: -0.3 }}>Saved</b><HellooRoundButton Icon={SxNewFolder} label="New collection" onClick={() => setNaming(true)} /></div>
+    <div style={{ flex: 1, minHeight: 0, overflowY: "auto", padding: "6px 14px 40px" }}>
+      {data === null ? <SocialNote title={err ? "Couldn't load it" : "Loading…"} text={err} /> : <>
+        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 14 }}>
+          {tile({ cover: data.cover, emoji: "" }, "all", "All saved", `${data.saved || 0} ${data.saved === 1 ? "post" : "posts"}`, () => onOpen({ all: true }), "social-saved-all")}
+          {list.map((c) => tile(c, c.id, `${c.emoji ? `${c.emoji} ` : ""}${c.name}`, `${c.count} ${c.count === 1 ? "post" : "posts"}`, () => onOpen(c), "social-saved-collection", c.shared ? <SxGlobe size={14} color="#fff" /> : null))}
+        </div>
+        {ideas.length ? <><div style={{ fontSize: 11.5, fontWeight: 800, letterSpacing: 0.8, color: T.inkSoft, margin: "22px 2px 8px" }}>START A COLLECTION</div><div data-testid="social-saved-ideas" style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>{ideas.map(([e, n]) => <button key={n} type="button" disabled={busy} onClick={() => make(n, e)} className="v2-tap" style={{ border: `1px solid ${T.line}`, background: HT.cardBg || T.surface, color: T.ink, borderRadius: 999, padding: "9px 14px", fontSize: 13.5, fontWeight: 800, cursor: "pointer", fontFamily: T.fontBody }}>{e} {n}</button>)}</div></> : null}
+        <div style={{ fontSize: 12.5, color: T.inkSoft, lineHeight: 1.5, margin: "18px 2px 0" }}>Only you see what you saved. Share a collection and the people you send it to can look through it and keep a copy.</div>
+      </>}
+    </div>
+    {naming ? <SocialCollectionNameSheet busy={busy} onSave={make} onClose={() => setNaming(false)} /> : null}
+  </div>;
+}
+
+// One collection (or All saved): its posts in a grid. Yours: share it,
+// rename it, delete it. Someone else's: who made it, and Save a copy.
+function SocialCollectionPage({ which, onBack, onOpen, onToast, chats, photos, onSend, onChanged }) {
+  const [data, setData] = useStateH40(null);
+  const [err, setErr] = useStateH40("");
+  const [more, setMore] = useStateH40(false);
+  const [naming, setNaming] = useStateH40(false);
+  const [sharing, setSharing] = useStateH40(false);
+  const [busy, setBusy] = useStateH40(false);
+  useHellooBackLayer(true, onBack);
+  const all = Boolean(which && which.all);
+  const load = () => (all
+    ? socialApi.myActivity("saved").then((r) => setData({ collection: { name: "All saved", emoji: "", mine: true, all: true }, posts: (r.items || []).map((x) => x.post) }))
+    : socialApi.collection(which.id).then((r) => setData(r))).catch((e) => setErr((e && e.message) || "Couldn't open it."));
+  useEffectH40(() => { load(); }, [which && which.id]);
+  const c = data && data.collection;
+  const posts = (data && data.posts) || [];
+  const edit = (body, said) => { setBusy(true); socialApi.editCollection(c.id, body).then((r) => { setData((d) => Object.assign({}, d, { collection: Object.assign({}, d.collection, r.collection) })); if (said) onToast(said); if (onChanged) onChanged(); }).catch((e) => onToast((e && e.message) || "Couldn't do that.")).finally(() => { setBusy(false); setNaming(false); }); };
+  const copy = () => { setBusy(true); socialApi.copyCollection(c.id).then((r) => { onToast(`Saved as ${r.collection.name} · in your Saved`); if (onChanged) onChanged(); }).catch((e) => onToast((e && e.message) || "Couldn't save it.")).finally(() => setBusy(false)); };
+  const drop = () => { setMore(false); socialApi.dropCollection(c.id).then(() => { onToast(`${c.name} deleted · the posts stay saved`); if (onChanged) onChanged(); onBack(); }).catch((e) => onToast((e && e.message) || "Couldn't delete it.")); };
+  const head = <div style={{ display: "flex", alignItems: "center", gap: 10, padding: "calc(10px + env(safe-area-inset-top, 0px)) 14px 8px" }}><NavBackButton onClick={onBack} /><span style={{ flex: 1, minWidth: 0 }}><b style={{ display: "block", fontSize: 19, fontWeight: 900, color: T.ink, fontFamily: T.fontDisplay, letterSpacing: -0.3, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{c ? `${c.emoji ? `${c.emoji} ` : ""}${c.name}` : "Saved"}</b>{c ? <span style={{ fontSize: 12, color: T.inkSoft, display: "flex", alignItems: "center", gap: 5 }}>{posts.length} {posts.length === 1 ? "post" : "posts"}{c.mine && !c.all ? <> · {c.shared ? <><SxGlobe size={12} /> shared</> : <><SxLock size={12} /> only you</>}</> : null}{c.owner ? <> · by {c.owner.handle || c.owner.name}</> : null}</span> : null}</span>{c && c.mine && !c.all ? <><HellooRoundButton Icon={HlShare} label="Share" onClick={() => setSharing(true)} /><HellooRoundButton Icon={SxMore} label="More" onClick={() => setMore(true)} /></> : null}</div>;
+  return <div data-testid="social-collection" style={{ position: "absolute", inset: 0, zIndex: 47, background: HT.screenBg && HT.screenBg.startsWith("#") ? HT.screenBg : T.bg, display: "flex", flexDirection: "column", fontFamily: T.fontBody }}>
+    {head}
+    {c && !c.mine ? <div style={{ padding: "2px 14px 10px" }}><HellooPrimary disabled={busy} onClick={copy}>{busy ? "Saving…" : "Save a copy to my Saved"}</HellooPrimary></div> : null}
+    <div style={{ flex: 1, minHeight: 0, overflowY: "auto", paddingBottom: 40 }}>
+      {data === null ? <SocialNote title={err ? "Couldn't open it" : "Loading…"} text={err} />
+        : posts.length === 0 ? <SocialNote title="Nothing in here yet" text={c && c.mine ? "Tap the bookmark on a reel or post, then pick this collection." : "Nothing here right now."} />
+          : <SocialGrid posts={posts} onOpen={onOpen} />}
+    </div>
+    {more ? <HellooSheet label="Collection" onClose={() => setMore(false)} zIndex={72}><HellooCard>
+      <HellooRow Icon={HlPencil} title="Rename" first onPress={() => { setMore(false); setNaming(true); }} />
+      <HellooRow Icon={c.shared ? SxLock : SxGlobe} title={c.shared ? "Make it private" : "Let people with the link see it"} onPress={() => { setMore(false); edit({ shared: !c.shared }, c.shared ? "Only you see it now" : "Shared · people with the link can see it"); }} />
+      <HellooRow Icon={HlTrash} title="Delete collection" danger color={T.negative} onPress={drop} />
+    </HellooCard></HellooSheet> : null}
+    {naming ? <SocialCollectionNameSheet title="Rename" start={c} busy={busy} onSave={(name, emoji) => edit({ name, emoji })} onClose={() => setNaming(false)} /> : null}
+    {sharing ? <SocialCollectionShare c={c} count={posts.length} chats={chats} photos={photos} onSend={onSend} onToast={onToast} onShared={() => setData((d) => Object.assign({}, d, { collection: Object.assign({}, d.collection, { shared: true }) }))} onClose={() => setSharing(false)} /> : null}
+  </div>;
+}
+
+// Send a collection to chats. Sending shares it (people with the link can
+// see it); it can be made private again from the collection's menu.
+function SocialCollectionShare({ c, count, chats, onSend, onToast, onShared, onClose }) {
+  const [picked, setPicked] = useStateH40([]);
+  const [q, setQ] = useStateH40("");
+  const [busy, setBusy] = useStateH40(false);
+  const link = socialCollectionLink(c.id);
+  const text = `${c.emoji ? `${c.emoji} ` : "📁 "}${c.name} · ${count} saved ${count === 1 ? "post" : "posts"} on GLOOBAL Social\n${link}`;
+  const nameOf = (x) => x.savedName || x.person.handle || x.person.name || "";
+  const list = (chats || []).filter((x) => !q.trim() || nameOf(x).toLowerCase().includes(q.trim().toLowerCase())).slice(0, 30);
+  const flip = (id) => setPicked((p) => (p.includes(id) ? p.filter((x) => x !== id) : p.length >= 10 ? p : [...p, id]));
+  const ensureShared = async () => { if (!c.shared) { await socialApi.editCollection(c.id, { shared: true }); if (onShared) onShared(); } };
+  const send = async () => {
+    if (!picked.length || busy || !onSend) return;
+    setBusy(true);
+    try { await ensureShared(); } catch (e) { setBusy(false); onToast((e && e.message) || "Couldn't share it."); return; }
+    let sent = 0;
+    for (const id of picked) { try { if (await onSend(id, text)) sent += 1; } catch (e) { /* next */ } }
+    setBusy(false);
+    onToast(sent ? `Sent to ${sent} ${sent === 1 ? "chat" : "chats"}` : "Couldn't send it right now.");
+    if (sent) onClose();
+  };
+  const copy = async () => { try { await ensureShared(); await navigator.clipboard.writeText(link); onToast("Link copied · people with it can see this collection"); } catch (e) { onToast("Couldn't copy"); } };
+  return <HellooSheet title={`Share ${c.name}`} onClose={onClose} zIndex={72}><div data-testid="social-collection-share" style={{ fontFamily: T.fontBody }}>
+    <div style={{ fontSize: 12.5, color: T.inkSoft, lineHeight: 1.45, marginBottom: 10 }}>People you send it to can look through it and save a copy. Only GLOOBAL members can open it.</div>
+    {(chats || []).length ? <><label style={{ display: "flex", alignItems: "center", gap: 8, background: T.surface, border: `1px solid ${T.line}`, borderRadius: 999, padding: "9px 14px" }}><HlSearch size={16} color={T.inkFaint} /><input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Send to…" style={{ flex: 1, minWidth: 0, border: "none", outline: "none", background: "none", fontSize: 14, color: T.ink, fontFamily: T.fontBody }} /></label>
+      <div style={{ display: "flex", gap: 12, overflowX: "auto", padding: "12px 2px 4px", scrollbarWidth: "none" }}>{list.map((x) => { const on = picked.includes(x.id); return <button key={x.id} type="button" onClick={() => flip(x.id)} data-testid="social-collection-share-chat" aria-pressed={on} className="v2-tap" style={{ width: 64, flexShrink: 0, border: "none", background: "none", padding: 0, cursor: "pointer", display: "flex", flexDirection: "column", alignItems: "center", gap: 5, fontFamily: T.fontBody }}><span style={{ position: "relative", borderRadius: "50%", boxShadow: on ? `0 0 0 3px ${T.accent}` : "none" }}><HellooAvatar person={x.person} size={52} flag={false} />{on ? <span style={{ position: "absolute", right: -2, bottom: -2, width: 20, height: 20, borderRadius: "50%", background: T.accent, border: `2px solid ${T.surface}`, display: "flex", alignItems: "center", justifyContent: "center" }}><HlCheck size={11} color="#fff" strokeWidth={3} /></span> : null}</span><span style={{ fontSize: 11.5, fontWeight: 700, color: T.ink, maxWidth: 64, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{nameOf(x)}</span></button>; })}</div>
+      <div style={{ marginTop: 10 }}><HellooPrimary disabled={!picked.length || busy} onClick={send}>{busy ? "Sending…" : picked.length ? `Send to ${picked.length}` : "Pick a chat"}</HellooPrimary></div></> : null}
+    <button type="button" onClick={copy} data-testid="social-collection-copy-link" className="v2-tap" style={{ width: "100%", height: 46, marginTop: 10, borderRadius: 14, border: "none", background: T.surfaceAlt, color: T.ink, fontSize: 14, fontWeight: 800, cursor: "pointer", fontFamily: T.fontBody }}>Copy link</button>
+  </div></HellooSheet>;
 }
 
 // ── A reel's full video ─────────────────────────────────────────────────
@@ -83177,12 +83375,15 @@ function hellooSignedInUser() {
 
 // Path or query that should open a chat once signed in:
 //   ?chat=<chatId>                       a Helloo notification
+//   ?collection=<id>                     a saved collection somebody shared
 //   /p/<digits>, /u/<digits>, /s/<digits> a GLOOBAL QR or pay link
 function hellooDeepLink() {
   try {
     const url = new URL(window.location.href);
     const chat = url.searchParams.get("chat");
     if (chat) return { chatId: chat, reply: url.searchParams.get("reply") === "1" };
+    const shelf = url.searchParams.get("collection");
+    if (shelf && /^[a-f0-9]{24}$/i.test(shelf)) return { collection: shelf };
     if (url.searchParams.get("requests")) return { requests: true };
     if (url.searchParams.get("calls") || url.searchParams.get("call")) return { calls: true };
     const parsed = typeof parseGloobalPayPayload === "function" ? parseGloobalPayPayload(`${HELLOO_GLOOBAL_SITE}${url.pathname}`) : null;
@@ -83514,6 +83715,13 @@ function HellooRoot() {
     window.addEventListener("helloo:open-post", go);
     return () => window.removeEventListener("helloo:open-post", go);
   }, []);
+  // A shared collection tapped in a chat (or opened by its link) opens in Social.
+  const [socialOpenShelf, setSocialOpenShelf] = useStateH9("");
+  useEffectH9(() => {
+    const go = (e) => { const id = e && e.detail; if (!id) return; setOpenId(null); setSheet(null); setScreen(null); setTab("social"); setSocialOpenShelf(String(id)); };
+    window.addEventListener("helloo:open-collection", go);
+    return () => window.removeEventListener("helloo:open-collection", go);
+  }, []);
   const [dialSaving, setDialSaving] = useStateH9(false);
   const [openId, setOpenId] = useStateH9(null);
   const [screen, setScreen] = useStateH9(null);
@@ -83759,6 +83967,7 @@ function HellooRoot() {
     hellooClearDeepLink();
     if (link.requests) { setScreen("requests"); return; }
     if (link.calls) { setTab("calls"); return; }
+    if (link.collection) { setTab("social"); setSocialOpenShelf(link.collection); return; }
     if (link.chatId) {
       openChat(link.chatId);
       // "Reply" on a notification where the phone can't type in it: the
@@ -85303,7 +85512,7 @@ function HellooRoot() {
     {tab === "social" && <HellooSocialHome onView={setSocialView} me={me} faces={faces} photos={photos} composeTick={socialCompose}
       chats={(chatRows || []).filter((c) => c.person && c.person.accountId && !c.private && !c.group).slice(0, 30).map((c) => ({ id: c.id, person: hellooPersonFrom(c.person, photos), savedName: c.savedName || "" }))}
       onSendPost={(chatId, post) => Promise.resolve(sendMessage(chatId, { kind: "post", postId: post.id, preview: { id: post.id, author: post.author.handle || post.author.name, caption: (post.caption || "").slice(0, 100), media: (post.media || [])[0] || null } }))}
-      openPost={socialOpenPost} onPostOpened={() => setSocialOpenPost("")} onPhoto={(key, data) => setPhotos((ph) => Object.assign({}, ph, { [key]: data }))} onCards={askPhotos} onToast={setToast}
+      openPost={socialOpenPost} onPostOpened={() => setSocialOpenPost("")} openCollection={socialOpenShelf} onCollectionOpened={() => setSocialOpenShelf("")} onSendText={(chatId, text) => Promise.resolve(sendMessage(chatId, { kind: "text", text }))} onPhoto={(key, data) => setPhotos((ph) => Object.assign({}, ph, { [key]: data }))} onCards={askPhotos} onToast={setToast}
       onOpenChat={(card, draft) => openChatWith(card.gloobalId, false, false, card.side === "self" ? "self" : undefined, draft)}
       onCall={(card) => startCall(hellooPersonFrom(card, photos), false)}
       onTip={(card) => payGloobalId(card.gloobalId)}
