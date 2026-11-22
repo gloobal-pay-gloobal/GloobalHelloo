@@ -37,10 +37,16 @@ self.addEventListener("fetch", (event) => {
 });
 registerRoute(new NavigationRoute(createHandlerBoundToURL("/index.html")));
 
+// Where a reply typed into a notification goes (the push says, when the
+// server knows its own address).
+const HELLOO_API_FALLBACK = "https://gloobal-pay.onrender.com";
+
 self.addEventListener("push", (event) => {
   let data = {};
   try { data = event.data ? event.data.json() : {}; } catch (e) { data = { body: event.data ? event.data.text() : "" }; }
   const title = data.title || "Helloo";
+  const isCall = data.type === "helloo_call";
+  const canReply = data.type === "helloo_message" && Boolean(data.replyToken);
   const options = {
     body: data.body || "New message",
     icon: "/icons/helloo-192.png",
@@ -48,23 +54,55 @@ self.addEventListener("push", (event) => {
     tag: data.tag || undefined,
     renotify: Boolean(data.tag),
     timestamp: data.timestamp || Date.now(),
-    data: { url: data.url || "/" }
+    requireInteraction: Boolean(data.requireInteraction),
+    vibrate: isCall ? [500, 300, 500, 300, 500] : [120, 60, 120],
+    data: { url: data.url || "/", type: data.type || "", replyToken: data.replyToken || "", replyApi: data.replyApi || "", chatId: data.chatId || "" },
+    // A message: Reply right here (where the phone lets you type in the
+    // notification) or open the chat. A call: Answer opens it.
+    actions: canReply
+      ? [{ action: "reply", type: "text", title: "Reply", placeholder: "Reply…" }, { action: "open", title: "Open" }]
+      : isCall ? [{ action: "open", title: "Answer" }] : []
   };
   event.waitUntil(self.registration.showNotification(title, options));
 });
 
-self.addEventListener("notificationclick", (event) => {
-  event.notification.close();
-  const target = new URL((event.notification.data && event.notification.data.url) || "/", self.location.origin).href;
-  event.waitUntil((async () => {
-    const all = await self.clients.matchAll({ type: "window", includeUncontrolled: true });
-    for (const client of all) {
-      if (new URL(client.url).origin === self.location.origin) {
-        await client.focus();
-        try { await client.navigate(target); } catch (e) { /* older browsers */ }
-        return;
-      }
+async function hellooOpen(target) {
+  const all = await self.clients.matchAll({ type: "window", includeUncontrolled: true });
+  for (const client of all) {
+    if (new URL(client.url).origin === self.location.origin) {
+      await client.focus();
+      try { await client.navigate(target); } catch (e) { /* older browsers */ }
+      return;
     }
-    await self.clients.openWindow(target);
-  })());
+  }
+  await self.clients.openWindow(target);
+}
+
+self.addEventListener("notificationclick", (event) => {
+  const n = event.notification;
+  const d = n.data || {};
+  const target = new URL(d.url || "/", self.location.origin).href;
+  // Typed into the notification: send it, and say so in its place.
+  if (event.action === "reply" && typeof event.reply === "string" && event.reply.trim() && d.replyToken) {
+    n.close();
+    event.waitUntil((async () => {
+      let ok = false;
+      try {
+        const r = await fetch(`${(d.replyApi || HELLOO_API_FALLBACK).replace(/\/$/, "")}/api/helloo/quick-reply`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ token: d.replyToken, text: event.reply.trim() }) });
+        ok = r.ok;
+      } catch (e) { ok = false; }
+      if (ok) {
+        await self.registration.showNotification(n.title || "Helloo", { body: `You: ${event.reply.trim()}`, icon: "/icons/helloo-192.png", badge: "/icons/helloo-192.png", tag: n.tag || undefined, silent: true, data: d });
+        // Gone by itself after a moment: it was only to say "sent".
+        setTimeout(async () => { const list = await self.registration.getNotifications({ tag: n.tag }); list.forEach((x) => x.close()); }, 4000);
+      } else {
+        await self.registration.showNotification("Couldn't send", { body: "Tap to open the chat and send it.", icon: "/icons/helloo-192.png", badge: "/icons/helloo-192.png", tag: n.tag || undefined, data: d });
+      }
+    })());
+    return;
+  }
+  n.close();
+  // Reply where the phone can't type in a notification: the chat, ready to type.
+  const url = event.action === "reply" ? target + (target.includes("?") ? "&" : "?") + "reply=1" : target;
+  event.waitUntil(hellooOpen(url));
 });

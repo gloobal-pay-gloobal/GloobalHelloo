@@ -677,7 +677,8 @@ function hellooPeer(iceServers, sendSignal, onRemoteStream, onState) {
   return {
     pc,
     addLocal(stream) { stream.getTracks().forEach((t) => pc.addTrack(t, stream)); },
-    async offer() { const d = await pc.createOffer(); await pc.setLocalDescription(d); sendSignal({ sdp: pc.localDescription.toJSON() }); },
+    // `again`: the other side missed the first one — fresh paths too.
+    async offer(again) { const d = await pc.createOffer(again ? { iceRestart: true } : undefined); await pc.setLocalDescription(d); sendSignal({ sdp: pc.localDescription.toJSON() }); },
     async handle(data) {
       if (data.sdp) {
         await pc.setRemoteDescription(new RTCSessionDescription(data.sdp));
@@ -699,13 +700,56 @@ async function hellooLocalMedia(video, facing) {
 }
 
 // A ringtone and a ringback made on the phone, so an incoming call is
-// heard without any audio file.
+// heard without any audio file. One sound engine for the whole app, woken by
+// the first tap: a phone keeps sound off until the person has touched the
+// page, so a call that comes in later still rings out loud.
+var hellooAudio = { ctx: null };
+function hellooAudioCtx() {
+  try {
+    if (!hellooAudio.ctx) { const AC = window.AudioContext || window.webkitAudioContext; if (!AC) return null; hellooAudio.ctx = new AC(); }
+    if (hellooAudio.ctx.state === "suspended") hellooAudio.ctx.resume().catch(() => {});
+    return hellooAudio.ctx;
+  } catch (e) { return null; }
+}
+try {
+  if (typeof window !== "undefined") {
+    const wake = () => { hellooAudioCtx(); };
+    ["pointerdown", "touchstart", "keydown"].forEach((ev) => window.addEventListener(ev, wake, { capture: true, passive: true }));
+  }
+} catch (e) { /* no window (tests) */ }
 function hellooTone(kind) {
-  let ctx = null, timer = null;
-  const beep = (f, when, len) => { const o = ctx.createOscillator(); const g = ctx.createGain(); o.frequency.value = f; o.connect(g); g.connect(ctx.destination); g.gain.setValueAtTime(0.0001, when); g.gain.exponentialRampToValueAtTime(0.25, when + 0.02); g.gain.exponentialRampToValueAtTime(0.0001, when + len); o.start(when); o.stop(when + len + 0.05); };
-  const cycle = () => { const t = ctx.currentTime; if (kind === "ring") { beep(880, t, 0.25); beep(1046, t + 0.3, 0.25); beep(880, t + 0.6, 0.25); beep(1046, t + 0.9, 0.25); } else { beep(440, t, 0.9); } };
+  let timer = null, out = null;
+  const beep = (ctx, f, when, len, vol) => {
+    const o = ctx.createOscillator(); const g = ctx.createGain();
+    o.type = "sine"; o.frequency.value = f; o.connect(g); g.connect(out);
+    g.gain.setValueAtTime(0.0001, when); g.gain.exponentialRampToValueAtTime(vol, when + 0.02); g.gain.setValueAtTime(vol, when + len - 0.05); g.gain.exponentialRampToValueAtTime(0.0001, when + len);
+    o.start(when); o.stop(when + len + 0.02);
+  };
+  // Ring: a bright two-note phrase, twice, every 2.2 s (loud, with a buzz).
+  // Ringback: the steady "tring… tring…" a caller hears, 425 Hz, the Indian
+  // network's own tone: 0.4 on, 0.2 off, 0.4 on, then quiet.
+  const cycle = () => {
+    const ctx = hellooAudio.ctx; if (!ctx || !out) return;
+    const t = ctx.currentTime + 0.02;
+    if (kind === "ring") { [0, 0.3, 0.75, 1.05].forEach((d, i) => beep(ctx, i % 2 ? 1175 : 880, t + d, 0.26, 0.5)); }
+    else { beep(ctx, 425, t, 0.4, 0.22); beep(ctx, 425, t + 0.6, 0.4, 0.22); }
+  };
   return {
-    start() { try { ctx = new (window.AudioContext || window.webkitAudioContext)(); cycle(); timer = setInterval(cycle, kind === "ring" ? 2200 : 3000); if (navigator.vibrate && kind === "ring") navigator.vibrate([400, 300, 400]); } catch (e) { /* no audio */ } },
-    stop() { clearInterval(timer); if (ctx) { try { ctx.close(); } catch (e) { /* closed */ } ctx = null; } if (navigator.vibrate) try { navigator.vibrate(0); } catch (e) { /* ignore */ } }
+    start() {
+      try {
+        const ctx = hellooAudioCtx();
+        try { window.__hellooTone = { kind, playing: () => this.playing() }; } catch (e) { /* ignore */ }
+        if (ctx) { out = ctx.createGain(); out.gain.value = 1; out.connect(ctx.destination); cycle(); timer = setInterval(cycle, kind === "ring" ? 2200 : 3000); }
+        if (navigator.vibrate && kind === "ring") { navigator.vibrate([500, 300, 500]); const v = setInterval(() => { try { navigator.vibrate([500, 300, 500]); } catch (e) { /* ignore */ } }, 2200); const t0 = timer; timer = { a: t0, v }; }
+      } catch (e) { /* no audio */ }
+    },
+    stop() {
+      if (timer && typeof timer === "object" && "v" in timer) { clearInterval(timer.a); clearInterval(timer.v); } else clearInterval(timer);
+      timer = null;
+      if (out) { try { out.disconnect(); } catch (e) { /* gone */ } out = null; }
+      if (navigator.vibrate) try { navigator.vibrate(0); } catch (e) { /* ignore */ }
+    },
+    // For a check: is the sound engine actually playing?
+    playing() { return Boolean(out && hellooAudio.ctx && hellooAudio.ctx.state === "running"); }
   };
 }

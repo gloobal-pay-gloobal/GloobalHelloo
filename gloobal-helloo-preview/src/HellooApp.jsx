@@ -79010,7 +79010,7 @@ function HellooCallReplySheet({ me, person, onSend, onClose }) {
   </div></HellooSheet>;
 }
 
-function HellooCallScreen({ paidCall = null, me = null, onReply, person, video = false, state = "ringing", seconds = 0, muted = false, speaker = false, cameraOff = false, onMute, onSpeaker, onCamera, onFlip, onEnd, onMinimise, onChat, onShop, meter = null, localVideoRef, remoteVideoRef, remoteAudioRef, incoming = false, onAccept, note = "", paid = false }) {
+function HellooCallScreen({ reached = false, paidCall = null, me = null, onReply, person, video = false, state = "ringing", seconds = 0, muted = false, speaker = false, cameraOff = false, onMute, onSpeaker, onCamera, onFlip, onEnd, onMinimise, onChat, onShop, meter = null, localVideoRef, remoteVideoRef, remoteAudioRef, incoming = false, onAccept, note = "", paid = false }) {
   const live = state === "live";
   const [replying, setReplying] = useStateH12(false);
   const showVideo = video && (live || state === "connecting");
@@ -79028,7 +79028,9 @@ function HellooCallScreen({ paidCall = null, me = null, onReply, person, video =
   const paidPill = paidCall && paidCall.perMinute ? <div data-testid="helloo-call-paid" style={{ display: "inline-flex", alignItems: "center", gap: 7, marginTop: 10, padding: "7px 12px", borderRadius: 999, background: paidLow ? "#F59E0B" : showVideo ? "rgba(255,255,255,0.18)" : "#fff", color: paidLow ? "#fff" : ink, boxShadow: showVideo || paidLow ? "none" : "0 6px 18px rgba(60,40,140,0.10)", fontSize: 13, fontWeight: 800, fontVariantNumeric: "tabular-nums", fontFamily: T.fontBody, backdropFilter: showVideo ? "blur(10px)" : undefined, maxWidth: "100%", boxSizing: "border-box" }}><HlRupee size={14} color={paidLow ? "#fff" : (showVideo ? "#fff" : HT.free)} style={{ flexShrink: 0 }} /><span>{incoming
       ? (live ? `Paid call · you've earned ${hellooMoneyText(paidSoFar, paidCall.currency)}` : `Paid call · ${hellooMoneyText(paidCall.perMinute, paidCall.currency)}/min to you`)
       : (live ? `${hellooMoneyText(paidSoFar, paidCall.currency)} · ${paidClock(paidLeft)} left` : `${hellooMoneyText(paidCall.perMinute, paidCall.currency)}/min · up to ${hellooTalkTime(paidMax)}`)}</span></div> : null;
-  const status = incoming && state === "ringing" ? `Incoming ${video ? "video" : "voice"} call` : state === "ringing" ? (video ? "Video calling…" : "Calling…") : state === "connecting" ? "Connecting…" : state === "ended" ? "Call ended" : hellooDuration(seconds);
+  // Calling… (on its way) → Ringing (their phone has it) → Connecting… →
+  // the time. Like any phone, so you know where it is.
+  const status = incoming && state === "ringing" ? `Incoming ${video ? "video" : "voice"} call` : state === "ringing" ? (reached ? "Ringing…" : (video ? "Video calling…" : "Calling…")) : state === "connecting" ? "Connecting…" : state === "ended" ? "Call ended" : hellooDuration(seconds);
   // The one picture: photo or logo, else the emoji, else the first letters
   // on the person's own colour.
   const D = 176;
@@ -82907,7 +82909,8 @@ function hellooPeer(iceServers, sendSignal, onRemoteStream, onState) {
   return {
     pc,
     addLocal(stream) { stream.getTracks().forEach((t) => pc.addTrack(t, stream)); },
-    async offer() { const d = await pc.createOffer(); await pc.setLocalDescription(d); sendSignal({ sdp: pc.localDescription.toJSON() }); },
+    // `again`: the other side missed the first one — fresh paths too.
+    async offer(again) { const d = await pc.createOffer(again ? { iceRestart: true } : undefined); await pc.setLocalDescription(d); sendSignal({ sdp: pc.localDescription.toJSON() }); },
     async handle(data) {
       if (data.sdp) {
         await pc.setRemoteDescription(new RTCSessionDescription(data.sdp));
@@ -82929,14 +82932,57 @@ async function hellooLocalMedia(video, facing) {
 }
 
 // A ringtone and a ringback made on the phone, so an incoming call is
-// heard without any audio file.
+// heard without any audio file. One sound engine for the whole app, woken by
+// the first tap: a phone keeps sound off until the person has touched the
+// page, so a call that comes in later still rings out loud.
+var hellooAudio = { ctx: null };
+function hellooAudioCtx() {
+  try {
+    if (!hellooAudio.ctx) { const AC = window.AudioContext || window.webkitAudioContext; if (!AC) return null; hellooAudio.ctx = new AC(); }
+    if (hellooAudio.ctx.state === "suspended") hellooAudio.ctx.resume().catch(() => {});
+    return hellooAudio.ctx;
+  } catch (e) { return null; }
+}
+try {
+  if (typeof window !== "undefined") {
+    const wake = () => { hellooAudioCtx(); };
+    ["pointerdown", "touchstart", "keydown"].forEach((ev) => window.addEventListener(ev, wake, { capture: true, passive: true }));
+  }
+} catch (e) { /* no window (tests) */ }
 function hellooTone(kind) {
-  let ctx = null, timer = null;
-  const beep = (f, when, len) => { const o = ctx.createOscillator(); const g = ctx.createGain(); o.frequency.value = f; o.connect(g); g.connect(ctx.destination); g.gain.setValueAtTime(0.0001, when); g.gain.exponentialRampToValueAtTime(0.25, when + 0.02); g.gain.exponentialRampToValueAtTime(0.0001, when + len); o.start(when); o.stop(when + len + 0.05); };
-  const cycle = () => { const t = ctx.currentTime; if (kind === "ring") { beep(880, t, 0.25); beep(1046, t + 0.3, 0.25); beep(880, t + 0.6, 0.25); beep(1046, t + 0.9, 0.25); } else { beep(440, t, 0.9); } };
+  let timer = null, out = null;
+  const beep = (ctx, f, when, len, vol) => {
+    const o = ctx.createOscillator(); const g = ctx.createGain();
+    o.type = "sine"; o.frequency.value = f; o.connect(g); g.connect(out);
+    g.gain.setValueAtTime(0.0001, when); g.gain.exponentialRampToValueAtTime(vol, when + 0.02); g.gain.setValueAtTime(vol, when + len - 0.05); g.gain.exponentialRampToValueAtTime(0.0001, when + len);
+    o.start(when); o.stop(when + len + 0.02);
+  };
+  // Ring: a bright two-note phrase, twice, every 2.2 s (loud, with a buzz).
+  // Ringback: the steady "tring… tring…" a caller hears, 425 Hz, the Indian
+  // network's own tone: 0.4 on, 0.2 off, 0.4 on, then quiet.
+  const cycle = () => {
+    const ctx = hellooAudio.ctx; if (!ctx || !out) return;
+    const t = ctx.currentTime + 0.02;
+    if (kind === "ring") { [0, 0.3, 0.75, 1.05].forEach((d, i) => beep(ctx, i % 2 ? 1175 : 880, t + d, 0.26, 0.5)); }
+    else { beep(ctx, 425, t, 0.4, 0.22); beep(ctx, 425, t + 0.6, 0.4, 0.22); }
+  };
   return {
-    start() { try { ctx = new (window.AudioContext || window.webkitAudioContext)(); cycle(); timer = setInterval(cycle, kind === "ring" ? 2200 : 3000); if (navigator.vibrate && kind === "ring") navigator.vibrate([400, 300, 400]); } catch (e) { /* no audio */ } },
-    stop() { clearInterval(timer); if (ctx) { try { ctx.close(); } catch (e) { /* closed */ } ctx = null; } if (navigator.vibrate) try { navigator.vibrate(0); } catch (e) { /* ignore */ } }
+    start() {
+      try {
+        const ctx = hellooAudioCtx();
+        try { window.__hellooTone = { kind, playing: () => this.playing() }; } catch (e) { /* ignore */ }
+        if (ctx) { out = ctx.createGain(); out.gain.value = 1; out.connect(ctx.destination); cycle(); timer = setInterval(cycle, kind === "ring" ? 2200 : 3000); }
+        if (navigator.vibrate && kind === "ring") { navigator.vibrate([500, 300, 500]); const v = setInterval(() => { try { navigator.vibrate([500, 300, 500]); } catch (e) { /* ignore */ } }, 2200); const t0 = timer; timer = { a: t0, v }; }
+      } catch (e) { /* no audio */ }
+    },
+    stop() {
+      if (timer && typeof timer === "object" && "v" in timer) { clearInterval(timer.a); clearInterval(timer.v); } else clearInterval(timer);
+      timer = null;
+      if (out) { try { out.disconnect(); } catch (e) { /* gone */ } out = null; }
+      if (navigator.vibrate) try { navigator.vibrate(0); } catch (e) { /* ignore */ }
+    },
+    // For a check: is the sound engine actually playing?
+    playing() { return Boolean(out && hellooAudio.ctx && hellooAudio.ctx.state === "running"); }
   };
 }
 
@@ -82968,7 +83014,7 @@ function hellooDeepLink() {
   try {
     const url = new URL(window.location.href);
     const chat = url.searchParams.get("chat");
-    if (chat) return { chatId: chat };
+    if (chat) return { chatId: chat, reply: url.searchParams.get("reply") === "1" };
     if (url.searchParams.get("requests")) return { requests: true };
     if (url.searchParams.get("calls") || url.searchParams.get("call")) return { calls: true };
     const parsed = typeof parseGloobalPayPayload === "function" ? parseGloobalPayPayload(`${HELLOO_GLOOBAL_SITE}${url.pathname}`) : null;
@@ -83541,7 +83587,12 @@ function HellooRoot() {
     hellooClearDeepLink();
     if (link.requests) { setScreen("requests"); return; }
     if (link.calls) { setTab("calls"); return; }
-    if (link.chatId) openChat(link.chatId);
+    if (link.chatId) {
+      openChat(link.chatId);
+      // "Reply" on a notification where the phone can't type in it: the
+      // chat opens with the message box ready.
+      if (link.reply) setTimeout(() => { try { const box = document.querySelector('[aria-label="Message"]'); if (box) box.focus(); } catch (e) { /* ignore */ } }, 900);
+    }
     else if (link.gloobalId && link.gloobalId !== user.symbolId) openChatWith(link.gloobalId);
   }, [signedIn]);
 
@@ -83671,10 +83722,14 @@ function HellooRoot() {
     if (frame.type === "call-update" && frame.call) {
       const c = callRef.current;
       if (c && c.id === frame.call.id) {
-        if (frame.call.status === "answered" && c.direction === "out") {
+        if (frame.call.status === "ringing" && frame.call.reached && c.direction === "out") {
+          // Their phone has it: "Ringing", not "Calling…".
+          setCall((x) => (x && x.id === c.id && x.state === "ringing" ? Object.assign({}, x, { reached: true }) : x));
+        } else if (frame.call.status === "answered" && c.direction === "out") {
           stopTone();
           setCall((x) => Object.assign({}, x, { state: "connecting" }, frame.call.paid ? { paid: frame.call.paid } : {}));
-          makePeer(c).then((peer) => peer.offer()).catch(() => { setToast("Could not start the call"); hangUp(); });
+          // The offer went out while it rang; only if it didn't, make it now.
+          if (!peerRef.current) makePeer(c).then((peer) => peer.offer()).catch(() => { setToast("Could not start the call"); hangUp(); });
         } else if (["ended", "missed", "declined", "cancelled"].includes(frame.call.status)) {
           endCallLocally(frame.call.status);
           // A paid call the server ended (the balance ran out) or the other
@@ -83691,6 +83746,11 @@ function HellooRoot() {
     if (frame.type === "signal" && frame.callId) {
       const c = callRef.current;
       if (c && c.id === frame.callId) {
+        // The callee asks for the offer again (it opened after it was sent).
+        if (frame.data && frame.data.resend) { if (peerRef.current && c.direction === "out") peerRef.current.offer(true).catch(() => {}); return; }
+        // Ringing here: keep what the caller sent until Answer — no
+        // microphone before then.
+        if (c.direction === "in" && !peerRef.current) { earlySignals.current.push(frame.data); return; }
         (peerRef.current ? Promise.resolve(peerRef.current) : makePeer(c)).then((peer) => peer.handle(frame.data)).catch(() => {});
       }
       return;
@@ -84365,7 +84425,10 @@ function HellooRoot() {
   const releaseSheet = release && <HellooSheet label={release.mode === "give" ? "Release once for them" : "Open the released chat"} onClose={() => { setSheet(null); setRelease(null); }}><div data-testid="helloo-release-sheet"><div style={{ fontSize: 16, fontWeight: 800, color: T.ink, fontFamily: T.fontDisplay }}>{release.mode === "give" ? "Release once for them" : "A private chat, released for you"}</div><div style={{ fontSize: 12.5, color: T.inkSoft, marginTop: 6, lineHeight: 1.5 }}>{release.mode === "give" ? "For when they forgot what they saved this chat as. They see it once, within 10 minutes, after their own PIN — then they name it again and it is private again. Your name for it stays yours. Once a day at most." : "Enter your GLOOBAL PIN to open it, then give it a name. It becomes private again the moment you save."}</div><input data-testid="helloo-release-pin" type="password" inputMode="numeric" autoComplete="off" maxLength={8} value={release.pin} onChange={(e) => setRelease(Object.assign({}, release, { pin: e.target.value.replace(/\D/g, ""), error: "" }))} placeholder="Your GLOOBAL PIN" style={{ width: "100%", boxSizing: "border-box", marginTop: 14, height: 48, borderRadius: 14, border: `1px solid ${T.line}`, background: T.surface, color: T.ink, fontSize: 18, letterSpacing: 6, fontWeight: 800, fontFamily: T.fontBody, padding: "0 14px", outline: "none", textAlign: "center" }} />{release.error ? <div data-testid="helloo-release-error" style={{ marginTop: 10, fontSize: 12.5, fontWeight: 700, color: "#DC2626" }}>{release.error}</div> : null}<div style={{ marginTop: 14 }}><HellooPrimary onClick={runRelease} disabled={release.busy || release.pin.length < 4}>{release.busy ? "Checking…" : release.mode === "give" ? "Release once" : "Open"}</HellooPrimary></div></div></HellooSheet>;
   const nameNeedsAgain = Boolean(nameEdit && nameEdit.isPrivate && (!nameEdit.wasPrivate || hellooNameKey(String(nameEdit.name || "").trim()) !== hellooNameKey(nameEdit.oldName)));
   const nameSheet = nameEdit && <HellooSheet label="Name this chat" onClose={() => { const forced = nameEdit && nameEdit.forced; setSheet(null); setNameEdit(null); if (forced) { setOpenId(null); setToast("Not saved · the chat is hidden again"); } }}><div style={{ fontSize: 16, fontWeight: 800, color: T.ink, fontFamily: T.fontDisplay }}>Name this chat</div><div style={{ fontSize: 12.5, color: T.inkSoft, marginTop: 4, lineHeight: 1.45 }}>Your own name for it. Only you see it — letters, numbers or symbols.</div><input data-testid="helloo-saved-name" value={nameEdit.name} maxLength={40} autoComplete="off" autoCorrect="off" autoCapitalize="off" spellCheck={false} placeholder="Papa, ()+, anything" onChange={(e) => setNameEdit(Object.assign({}, nameEdit, { name: e.target.value, error: "" }))} style={{ width: "100%", boxSizing: "border-box", marginTop: 12, height: 46, borderRadius: 14, border: `1px solid ${T.line}`, background: T.surface, color: T.ink, fontSize: 15, fontWeight: 700, fontFamily: T.fontBody, padding: "0 14px", outline: "none" }} /><button type="button" role="switch" aria-checked={nameEdit.isPrivate} data-testid="helloo-private-switch" onClick={() => setNameEdit(Object.assign({}, nameEdit, { isPrivate: !nameEdit.isPrivate, error: "" }))} style={{ width: "100%", display: "flex", alignItems: "center", gap: 12, marginTop: 14, padding: 0, border: "none", background: "none", cursor: "pointer", textAlign: "left", fontFamily: T.fontBody }}><span style={{ flex: 1, minWidth: 0 }}><span style={{ display: "block", fontSize: 14, fontWeight: 800, color: T.ink }}>Private chat</span><span style={{ display: "block", fontSize: 12, color: T.inkSoft, marginTop: 2, lineHeight: 1.45 }}>Appears only when you type its whole name. No notification, no count, no sound — you see new messages when you open it.</span></span><span aria-hidden="true" style={{ width: 44, height: 26, borderRadius: 999, background: nameEdit.isPrivate ? T.accent : T.line, position: "relative", flexShrink: 0 }}><span style={{ position: "absolute", top: 3, left: nameEdit.isPrivate ? 21 : 3, width: 20, height: 20, borderRadius: "50%", background: "#fff", transition: "left .18s" }} /></span></button>{nameNeedsAgain ? <><input data-testid="helloo-saved-name-again" value={nameEdit.again || ""} maxLength={40} autoComplete="off" autoCorrect="off" autoCapitalize="off" spellCheck={false} placeholder="Type the name again" onChange={(e) => setNameEdit(Object.assign({}, nameEdit, { again: e.target.value, error: "" }))} style={{ width: "100%", boxSizing: "border-box", marginTop: 12, height: 46, borderRadius: 14, border: `1px solid ${T.line}`, background: T.surface, color: T.ink, fontSize: 15, fontWeight: 700, fontFamily: T.fontBody, padding: "0 14px", outline: "none" }} /><div data-testid="helloo-private-warning" style={{ display: "flex", gap: 10, marginTop: 12, padding: "11px 12px", borderRadius: 14, background: "#FEF3C7", color: "#7C4A03", fontSize: 12.5, lineHeight: 1.45, fontWeight: 600 }}><HlLock size={16} color="#B45309" style={{ flexShrink: 0, marginTop: 1 }} /><span><b>There is no recovery.</b> If you forget this name, nobody can find this chat — not even you. If you both keep it private, they can release it once for you.</span></div></> : null}{nameEdit.error ? <div data-testid="helloo-name-error" style={{ marginTop: 10, fontSize: 12.5, fontWeight: 700, color: "#DC2626" }}>{nameEdit.error}</div> : null}<div style={{ marginTop: 16 }}><HellooPrimary onClick={saveNameEdit} disabled={nameEdit.busy}>{nameEdit.busy ? "Saving…" : "Save"}</HellooPrimary></div></HellooSheet>;
-  const [call, setCall] = useStateH9(null); // { id, person, video, direction, state, seconds, muted, cameraOff, speaker, iceServers, chatId, note }
+  const [call, setCall] = useStateH9(null); // { id, person, video, direction, state, reached, seconds, muted, cameraOff, speaker, iceServers, chatId, note }
+  // What the caller sent while it was still ringing here (its offer and
+  // network paths), used the moment Answer is tapped.
+  const earlySignals = useRefH9([]);
   // A call made small: it carries on (its screen stays mounted, hidden, so
   // the sound and video keep flowing) while a bar at the top leads back.
   const [callMin, setCallMin] = useStateH9(false);
@@ -84400,6 +84463,7 @@ function HellooRoot() {
   const stopTone = () => { if (toneRef.current) { toneRef.current.stop(); toneRef.current = null; } };
   const tearDown = () => {
     stopTone();
+    earlySignals.current = [];
     if (peerRef.current) { peerRef.current.close(); peerRef.current = null; }
     if (localRef.current) { localRef.current.getTracks().forEach((t) => t.stop()); localRef.current = null; }
   };
@@ -84450,8 +84514,13 @@ function HellooRoot() {
       const r = await hellooApi.startCall(person.accountId || person.gloobalId, video, person.handle ? "" : "self", paid ? { paid: { perMinute: paid.perMinute, pin: paid.pin } } : null);
       const c = r.call;
       setCallGate(null);
-      setCall({ id: c.id, person, video: Boolean(video), direction: "out", state: "ringing", seconds: 0, muted: false, cameraOff: false, speaker: false, iceServers: r.iceServers, chatId: c.chatId, paid: c.paid || null });
+      const out = { id: c.id, person, video: Boolean(video), direction: "out", state: "ringing", reached: Boolean(c.reached), seconds: 0, muted: false, cameraOff: false, speaker: false, iceServers: r.iceServers, chatId: c.chatId, paid: c.paid || null };
+      setCall(out);
+      callRef.current = out;
       toneRef.current = hellooTone("ringback"); toneRef.current.start();
+      // Faster to connect: the offer and the network paths go out while it
+      // rings, so Answer only has to say yes.
+      makePeer(out).then((peer) => peer.offer()).catch(() => {});
       refreshCalls();
     } catch (err) {
       tearDown();
@@ -84487,9 +84556,16 @@ function HellooRoot() {
     if (!c || c.direction !== "in") return;
     stopTone();
     try {
-      const r = await hellooApi.callAction(c.id, "answer");
+      // The microphone and the server's yes at the same time, not one after the other.
+      const [r, stream] = await Promise.all([hellooApi.callAction(c.id, "answer"), localRef.current ? Promise.resolve(localRef.current) : hellooLocalMedia(c.video, "user")]);
+      localRef.current = stream;
       setCall((x) => (x ? Object.assign({}, x, { state: "connecting", iceServers: r.iceServers }, r.call && r.call.paid ? { paid: r.call.paid } : {}) : x));
-      await makePeer(Object.assign({}, c, { iceServers: r.iceServers }));
+      const peer = await makePeer(Object.assign({}, c, { iceServers: r.iceServers }));
+      const early = earlySignals.current.splice(0);
+      const hasOffer = early.some((d) => d && d.sdp && d.sdp.type === "offer");
+      for (const d of early.filter((x) => x && x.sdp)) await peer.handle(d).catch(() => {});
+      for (const d of early.filter((x) => x && x.candidate)) await peer.handle(d).catch(() => {});
+      if (!hasOffer) sendSignal(c.id, { resend: true });
     } catch (err) {
       setToast(err && err.body && err.body.code === "call_over" ? "That call has ended" : (err && err.name === "NotAllowedError" ? "Allow the microphone to answer" : err.message));
       endCallLocally("ended");
@@ -84547,8 +84623,11 @@ function HellooRoot() {
     const hush = privatePeopleRef.current.has(c.person && c.person.accountId);
     const person = hush ? Object.assign(hellooPersonFrom(c.person, null), { name: "Helloo call", photo: null, hasPhoto: false, gloobalId: "", handle: null }) : hellooPersonFrom(c.person, photos);
     if (!hush) askPhotos([c.person]);
+    earlySignals.current = [];
     setCall({ id: c.id, person, video: Boolean(c.video), direction: "in", state: "ringing", seconds: 0, muted: false, cameraOff: false, speaker: false, iceServers: null, chatId: c.chatId, paid: c.paid || null });
     toneRef.current = hellooTone("ring"); toneRef.current.start();
+    // Tell the caller it is ringing here.
+    hellooApi.callAction(c.id, "ringing").catch(() => {});
   };
   // A call that was ringing before the app opened (a tapped notification).
   useEffectH9(() => {
@@ -84690,7 +84769,7 @@ function HellooRoot() {
   // is a call, so it is never re-made (and never cut off) by moving between
   // full and small.
   const callBar = call && me && callMin ? <button data-testid="helloo-call-bar" onClick={() => setCallMin(false)} className="v2-tap" style={{ position: "absolute", top: 0, left: 0, right: 0, height: "calc(48px + env(safe-area-inset-top, 0px))", paddingTop: "env(safe-area-inset-top, 0px)", boxSizing: "border-box", zIndex: 280, display: "flex", alignItems: "center", justifyContent: "center", gap: 8, border: "none", background: "#0B9E6B", color: "#fff", fontFamily: T.fontBody, fontSize: 13.5, fontWeight: 800, cursor: "pointer", whiteSpace: "nowrap", overflow: "hidden" }}><HlPhone size={15} color="#fff" /><span>{call.state === "live" ? hellooDuration(call.seconds) : call.state === "ringing" ? (call.direction === "in" ? "Incoming call" : "Calling…") : "Connecting…"}</span><span style={{ opacity: 0.85, maxWidth: 140, overflow: "hidden", textOverflow: "ellipsis" }}>· {call.person.handle || hellooName(call.person)}</span><span style={{ opacity: 0.85 }}>· Back to call</span></button> : null;
-  const callLayer = call && me ? <div key="helloo-call" style={callMin ? { display: "none" } : { position: "absolute", inset: 0, zIndex: 200 }}><HellooCallScreen person={call.person} paid={Boolean(call.paid)} video={call.video} state={call.state} seconds={call.seconds} muted={call.muted} cameraOff={call.cameraOff} speaker={call.speaker} incoming={call.direction === "in"} paidCall={call.paid || null} me={me} onReply={call.direction === "in" && call.state === "ringing" ? replyToCall : undefined} onAccept={answerCall} onEnd={hangUp} onMute={toggleMute} onCamera={toggleCamera} onSpeaker={toggleSpeaker} onFlip={flipCamera} onMinimise={() => setCallMin(true)} onChat={() => { if (call.chatId) { setCallMin(true); setScreen(null); openChat(call.chatId); } }} onShop={hellooIsBusiness(call.person) && call.person.gloobalId ? () => { const shopPerson = call.person; setCallMin(true); setScreen(null); Promise.resolve(openChatWith(shopPerson.accountId)).then(() => openMenu(shopPerson)); } : undefined} localVideoRef={localVideoRef} remoteVideoRef={remoteVideoRef} remoteAudioRef={remoteAudioRef} /></div> : null;
+  const callLayer = call && me ? <div key="helloo-call" style={callMin ? { display: "none" } : { position: "absolute", inset: 0, zIndex: 200 }}><HellooCallScreen person={call.person} paid={Boolean(call.paid)} video={call.video} state={call.state} reached={Boolean(call.reached)} seconds={call.seconds} muted={call.muted} cameraOff={call.cameraOff} speaker={call.speaker} incoming={call.direction === "in"} paidCall={call.paid || null} me={me} onReply={call.direction === "in" && call.state === "ringing" ? replyToCall : undefined} onAccept={answerCall} onEnd={hangUp} onMute={toggleMute} onCamera={toggleCamera} onSpeaker={toggleSpeaker} onFlip={flipCamera} onMinimise={() => setCallMin(true)} onChat={() => { if (call.chatId) { setCallMin(true); setScreen(null); openChat(call.chatId); } }} onShop={hellooIsBusiness(call.person) && call.person.gloobalId ? () => { const shopPerson = call.person; setCallMin(true); setScreen(null); Promise.resolve(openChatWith(shopPerson.accountId)).then(() => openMenu(shopPerson)); } : undefined} localVideoRef={localVideoRef} remoteVideoRef={remoteVideoRef} remoteAudioRef={remoteAudioRef} /></div> : null;
   if (locked && signedIn && me && !call) return shell(<HellooScreen><div data-testid="helloo-locked" style={{ flex: 1, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: 14, padding: "0 32px", textAlign: "center" }}><span style={{ fontSize: 30 }}><HellooWordmark /></span><span style={{ width: 72, height: 72, borderRadius: "50%", background: T.accentSoft, display: "flex", alignItems: "center", justifyContent: "center", marginTop: 8 }}><HlFinger size={34} color={T.accent} /></span><div style={{ fontSize: 18, fontWeight: 800, fontFamily: T.fontDisplay, color: T.ink }}>Locked</div><div style={{ fontSize: 13.5, color: T.inkSoft, lineHeight: 1.45 }}>{lockNote || "Your chats are locked after five minutes away. Open with your fingerprint, Face ID or GLOOBAL PIN."}</div><div style={{ width: "100%", maxWidth: 300, marginTop: 8, display: "flex", flexDirection: "column", gap: 10 }}><HellooPrimary Icon={HlFinger} onClick={unlock} disabled={unlocking}>{unlocking ? "Checking…" : "Unlock"}</HellooPrimary><HellooSecondary Icon={HlLogOut} onClick={() => { setLocked(false); signOut("Signed out"); }}>Sign out</HellooSecondary></div></div></HellooScreen>);
   if (call && me && !callMin) return shell(null);
 

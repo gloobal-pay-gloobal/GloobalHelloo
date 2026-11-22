@@ -105,7 +105,7 @@ function HellooCallReplySheet({ me, person, onSend, onClose }) {
   </div></HellooSheet>;
 }
 
-function HellooCallScreen({ paidCall = null, me = null, onReply, person, video = false, state = "ringing", seconds = 0, muted = false, speaker = false, cameraOff = false, onMute, onSpeaker, onCamera, onFlip, onEnd, onMinimise, onChat, onShop, meter = null, localVideoRef, remoteVideoRef, remoteAudioRef, incoming = false, onAccept, note = "", paid = false }) {
+function HellooCallScreen({ reached = false, paidCall = null, me = null, onReply, person, video = false, state = "ringing", seconds = 0, muted = false, speaker = false, cameraOff = false, onMute, onSpeaker, onCamera, onFlip, onEnd, onMinimise, onChat, onShop, meter = null, localVideoRef, remoteVideoRef, remoteAudioRef, incoming = false, onAccept, note = "", paid = false }) {
   const live = state === "live";
   const [replying, setReplying] = useStateH12(false);
   const showVideo = video && (live || state === "connecting");
@@ -123,7 +123,9 @@ function HellooCallScreen({ paidCall = null, me = null, onReply, person, video =
   const paidPill = paidCall && paidCall.perMinute ? <div data-testid="helloo-call-paid" style={{ display: "inline-flex", alignItems: "center", gap: 7, marginTop: 10, padding: "7px 12px", borderRadius: 999, background: paidLow ? "#F59E0B" : showVideo ? "rgba(255,255,255,0.18)" : "#fff", color: paidLow ? "#fff" : ink, boxShadow: showVideo || paidLow ? "none" : "0 6px 18px rgba(60,40,140,0.10)", fontSize: 13, fontWeight: 800, fontVariantNumeric: "tabular-nums", fontFamily: T.fontBody, backdropFilter: showVideo ? "blur(10px)" : undefined, maxWidth: "100%", boxSizing: "border-box" }}><HlRupee size={14} color={paidLow ? "#fff" : (showVideo ? "#fff" : HT.free)} style={{ flexShrink: 0 }} /><span>{incoming
       ? (live ? `Paid call · you've earned ${hellooMoneyText(paidSoFar, paidCall.currency)}` : `Paid call · ${hellooMoneyText(paidCall.perMinute, paidCall.currency)}/min to you`)
       : (live ? `${hellooMoneyText(paidSoFar, paidCall.currency)} · ${paidClock(paidLeft)} left` : `${hellooMoneyText(paidCall.perMinute, paidCall.currency)}/min · up to ${hellooTalkTime(paidMax)}`)}</span></div> : null;
-  const status = incoming && state === "ringing" ? `Incoming ${video ? "video" : "voice"} call` : state === "ringing" ? (video ? "Video calling…" : "Calling…") : state === "connecting" ? "Connecting…" : state === "ended" ? "Call ended" : hellooDuration(seconds);
+  // Calling… (on its way) → Ringing (their phone has it) → Connecting… →
+  // the time. Like any phone, so you know where it is.
+  const status = incoming && state === "ringing" ? `Incoming ${video ? "video" : "voice"} call` : state === "ringing" ? (reached ? "Ringing…" : (video ? "Video calling…" : "Calling…")) : state === "connecting" ? "Connecting…" : state === "ended" ? "Call ended" : hellooDuration(seconds);
   // The one picture: photo or logo, else the emoji, else the first letters
   // on the person's own colour.
   const D = 176;
