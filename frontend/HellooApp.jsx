@@ -117,8 +117,19 @@ function HellooRoot() {
   // sign-in screen opens next time.
   const [idMode, setIdModeRaw] = useStateH9(() => { try { return localStorage.getItem("helloo.signin.mode") === "id" ? "id" : "mobile"; } catch (e) { return "mobile"; } });
   const setIdMode = useCallbackH9((m) => { setIdModeRaw(m); try { localStorage.setItem("helloo.signin.mode", m); } catch (e) { /* ignore */ } }, []);
+  // The mobile number is typed without its country code; the round flag
+  // gives the code. The country this phone last signed in with comes back
+  // next time (India until one is picked).
   const [idMobile, setIdMobile] = useStateH9("");
-  const signInAs = idMode === "mobile" ? `+${idMobile}` : idValue;
+  const [idCountry, setIdCountryRaw] = useStateH9(() => {
+    const list = typeof ALL_COUNTRIES === "object" ? ALL_COUNTRIES : [];
+    let iso = "IN";
+    try { iso = localStorage.getItem("helloo.signin.country") || "IN"; } catch (e) { /* ignore */ }
+    return list.find((c) => c.iso === iso) || list.find((c) => c.iso === "IN") || null;
+  });
+  const setIdCountry = useCallbackH9((c) => { setIdCountryRaw(c); try { localStorage.setItem("helloo.signin.country", c.iso); } catch (e) { /* ignore */ } }, []);
+  const idDial = (idCountry && idCountry.dialCode) || "+91";
+  const signInAs = idMode === "mobile" ? `${idDial}${idMobile}` : idValue;
   const [pin, setPin] = useStateH9("");
   const [pinBusy, setPinBusy] = useStateH9(false);
   const [pinWaking, setPinWaking] = useStateH9(false);
@@ -1802,8 +1813,8 @@ function HellooRoot() {
 
   if (stage === "splash" || stage === "splash-in") return shell(<HellooSplash intro={stage === "splash"} onSkip={stage === "splash" ? () => setStage("id") : undefined} />);
   if (stage === "welcome") return shell(<HellooWelcome hasGloobal={false} note={outNote} onEnterId={() => { setOutNote(""); setStage("id"); }} />);
-  if (stage === "id") return shell(<HellooIdScreen value={idValue} onChange={setIdValue} mode={idMode} onMode={setIdMode} mobile={idMobile} onMobile={setIdMobile} status={idValue.length === 12 ? "ready" : ""} note={outNote} onNext={() => { setOutNote(""); setPin(""); setStage("pin"); }} />);
-  if (stage === "pin") return shell(<LoginAuthScreen who={idMode === "mobile" ? `+${idMobile}` : <ColoredGloobalId id={idValue} />} forgotHref={HELLOO_GLOOBAL_SIGNUP} value={pin} length={HELLOO_PIN_LENGTH} onChange={setPin} onSubmit={() => submitPin(pin)} onBack={() => setStage("id")} revealed={pinShown} onToggleReveal={() => setPinShown((v) => !v)} waking={pinWaking} busy={pinBusy} />);
+  if (stage === "id") return shell(<HellooIdScreen value={idValue} onChange={setIdValue} mode={idMode} onMode={setIdMode} mobile={idMobile} onMobile={setIdMobile} country={idCountry} onCountry={(c) => { setIdCountry(c); setIdMobile((m) => m.slice(0, hellooMobileRange(c)[1])); }} status={idValue.length === 12 ? "ready" : ""} note={outNote} onNext={() => { setOutNote(""); setPin(""); setStage("pin"); }} />);
+  if (stage === "pin") return shell(<LoginAuthScreen who={idMode === "mobile" ? `${idDial} ${hellooSpacedPhone(idMobile, idDial)}` : <ColoredGloobalId id={idValue} />} forgotHref={HELLOO_GLOOBAL_SIGNUP} value={pin} length={HELLOO_PIN_LENGTH} onChange={setPin} onSubmit={() => submitPin(pin)} onBack={() => setStage("id")} revealed={pinShown} onToggleReveal={() => setPinShown((v) => !v)} waking={pinWaking} busy={pinBusy} />);
   if (stage === "back" && me) return shell(<HellooWelcomeBack me={me} onDone={() => setStage("app")} />);
   if (!me) return shell(<HellooSplash />);
 

@@ -196,19 +196,55 @@ function GloobalLetHellooIn({ me, onAllow, onDeny }) {
   return <HellooScreen><HellooTop left={<NavBackButton onClick={onDeny} />} title={<GloobalWordmark />} right={<NavFlagBadge flag={me.flag} />} /><div style={{ flex: 1, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", padding: "0 28px", textAlign: "center" }}><div style={{ display: "flex", alignItems: "center", gap: 14 }}><GloobalLogo size={56} /><span style={{ width: 34, height: 2, background: T.line, position: "relative" }}><span style={{ position: "absolute", left: 11, top: -5, width: 12, height: 12, borderRadius: "50%", background: HT.free }} /></span><HellooMark size={56} /></div><div style={{ marginTop: 20, fontSize: 22, fontWeight: 800, fontFamily: T.fontDisplay, color: T.ink }}>Let <HellooWordmark /> in?</div><div style={{ marginTop: 10, fontSize: 13.5, color: T.inkSoft, lineHeight: 1.5 }}>Helloo will sign in as you and can see your name, photo, country and the people you have paid. It can't move money.</div><HellooCard style={{ marginTop: 22, width: "100%", padding: 14, display: "flex", alignItems: "center", gap: 12 }}><ProfileAvatar photo={me.photo} name={me.name} size={44} /><div style={{ textAlign: "left", minWidth: 0 }}><div style={{ fontSize: 14.5, fontWeight: 800, color: T.ink }}><HellooNameB p={me} label={me.name} /></div><div style={{ fontSize: 13, marginTop: 2 }}><ColoredGloobalId id={me.id} /></div></div></HellooCard></div><div style={{ padding: "0 20px calc(22px + env(safe-area-inset-bottom, 0px))", display: "flex", flexDirection: "column", gap: 10 }}><HellooPrimary onClick={onAllow} Icon={HlFinger}>Allow with fingerprint</HellooPrimary><HellooSecondary onClick={onDeny}>Not now</HellooSecondary></div></HellooScreen>;
 }
 
-// Signing in. Two ways to say who you are, both in plain sight (12 Nov
-// rework; the mobile choice used to be an unlabelled icon that did
-// nothing): the 12 symbols of the GLOOBAL ID on Gloobal's own dial, or the
-// mobile number the account was made with, country code first. Whether the
-// account exists is answered by the PIN step itself (POST /api/login takes
-// either), so nothing here claims to have found it.
-var HELLOO_MOBILE_MIN = 8;
-var HELLOO_MOBILE_MAX = 15;
-function HellooIdScreen({ value, onChange, status, onBack, onNext, mode = "id", onMode, mobile = "", onMobile, note = "" }) {
+// Signing in. Two ways to say who you are: the 12 symbols of the GLOOBAL
+// ID on Gloobal's own dial, or the mobile number the account was made
+// with. Whether the account exists is answered by the PIN step itself
+// (POST /api/login takes either), so nothing here claims to have found it.
+//
+// Sign in looks like Find someone (founder, 25 Nov): the same big title,
+// the same round switch between mobile number and GLOOBAL ID, the round
+// flag you tap for the country, the same round keys, and Continue where
+// Find someone has Message, Call and Video. The number is typed without
+// the country code; the flag gives it (the app joins the two for
+// POST /api/login). The pieces are shared with Find someone
+// (screens/Calls.jsx), so the two cannot drift apart.
+function HellooIdScreen({ value, onChange, status, onBack, onNext, mode = "id", onMode, mobile = "", onMobile, country = null, onCountry, note = "" }) {
   const byMobile = mode === "mobile";
-  const found = byMobile ? mobile.length >= HELLOO_MOBILE_MIN : (status === "found" || status === "ready");
-  const grouped = mobile.replace(/(\d{2})(\d{0,5})(\d{0,8})/, (m, a, b, c) => [a, b, c].filter(Boolean).join(" "));
-  return <HellooScreen><HellooTop left={onBack ? <NavBackButton onClick={onBack} /> : <span style={{ display: "inline-flex", paddingLeft: 4 }}><HellooMark size={36} /></span>} title="Sign in" subtitle={<>with your <GloobalWordmark suffix=" ID" /> or mobile number</>} /><div style={{ flex: 1, minHeight: 0, display: "flex", flexDirection: "column", alignItems: "center", padding: "4px 18px 0", overflow: "hidden" }}><div style={{ width: "100%" }}><HellooSegment value={mode} onChange={onMode} options={[["id", "GLOOBAL ID"], ["mobile", "Mobile number"]]} /></div><HellooCard style={{ width: "100%", padding: "14px 14px 12px", marginTop: 12 }}><div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}><span style={{ fontSize: 12.5, fontWeight: 800, color: T.ink }}>{byMobile ? "Your mobile number, country code first" : "The 12 symbols you pay with"}</span><span style={{ fontSize: 11.5, fontWeight: 700, color: T.inkFaint }}>{byMobile ? "" : `${value.length}/12`}</span></div><div style={{ marginTop: 10 }}>{byMobile ? <div data-testid="helloo-signin-mobile" style={{ minHeight: 34, display: "flex", alignItems: "center", gap: 6, fontSize: 24, fontWeight: 800, fontFamily: T.fontDisplay, letterSpacing: 0.5, color: mobile ? T.ink : T.inkFaint }}><span style={{ color: T.inkFaint }}>+</span>{mobile ? grouped : "91 98765 43210"}</div> : <SymbolChipRow length={12} value={value} masked={false} boxSize={22} fitWidth />}</div></HellooCard>{note ? <div role="status" data-testid="helloo-signed-out-note" style={{ width: "100%", marginTop: 8, fontSize: 12, lineHeight: 1.4, color: T.ink, background: "#FEF3C7", borderRadius: 12, padding: "8px 11px" }}>{note}</div> : null}<div style={{ height: 28, marginTop: 8, fontSize: 12.5, fontWeight: 800, color: found ? HT.free : status === "none" ? T.negative : T.inkFaint, display: "flex", alignItems: "center", gap: 6 }}>{byMobile ? (found ? <><HlCheck size={15} />Next, your GLOOBAL PIN</> : "For India, start with 91") : <>{status === "looking" && "Checking…"}{status === "found" && <><HlCheck size={15} />Account found · next, your PIN</>}{status === "ready" && <><HlCheck size={15} />12 symbols · next, your GLOOBAL PIN</>}{status === "none" && "No account with this ID yet"}{!status && "Tap the symbols of your ID on the dial"}</>}</div><div style={{ flex: 1, minHeight: 0, display: "flex", alignItems: "center", justifyContent: "center", width: "100%" }}>{byMobile ? <PhoneDialPad value={mobile} onChange={onMobile || (() => {})} minLength={HELLOO_MOBILE_MIN} maxLength={HELLOO_MOBILE_MAX} onSubmit={found ? onNext : undefined} showValue={false} /> : <SymbolDialPad value={value} onChange={onChange} length={12} soundWhileTyping />}</div></div><div style={{ padding: "6px 20px calc(18px + env(safe-area-inset-bottom, 0px))" }}>{!byMobile && status === "none" ? <HellooSecondary Icon={HlSpark} onClick={() => window.open(HELLOO_GLOOBAL_SIGNUP, "_blank", "noopener")}>Create this ID on GLOOBAL</HellooSecondary> : <HellooPrimary disabled={!found} onClick={onNext}>Continue</HellooPrimary>}<div style={{ textAlign: "center", fontSize: 12.5, color: T.inkSoft, marginTop: 10 }}>New here? <a data-testid="helloo-create-id" href={HELLOO_GLOOBAL_SIGNUP} target="_blank" rel="noopener" style={{ color: T.accent, fontWeight: 800, textDecoration: "none" }}>Create your free <GloobalWordmark suffix=" ID" /></a></div></div></HellooScreen>;
+  const digits = String(mobile).replace(/\D/g, "");
+  const dialCode = (country && country.dialCode) || "+91";
+  const [least, most] = hellooMobileRange(country);
+  const found = byMobile ? digits.length >= least : (status === "found" || status === "ready");
+  const [picking, setPicking] = useStateH2(false);
+  const [pickQ, setPickQ] = useStateH2("");
+  useHellooBackLayer(picking, () => setPicking(false));
+  // A keyboard works too (a laptop, or a phone with one): digits, delete, Enter.
+  useEffectH2(() => {
+    if (!byMobile || picking) return undefined;
+    const onKey = (e) => {
+      const t = e.target && e.target.tagName;
+      if (t === "INPUT" || t === "TEXTAREA" || e.metaKey || e.ctrlKey || e.altKey) return;
+      if (/^\d$/.test(e.key)) { e.preventDefault(); onMobile && onMobile((digits + e.key).slice(0, most)); }
+      else if (e.key === "Backspace") { e.preventDefault(); onMobile && onMobile(digits.slice(0, -1)); }
+      else if (e.key === "Enter" && found) { e.preventDefault(); onNext && onNext(); }
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [byMobile, picking, digits, most, found]);
+  const hint = byMobile
+    ? (found ? <><HlCheck size={15} />Next, your GLOOBAL PIN</> : digits.length ? (least === most ? `${least - digits.length} more` : "Keep going") : "")
+    : (found ? <><HlCheck size={15} />12 symbols · next, your GLOOBAL PIN</> : status === "none" ? "No account with this ID yet" : value.length ? `${12 - value.length} more` : "");
+  return <HellooScreen><div style={{ flex: 1, minHeight: 0, display: "flex", flexDirection: "column", alignItems: "center", gap: 8, padding: "calc(10px + env(safe-area-inset-top, 0px)) 16px calc(14px + env(safe-area-inset-bottom, 0px))", boxSizing: "border-box" }}>
+    {onBack ? <span style={{ position: "absolute", left: 10, top: "calc(10px + env(safe-area-inset-top, 0px))" }}><NavBackButton onClick={onBack} /></span> : null}
+    <div style={{ width: "100%", flexShrink: 0, padding: "10px 4px 0", textAlign: "center", display: "flex", flexDirection: "column", alignItems: "center" }}><span data-testid="helloo-signin-mark" style={{ display: "inline-flex", marginBottom: 12 }}><HellooMark size={44} /></span><div data-testid="helloo-signin-title" style={{ fontSize: 23, fontWeight: 900, fontFamily: T.fontDisplay, color: T.ink, letterSpacing: -0.4, lineHeight: 1.15 }}>Sign in</div><div style={{ fontSize: 13, fontWeight: 700, color: T.inkSoft, marginTop: 5, lineHeight: 1.35 }}>{byMobile ? "With your mobile number · then your PIN" : <>With your 12-symbol <GloobalWordmark suffix=" ID" /> · then your PIN</>}</div></div>
+    {onMode ? <HellooModePill mode={mode} onMode={onMode} label="Sign in with" testid="helloo-signin-mode" /> : null}
+    <div style={{ flex: 1, minHeight: 0 }} />
+    {byMobile ? <HellooPhoneLine digits={digits} dialCode={dialCode} country={country} onPick={onCountry && typeof CountryPickerScreen === "function" ? () => setPicking(true) : undefined} color={found ? HT.free : T.ink} testid="helloo-signin-mobile" countryTestid="helloo-signin-country" /> : <HellooDialBox value={value} done={found} bad={status === "none"} />}
+    <div data-testid="helloo-signin-hint" style={{ minHeight: 24, display: "flex", alignItems: "center", justifyContent: "center", gap: 6, fontSize: 12.5, fontWeight: 800, color: found ? HT.free : status === "none" ? T.negative : T.inkFaint, textAlign: "center" }}>{hint}</div>
+    {note ? <div role="status" data-testid="helloo-signed-out-note" style={{ width: "100%", fontSize: 12, lineHeight: 1.4, color: T.ink, background: "#FEF3C7", borderRadius: 12, padding: "8px 11px", boxSizing: "border-box" }}>{note}</div> : null}
+    <div style={{ flex: 2.2, minHeight: 0 }} />
+    {byMobile ? <HellooPhoneKeys digits={digits} onDigits={onMobile} max={most} testid="helloo-signin-numbers" /> : <div style={{ flexShrink: 0, display: "flex", justifyContent: "center", width: "100%" }}><SymbolDialPad value={value} onChange={onChange} length={12} soundWhileTyping /></div>}
+    <div style={{ width: "100%", marginTop: 14, flexShrink: 0, boxSizing: "border-box", padding: "0 4px" }}>{!byMobile && status === "none" ? <HellooSecondary Icon={HlSpark} onClick={() => window.open(HELLOO_GLOOBAL_SIGNUP, "_blank", "noopener")}>Create this ID on GLOOBAL</HellooSecondary> : <HellooPrimary disabled={!found} onClick={onNext}>Continue</HellooPrimary>}<div style={{ textAlign: "center", fontSize: 12.5, color: T.inkSoft, marginTop: 10 }}>New here? <a data-testid="helloo-create-id" href={HELLOO_GLOOBAL_SIGNUP} target="_blank" rel="noopener" style={{ color: T.accent, fontWeight: 800, textDecoration: "none" }}>Create your free <GloobalWordmark suffix=" ID" /></a></div></div>
+  </div>{picking ? <CountryPickerScreen topCountries={TOP_COUNTRIES} countries={ALL_COUNTRIES} search={pickQ} onSearch={setPickQ} selectedIso={country && country.iso} onSelect={(c) => { setPicking(false); setPickQ(""); if (onCountry) onCountry(c); }} onClose={() => { setPicking(false); setPickQ(""); }} /> : null}</HellooScreen>;
 }
 
 // The PIN step is GLOOBAL's own sign-in screen (LoginAuthScreen) with its
