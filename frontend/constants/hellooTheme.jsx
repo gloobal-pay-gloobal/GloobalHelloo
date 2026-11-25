@@ -66,23 +66,44 @@ function HellooWordmark({ suffix = "", size }) {
   return <span aria-label={`Helloo${suffix}`} style={{ textTransform: "uppercase", fontWeight: 800, fontFamily: T.fontWordmark, whiteSpace: "nowrap", fontSize: size }}>Hell{dot(c1)}{dot(c2)}{suffix}</span>;
 }
 
-// The app mark (16 Nov): a G that is also a speech bubble, with the two
-// dots of HELL●● inside it. One drawing, two treatments:
-//   app  — white mark on Helloo's purple, pale dots (the app icon)
-//   ink  — purple mark on white, the dots in colour
+// The app mark: "Bubble G Clean" (25 Nov, founder's pick from the design
+// canvas). The same G that is also a speech bubble, now blue, with a green
+// phone inside it: Helloo is for talking, and talking with your people is
+// free. One drawing, two treatments:
+//   app  — white G and a green phone on a blue tile (the app icon)
+//   ink  — blue G and a green phone on white
 // The older variant names still resolve, so callers need not change.
+var HELLOO_BLUE = ["#3B82F6", "#1D4ED8"];
+// Lucide's "phone" outline (ISC licence, the icon set the app already uses), filled.
+var HELLOO_PHONE_PATH = "M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z";
 var HELLOO_MARK_VARIANTS = {
-  app: { tile: "url(#hlMarkGrad)", ink: "#fff", dots: ["#7CF5C4", "#FFB3CD"] },
-  ink: { tile: "#F7F6FB", ink: "#5B3DF5", dots: ["#10B981", "#F0447C"] }
+  app: { tile: "url(#hlMarkGrad)", g: "#fff", phone: "#4ADE80" },
+  ink: { tile: "#F7F6FB", g: "url(#hlMarkInk)", phone: "#10B981" }
 };
 HELLOO_MARK_VARIANTS.dots = HELLOO_MARK_VARIANTS.app;
 HELLOO_MARK_VARIANTS.purple = HELLOO_MARK_VARIANTS.app;
 HELLOO_MARK_VARIANTS.navy = HELLOO_MARK_VARIANTS.ink;
 var HELLOO_MARK_DEFAULT = "app";
 
+// The G itself, drawn in a 200 box: the ring with its bar, the bubble's
+// tail, the phone. `ink` colours the G; `phone` the phone.
+function hellooBubbleGParts(ink, phone) {
+  return <><path d="M143.8 56.2 A62 62 0 1 0 162 100 H136" fill="none" stroke={ink} strokeWidth="30" strokeLinecap="round" strokeLinejoin="round" /><path d="M47 132 L26 184 L84 160 Z" fill={ink} stroke={ink} strokeWidth="8" strokeLinejoin="round" /><g transform="translate(94 98) scale(2) translate(-12 -12)"><path d={HELLOO_PHONE_PATH} fill={phone} /></g></>;
+}
+function hellooBlueStops() {
+  return [<stop key="a" offset="0" stopColor={HELLOO_BLUE[0]} />, <stop key="b" offset="1" stopColor={HELLOO_BLUE[1]} />];
+}
+
 function HellooMark({ size = 64, variant = HELLOO_MARK_DEFAULT }) {
   const v = HELLOO_MARK_VARIANTS[variant] || HELLOO_MARK_VARIANTS.app;
-  return <svg width={size} height={size} viewBox="0 0 100 100" aria-label="Helloo" role="img" style={{ display: "block", flexShrink: 0, filter: "drop-shadow(0 10px 24px rgba(27,24,56,0.22))" }}><defs><linearGradient id="hlMarkGrad" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stopColor="#4F46E5" /><stop offset="0.6" stopColor="#7C3AED" /><stop offset="1" stopColor="#C026D3" /></linearGradient></defs><rect width="100" height="100" rx="22" fill={v.tile} /><g transform="translate(10 8) scale(0.4)"><path d="M143.8 56.2 A62 62 0 1 0 162 100 H150" fill="none" stroke={v.ink} strokeWidth="30" strokeLinecap="round" strokeLinejoin="round" /><path d="M47 132 L26 184 L84 160 Z" fill={v.ink} stroke={v.ink} strokeWidth="8" strokeLinejoin="round" /><circle cx="84" cy="100" r="13" fill={v.dots[0]} /><circle cx="116" cy="100" r="13" fill={v.dots[1]} /></g></svg>;
+  return <svg width={size} height={size} viewBox="0 0 100 100" aria-label="Helloo" role="img" style={{ display: "block", flexShrink: 0, filter: "drop-shadow(0 10px 24px rgba(29,78,216,0.24))" }}><defs><linearGradient id="hlMarkGrad" x1="0" y1="0" x2="1" y2="1">{hellooBlueStops()}</linearGradient><linearGradient id="hlMarkInk" x1="0" y1="0" x2="1" y2="1">{hellooBlueStops()}</linearGradient></defs><rect width="100" height="100" rx="22" fill={v.tile} /><g transform="translate(8 6) scale(0.42)">{hellooBubbleGParts(v.g, v.phone)}</g></svg>;
+}
+
+// The G with no tile: the fixed end the splash's line hangs from.
+// tone "color" — the blue G (on a light page); "white" — on a dark page.
+function HellooBubbleG({ size = 72, tone = "color" }) {
+  const white = tone === "white";
+  return <svg width={size} height={size} viewBox="0 0 200 200" aria-label="Helloo" role="img" style={{ display: "block", flexShrink: 0 }}>{white ? null : <defs><linearGradient id="hlBubbleGBlue" x1="0" y1="0" x2="1" y2="1">{hellooBlueStops()}</linearGradient></defs>}{hellooBubbleGParts(white ? "#FFFFFF" : "url(#hlBubbleGBlue)", white ? "#34D399" : "#10B981")}</svg>;
 }
 
 // A person on Helloo. The GLOOBAL ID is the identity; the name, flag and

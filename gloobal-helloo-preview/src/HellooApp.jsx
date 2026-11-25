@@ -174,6 +174,16 @@ import { ArrowLeft, ArrowRight, ChevronRight, TrendingUp, Sprout, Landmark as La
 import { useState as useState45 } from "react";
 import { useEffect as useEffect79 } from "react";
 import { Utensils as EssUtensils, Droplet as EssDroplet, Home as EssHome, Sparkles as EssSparkles, CheckCircle2 as EssCheckCircle, Circle as EssCircle, Lock as Lock8, ChevronRight as ChevronRight6 } from "lucide-react";
+import { useState as useState110 } from "react";
+import { useEffect as useEffect110 } from "react";
+import { useCallback as useCallback50 } from "react";
+import { useRef as useRef111 } from "react";
+import { HeartHandshake as CareHeart, UserPlus as CareUserPlus, ChevronRight as CareChevron, ShieldCheck as CareShield, Hourglass as CareHourglass, AlertCircle as CareAlert, KeyRound as CareKey } from "lucide-react";
+import { useState as useState111 } from "react";
+import { useEffect as useEffect111 } from "react";
+import { useRef as useRef110 } from "react";
+import { useCallback as useCallback51 } from "react";
+import { X as CareCloseIcon, Sprout as CareSprout, Send as CareSend, ArrowUpRight as CareOut, ArrowDownLeft as CareIn, Hourglass as CareWait } from "lucide-react";
 import { useState as useStateBank, useEffect as useEffectBank, useRef as useRefBank, useMemo as useMemoBank } from "react";
 import {
   ArrowLeft as ArrowLeftBk, X as XBk, Check as CheckBk, ShieldCheck as ShieldBk, Landmark as LandmarkBk,
@@ -195,6 +205,8 @@ import { Pencil as Pencil2, ArrowLeft as ArrowLeft7 } from "lucide-react";
 import { useState as useState44, useMemo as useMemo13, useEffect as useEffect45 } from "react";
 import { Plus as Plus5, Search as Search6, ArrowLeft as ArrowLeft8, RefreshCw as RefreshCw8, Heart as Heart3, X as X9 } from "lucide-react";
 import { ArrowDownLeft, ArrowUpRight } from "lucide-react";
+import { useState as useState103, useEffect as useEffect103, useRef as useRef103 } from "react";
+import { Sprout as SproutPl, TrendingUp as TrendingUpPl, CircleCheck as CheckPl } from "lucide-react";
 import { ArrowLeft as ArrowLeft2, ChevronRight as ChevronRight2 } from "lucide-react";
 import { useState as useState84, useEffect as useEffect80, useMemo as useMemo19, useRef as useRef44 } from "react";
 import {
@@ -292,7 +304,7 @@ import { useState as useState62, useEffect as useEffect59, useRef as useRef35 } 
 import {
   UtensilsCrossed as BzFood, ShoppingBasket as BzGrocery, Cake as BzSweets, Shirt as BzFashion, Scissors as BzBeauty,
   Pill as BzHealth, Smartphone as BzElectronics, Wrench as BzRepair, Hammer as BzHome, GraduationCap as BzEducation,
-  Bus as BzTravel, Palette as BzArt, PartyPopper as BzEvents, Store as BzOther, Clapperboard as BzCreator, HeartHandshake as BzCommunity, Tractor as BzFarm, HardHat as BzWork,
+  Bus as BzTravel, Palette as BzArt, PartyPopper as BzEvents, Store as BzOther, Clapperboard as BzCreator, HeartHandshake as BzCommunity, Tractor as BzFarm, HardHat as BzWork, BrickWall as BzBuilding,
   LocateFixed as LocateFixed2, Loader as Loader7, Flame as BzFlame, SearchX as BzSearchOff, ChevronRight as ChevronRight10,
   History as BzRecent, Star as BzStar,
   Gift as BzFestive, Search as BzSuggest, SlidersHorizontal as BzFilter, X as BzX,
@@ -371,8 +383,18 @@ import {
 } from "lucide-react";
 import { useState as useState50, useEffect as useEffect49, useCallback as useCallback41 } from "react";
 import { HandCoins, Users as Users3, Check as Check8 } from "lucide-react";
+import { useState as useState113, useEffect as useEffect113 } from "react";
+import {
+  Package as PlanMaterialIcon, Cpu as PlanTechIcon, Users as PlanPeopleIcon, Receipt as PlanOtherIcon,
+  MapPin as PlanPinIcon, LocateFixed as PlanLocateIcon, Store as PlanStoreIcon, Check as PlanCheckIcon,
+  Trash2 as PlanTrashIcon, Plus as PlanPlusIcon, ChevronDown as PlanMoreIcon
+} from "lucide-react";
 import { useState as useState100, useEffect as useEffect97 } from "react";
-import { Check as RevCheck, X as RevX, Clock as RevClock, AlertCircle as RevAlert, ChevronRight as RevChevron, ShieldCheck as RevShield, Plus as RevPlus, Trash2 as RevTrash } from "lucide-react";
+import { Check as RevCheck, X as RevX, Clock as RevClock, AlertCircle as RevAlert, ChevronRight as RevChevron, ShieldCheck as RevShield } from "lucide-react";
+import { useState as useState112 } from "react";
+import { useEffect as useEffect112 } from "react";
+import { useRef as useRef112 } from "react";
+import { Send as TalkSend, Sparkles as TalkSpark, ShieldCheck as TalkShield, AlertTriangle as TalkWarn, HelpCircle as TalkAsk, ListChecks as TalkSteps, CheckCircle2 as TalkOk, Circle as TalkTodo } from "lucide-react";
 import { useState as useState76, useEffect as useEffect71, useMemo as useMemo18 } from "react";
 import {
   Scale as CovScale, Database as CovData, RefreshCw as CovRates, FlaskConical as CovTest, ChevronRight as CovChevron,
@@ -513,7 +535,7 @@ import {
   Smartphone as HlMobile, Sparkles as HlSpark, Lock as HlLock, Wallet as HlWallet, IndianRupee as HlRupee,
   Hash as HlHash, Keyboard as HlKeyboard, Fingerprint as HlFinger, ChevronDown as HlDown, Send as HlSend, UserPlus as HlUserPlus, Pencil as HlPencil, Globe2 as HlGlobe, Briefcase as HlBriefcase, Smile as HlSmile, FileText as HlFileText, Pause as HlPause, RefreshCw as HlRetry, Grip as HlGrip, Info as HlInfo, BadgeCheck as HlVerified, Clapperboard as HlSocial, Coins as HlEarn
 } from "lucide-react";
-import { useState as useStateH2, useEffect as useEffectH2 } from "react";
+import { useState as useStateH2, useEffect as useEffectH2, useRef as useRefH14 } from "react";
 import { useState as useStateH41 } from "react";
 import { useState as useStateH3 } from "react";
 import { useState as useStateH4, useRef as useRefH4, useEffect as useEffectH4 } from "react";
@@ -6081,7 +6103,12 @@ async function gloobalApiRequestNetwork(method, path, body, options) {
   // Sent when there is one, omitted when there is not, so the pre-sign-in
   // routes (OTP, registration, login, availability) are unaffected.
   const headers = { "Content-Type": "application/json" };
-  const authToken = typeof gloobalAuthToken === "function" ? gloobalAuthToken() : null;
+  // `opts.bearer`: a helper's session for the account of someone they look
+  // after (server/lib/care.js). It is sent instead of this phone's own
+  // sign-in, is never stored in place of it, and its renewals go back to
+  // whoever asked (`opts.onBearerRefresh`) — so helping someone can never
+  // sign this phone into their account, or out of its own.
+  const authToken = opts.bearer || (typeof gloobalAuthToken === "function" ? gloobalAuthToken() : null);
   if (authToken && !opts.anonymous) headers.Authorization = `Bearer ${authToken}`;
 
   try {
@@ -6113,14 +6140,19 @@ async function gloobalApiRequestNetwork(method, path, body, options) {
     // token accepted on a call that had no credential of its own would be a
     // session minted by a response, which is not a thing this client should
     // ever let happen.
-    if (authToken && !opts.anonymous && typeof gloobalAuthTokenSave === "function") {
+    if (authToken && !opts.anonymous && (opts.bearer || typeof gloobalAuthTokenSave === "function")) {
       const refreshed = res.headers.get(GLOOBAL_API_TOKEN_REFRESH_HEADER);
-      // Only while the token this request went out with is still the one in
-      // hand. An answer that comes back after somebody else has signed in on
-      // this phone would otherwise put the PREVIOUS account's fresh token
-      // over the new session's.
-      const stillMine = typeof gloobalAuthToken !== "function" || gloobalAuthToken() === authToken;
-      if (refreshed && refreshed !== authToken && stillMine) gloobalAuthTokenSave(refreshed);
+      if (opts.bearer) {
+        // A helper's session: renewed for whoever holds it, never stored here.
+        if (refreshed && refreshed !== authToken && typeof opts.onBearerRefresh === "function") opts.onBearerRefresh(refreshed);
+      } else {
+        // Only while the token this request went out with is still the one in
+        // hand. An answer that comes back after somebody else has signed in on
+        // this phone would otherwise put the PREVIOUS account's fresh token
+        // over the new session's.
+        const stillMine = typeof gloobalAuthToken !== "function" || gloobalAuthToken() === authToken;
+        if (refreshed && refreshed !== authToken && stillMine) gloobalAuthTokenSave(refreshed);
+      }
     }
 
     if (!res.ok) {
@@ -6210,7 +6242,7 @@ async function gloobalApiRequestNetwork(method, path, body, options) {
       // was in storage by then — the one the sign-in had just earned — and
       // announce a sign-out: signed in, and thrown out the same moment.
       // So the session ends only if the refused token is still the one held.
-      const refusedIsCurrent = typeof gloobalAuthToken !== "function" || gloobalAuthToken() === authToken;
+      const refusedIsCurrent = !opts.bearer && (typeof gloobalAuthToken !== "function" || gloobalAuthToken() === authToken);
       if (tokenRejected && authToken && refusedIsCurrent && typeof gloobalAuthTokenClear === "function") {
         gloobalAuthTokenClear();
         if (typeof gloobalLocalCopyClear === "function") gloobalLocalCopyClear();
@@ -6257,6 +6289,8 @@ async function gloobalApiRequestNetwork(method, path, body, options) {
 // Everything else, every write included, is the server's answer or its error.
 async function gloobalApiRequest(method, path, body, options) {
   const opts = options || {};
+  // A helper's session is never kept on, or served from, this phone's copy.
+  if (opts.bearer) return gloobalApiRequestNetwork(method, path, body, opts);
   const authToken = typeof gloobalAuthToken === "function" ? gloobalAuthToken() : null;
   if (!gloobalApiKeepsLocalCopy(method, path, authToken, opts)) {
     return gloobalApiRequestNetwork(method, path, body, opts);
@@ -6328,7 +6362,7 @@ async function gloobalApiSavedOrThrow(error, path, saved) {
 // `{ liveOnly: true }`.
 function gloobalApiKeepsLocalCopy(method, path, authToken, opts) {
   return Boolean(
-    authToken && !opts.anonymous && !opts.liveOnly &&
+    authToken && !opts.anonymous && !opts.liveOnly && !opts.bearer &&
     typeof gloobalLocalCopyWanted === "function" && gloobalLocalCopyWanted(method, path)
   );
 }
@@ -7024,6 +7058,27 @@ function creatorItemsWithRefs(items, current) {
     const list = Array.isArray(it.photos) ? it.photos : (it.photo ? [it.photo] : []);
     return { ...it, photos: list.map((p) => (typeof p === "string" && known.has(p) ? known.get(p) : p)) };
   });
+}
+
+// One shape for calls that must not throw (people I look after, the project
+// conversation): { ok: true, ...answer } or { ok: false, code,
+// message, status }. `status` 0 is no answer at all (offline, or the server
+// waking); 401/403 inside a helper's session means that session is over.
+async function gloobalCareCall(run) {
+  try {
+    const result = await run();
+    return { ...(result || {}), ok: true };
+  } catch (e) {
+    const body = (e && e.body) || {};
+    const unreachable = Boolean(e && e.status === 0);
+    return {
+      ...body,
+      ok: false,
+      status: e && typeof e.status === "number" ? e.status : 0,
+      code: body.code || (unreachable ? "unreachable" : "failed"),
+      message: unreachable ? "Couldn't reach GLOOBAL. Check your connection and try again." : (body.message || (e && e.message) || "Could not do that just now."),
+    };
+  }
 }
 
 var GloobalApi = {
@@ -7724,8 +7779,40 @@ var GloobalApi = {
   async setProjectPlan(id, plan) {
     return gloobalApiClient.put(`/api/projects/${encodeURIComponent(id)}/plan`, { plan });
   },
+  // Where the work happens: { lat, lng, label } or { clear: true }.
+  async setProjectSite(id, site) {
+    return gloobalApiClient.put(`/api/projects/${encodeURIComponent(id)}/site`, site || {});
+  },
+  // GLOOBAL's reviewers: the ranked Bazaar sellers for each material and
+  // tech line (server/lib/projectSuppliers.js), and confirming one —
+  // { sellerId, note } or { other: true, note } or { clear: true }. Neither
+  // throws: { ok, ...the server's answer } or { ok: false, code, message }.
+  async projectSellers(id) {
+    return gloobalCareCall(() => gloobalApiClient.get(`/api/review/projects/${encodeURIComponent(id)}/sellers`, { liveOnly: true }));
+  },
+  async pickProjectSeller(id, n, body) {
+    return gloobalCareCall(() => gloobalApiClient.post(`/api/review/projects/${encodeURIComponent(id)}/plan/${Number(n)}/pick`, body || {}));
+  },
   async submitProject(id) {
     return gloobalApiClient.post(`/api/projects/${encodeURIComponent(id)}/submit`, {});
+  },
+  // Talk it through with Hooman Intelligence, then apply
+  // (server/lib/projectTalk.js). None of these throws: each resolves
+  // { ok, ...the server's answer } or { ok: false, code, message }.
+  async projectTalk(id) {
+    return gloobalCareCall(() => gloobalApiClient.get(`/api/projects/${encodeURIComponent(id)}/talk`, { liveOnly: true }));
+  },
+  async projectTalkStart(id) {
+    return gloobalCareCall(() => gloobalApiClient.post(`/api/projects/${encodeURIComponent(id)}/talk`, {}, { timeoutMs: 60000 }));
+  },
+  async projectTalkSay(id, text) {
+    return gloobalCareCall(() => gloobalApiClient.post(`/api/projects/${encodeURIComponent(id)}/talk/say`, { text }, { timeoutMs: 60000 }));
+  },
+  async projectTalkFinish(id) {
+    return gloobalCareCall(() => gloobalApiClient.post(`/api/projects/${encodeURIComponent(id)}/talk/finish`, {}, { timeoutMs: 60000 }));
+  },
+  async projectTalkApply(id, anyway) {
+    return gloobalCareCall(() => gloobalApiClient.post(`/api/projects/${encodeURIComponent(id)}/talk/apply`, { anyway: Boolean(anyway) }));
   },
   async answerProjectQuestion(id, questionId, answer) {
     return gloobalApiClient.post(`/api/projects/${encodeURIComponent(id)}/answer`, { questionId, answer });
@@ -8178,6 +8265,89 @@ var GloobalApi = {
       return { applied: 0, code: (body && body.code) || "failed", message: (body && body.message) || (e && e.message) || "" };
     }
   },
+  // ── People I look after (server/lib/care.js) ──────────────────────────
+  // A child, someone older, someone with a disability: their own GLOOBAL
+  // ID and their own Essentials, used for them by a helper. None of these
+  // throws: each resolves { ok, ...the server's answer } or
+  // { ok: false, code, message }, so a screen can say what the server said.
+  async careDocs() {
+    return gloobalCareCall(() => gloobalApiClient.get("/api/care/docs", { liveOnly: true }));
+  },
+  async carePeople() {
+    return gloobalCareCall(() => gloobalApiClient.get("/api/care/people", { liveOnly: true }));
+  },
+  async careAdd(person) {
+    return gloobalCareCall(() => gloobalApiClient.post("/api/care/people", person || {}));
+  },
+  async careInvite(personId, invite) {
+    return gloobalCareCall(() => gloobalApiClient.post(`/api/care/people/${encodeURIComponent(personId)}/helpers`, invite || {}));
+  },
+  async careAnswer(linkId, accept) {
+    return gloobalCareCall(() => gloobalApiClient.post(`/api/care/invitations/${encodeURIComponent(linkId)}`, { accept: Boolean(accept) }));
+  },
+  async careLeave(personId) {
+    return gloobalCareCall(() => gloobalApiClient.delete(`/api/care/people/${encodeURIComponent(personId)}/helpers/me`));
+  },
+  async careRemoveHelper(personId, linkId) {
+    return gloobalCareCall(() => gloobalApiClient.delete(`/api/care/people/${encodeURIComponent(personId)}/helpers/${encodeURIComponent(linkId)}`));
+  },
+  async careActions(personId) {
+    return gloobalCareCall(() => gloobalApiClient.get(`/api/care/people/${encodeURIComponent(personId)}/actions`, { liveOnly: true }));
+  },
+  // Opens their account with the HELPER'S own PIN. Resolves { ok, token,
+  // person }: `token` is a short session for their account that names this
+  // helper too. It is handed to careSession below and kept nowhere else.
+  async careOpen(personId, pin) {
+    return gloobalCareCall(() => gloobalApiClient.post(`/api/care/people/${encodeURIComponent(personId)}/open`, { pin }));
+  },
+  // Every call made inside their account. Each one carries that session's
+  // token in place of this phone's own sign-in (httpClient.js `bearer`), so
+  // helping someone never signs this phone into their account or out of its
+  // own; a renewal the server sends back replaces the token here only.
+  careSession(token) {
+    let current = token;
+    const opts = () => ({ bearer: current, onBearerRefresh: (next) => { current = next; } });
+    return {
+      acting: () => gloobalCareCall(() => gloobalApiClient.get("/api/care/acting", opts())),
+      essentials: () => gloobalCareCall(() => gloobalApiClient.get("/api/essentials/me", opts())),
+      draw: (amount, idempotencyKey) => gloobalCareCall(() => gloobalApiClient.post("/api/essentials/draw", { amount, idempotencyKey }, opts())),
+      history: (symbolId) => gloobalCareCall(() => gloobalApiClient.get(`/api/transactions/history/${encodeURIComponent(symbolId)}`, opts())),
+      resolve: (identifier) => gloobalCareCall(() => gloobalApiClient.get(`/api/users/resolve?identifier=${encodeURIComponent(identifier)}`, opts())),
+      send: (payload) => gloobalCareCall(() => gloobalApiClient.post("/api/transactions/send", payload, opts())),
+    };
+  },
+  // PayLater by the day (lib/paylaterDaily.js on the server): what the
+  // account has (seeds, limit, in use, what it has cost so far, growth),
+  // using it, repaying, and claiming the growth. The three that move money
+  // never throw: they resolve { ok, code, message, ...summary }.
+  async getPaylaterDaily() {
+    try {
+      const result = await gloobalApiClient.get("/api/paylater/me");
+      return result && result.success ? result : null;
+    } catch (e) {
+      return null;
+    }
+  },
+  async getPaylaterPool() {
+    try {
+      const result = await gloobalApiClient.get("/api/paylater/pool");
+      return result && result.success ? result : null;
+    } catch (e) {
+      return null;
+    }
+  },
+  async paylaterMove(path, body) {
+    try {
+      const result = await gloobalApiClient.post(`/api/paylater/${path}`, body || {});
+      return Object.assign({ ok: Boolean(result && result.success) }, result || {});
+    } catch (e) {
+      const b = e && e.body;
+      return { ok: false, code: (b && b.code) || "failed", message: (b && b.message) || "Could not do that just now. Nothing was moved." };
+    }
+  },
+  usePaylater(amount, idempotencyKey) { return GloobalApi.paylaterMove("use", { amount, idempotencyKey }); },
+  repayPaylater(amount, idempotencyKey) { return GloobalApi.paylaterMove("repay", amount === undefined || amount === null ? { idempotencyKey } : { amount, idempotencyKey }); },
+  claimPaylaterGrowth(idempotencyKey) { return GloobalApi.paylaterMove("claim-growth", { idempotencyKey }); },
   async getLinkedAccounts() {
     const result = await gloobalApiClient.get("/api/bank-transfers/accounts");
     return (result && result.accounts) || [];
@@ -29890,12 +30060,12 @@ function PaymentUnlock({ receipt, onClose, onViewShareReceipt, onToast }) {
               </div>
               {shareParts ? (
                 <div style={{ padding: "12px 16px 0", display: "flex", flexDirection: "column", gap: 10 }}>
-                  {/* What it becomes if they leave it: one month at the rate My
-                      Assets really pays (ASSET_GROWTH_RATE_MONTHLY), never a
-                      guess. */}
+                  {/* What happens if they leave it. No figure: growth is what
+                      people using PayLater pay each day, shared with holders,
+                      so there is no rate to promise. */}
                   <div data-testid="unlock-grows" style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 6, fontSize: 12.5, fontWeight: 700, color: "#0B7A57" }}>
                     <SproutUnlock size={15} strokeWidth={2.4} aria-hidden="true" />
-                    {`About ${geuLensBarMoney(share * (1 + (typeof ASSET_GROWTH_RATE_MONTHLY === "number" ? ASSET_GROWTH_RATE_MONTHLY : 0.01)), shareCurrency, lens, viewerCurrency)} in a month if you leave it`}
+                    {"Grows each day PayLater is used, if you leave it"}
                   </div>
                   <div role="radiogroup" aria-label="What to do with it" data-testid="unlock-keep" style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8 }}>
                     {[["grow", "Keep it growing"], ["add", keep === "added" ? "Added ✓" : keep === "adding" ? "Adding…" : "Add to balance"]].map(([k, label]) => {
@@ -30918,7 +31088,6 @@ function AssetsScreen({ onClose, ccy, ccyCode = "USD", assetRows, onViewPayLater
   // returned in full — that is the whole point of the screen and it cannot
   // be made without printing the figure.
   const totalSpending = assetRows.reduce((s, r) => s + r.amountPaid, 0);
-  const avgMonthsToTarget = assetRows.length ? assetRows.reduce((s, r) => s + r.monthsToTarget, 0) / assetRows.length : 0;
   // The horizon printed beside the total is the LONGEST seed, not the
   // average of them.
   //
@@ -30928,7 +31097,6 @@ function AssetsScreen({ onClose, ccy, ccyCode = "USD", assetRows, onViewPayLater
   // 41.1 years apart, so the average would have promised the full total
   // sixteen years before it exists. The average still has a place, but it
   // is a fact about the seeds and it lives with them, further down.
-  const maxMonthsToTarget = assetRows.length ? Math.max(...assetRows.map((r) => r.monthsToTarget)) : 0;
   // How much of everything ever spent has come back and is sitting here
   // now. This is a ratio of two real balances, and the label says exactly
   // that — "of what you spent" — because it is NOT progress earned.
@@ -30991,7 +31159,7 @@ function AssetsScreen({ onClose, ccy, ccyCode = "USD", assetRows, onViewPayLater
       background: T.surface,
       transition: "width 0.3s ease"
     }}
-  /></div><div style={{ display: "flex", alignItems: "baseline", justifyContent: "space-between", gap: 10, marginTop: 8, fontSize: 10.5, fontWeight: 700, color: "rgba(255,255,255,0.7)" }}><span>{pctOfSpend.toFixed(1)}% of what you spent</span><span style={{ textAlign: "right" }}><GeuFigure amount={totalSpending} currency={ccyCode} lens={lens} size={10.5} />{maxMonthsToTarget > 0 ? ` · ~${(maxMonthsToTarget / 12).toFixed(0)} yrs` : ""}</span></div></div>{
+  /></div><div style={{ display: "flex", alignItems: "baseline", justifyContent: "space-between", gap: 10, marginTop: 8, fontSize: 10.5, fontWeight: 700, color: "rgba(255,255,255,0.7)" }}><span>{pctOfSpend.toFixed(1)}% of what you spent</span><span style={{ textAlign: "right" }}><GeuFigure amount={totalSpending} currency={ccyCode} lens={lens} size={10.5} /></span></div></div>{
     /* Settle — moves the real current assets total into the real
        Gloobal Bank balance, gated behind verification. Disabled at
        zero, since there's genuinely nothing to settle then. */
@@ -31079,23 +31247,24 @@ function AssetsScreen({ onClose, ccy, ccyCode = "USD", assetRows, onViewPayLater
          So it is gone, and the horizon says what it was there to say.
          "back in 31.6 yr" can only mean back to the figure at the front
          of the line, and that figure is printed in full. */
-    }<span style={{ flexShrink: 0 }}>back in {(r.monthsToTarget / 12).toFixed(1)} yr</span></span></span></button>;
+    }{
+      /* No "back in N years" any more: that counted a fixed 1% a month.
+         Seeds now grow by what PayLater users pay each day, which nobody
+         can promise ahead (lib/paylaterMath.js). */
+    }</span></span></button>;
   })}</div>{assetRows.length > 4 && <button
     onClick={() => setAssetsExpanded((v) => !v)}
     className="v2-tap"
     style={{ width: "100%", display: "flex", alignItems: "center", justifyContent: "center", gap: 6, border: "none", background: "none", padding: "12px 4px 4px", cursor: "pointer" }}
   ><span style={{ fontSize: 12, fontWeight: 700, color: T.accent }}>{assetsExpanded ? "Show less" : `View all spending (${assetRows.length})`}</span><ChevronRight size={13} color={T.accent} style={{ transform: assetsExpanded ? "rotate(-90deg)" : "rotate(90deg)", transition: "transform 0.15s ease" }} /></button>}{
-    /* Average time-to-fully-compound — only shown once the
-       full list is expanded, as the total that summarizes it. */
-  }{assetsExpanded && <div style={{ display: "flex", alignItems: "center", gap: 12, borderRadius: T.radiusLg, background: T.surface, boxShadow: T.shadowCard, padding: "14px 16px", marginTop: 12 }}><span style={{ width: 36, height: 36, borderRadius: 11, flexShrink: 0, background: T.accentSoft, display: "flex", alignItems: "center", justifyContent: "center" }}><TrendingUp size={17} color={T.accent} /></span><span style={{ flex: 1, minWidth: 0 }}><span style={{ display: "block", fontSize: 13.5, fontWeight: 700, color: T.ink }}>Avg. time to fully compound</span><span style={{ display: "block", fontSize: 11, color: T.inkFaint, marginTop: 1 }}>
-                  Average across all {assetRows.length} asset{assetRows.length === 1 ? "" : "s"}, to reach 100% of spend
-                </span></span><span style={{ fontSize: 17, fontWeight: 800, color: T.ink, fontFamily: T.fontDisplay, flexShrink: 0 }}>{(avgMonthsToTarget / 12).toFixed(1)} yr
-              </span></div>}</div>{
+    /* (The average time to "fully compound" was a fixed-rate projection,
+       and is gone with the fixed rate.) */
+  }{null}</div>{
     /* The rates, as one quiet line. These were three cards the size of
        the settle button — the same visual weight as the action — for
        three constants that never change and that nobody opens this
        screen to read. */
-  }<div style={{ display: "flex", flexWrap: "wrap", gap: "5px 14px", padding: "0 2px", fontSize: 10.5, fontWeight: 700, color: T.inkFaint }}><span>Cashback 0–7%</span><span>Growth {(ASSET_GROWTH_RATE_MONTHLY * 100).toFixed(0)}%/mo</span><span>Compounded monthly</span></div>{
+  }<div style={{ display: "flex", flexWrap: "wrap", gap: "5px 14px", padding: "0 2px", fontSize: 10.5, fontWeight: 700, color: T.inkFaint }}><span>Cashback 0–7%</span><span>Growth shared daily</span><span>From PayLater use</span></div>{
     /* PayLater. Same fact as before — this total is also the limit —
        but as its own row at the foot of the screen rather than a line
        inside the balance card, where "= your PayLater limit" sat close
@@ -31105,7 +31274,7 @@ function AssetsScreen({ onClose, ccy, ccyCode = "USD", assetRows, onViewPayLater
     className="v2-tap"
     style={{ width: "100%", display: "flex", alignItems: "center", gap: 8, border: "none", borderTop: `1px solid ${T.line}`, background: "none", padding: "12px 2px 0", cursor: "pointer", textAlign: "left" }}
   ><span style={{ flex: 1, minWidth: 0, fontSize: 11.5, fontWeight: 700, color: T.inkFaint }}>
-            Your assets are also your PayLater limit
+            Your assets set your PayLater limit — more as you repay on time
           </span><ChevronRight size={14} color={T.inkFaint} style={{ flexShrink: 0 }} /></button></div>{confirmOpen && <AssetsSettleSheet
     symbolId={symbolId}
     ccyCode={ccyCode}
@@ -31287,6 +31456,10 @@ function EssentialsScreen({ onClose, dialCountry, ccy, ccyCode = "USD", iHaveEno
   // viewer's — the same as My Assets and PayLater.
   const lens = useGeuLens();
   const [howOpen, setHowOpen] = useState45(false);
+  // People this account looks after (features/care/): their own GLOOBAL
+  // ID and their own Essentials, used by this account for them.
+  const [careOpen, setCareOpen] = useState45(false);
+  const [careRound, setCareRound] = useState45(0);
   const essentialsMoney = (value) => geuLensBarParts(value, ccyCode, lens, ccyCode);
   // One renderer for all of them, so a tile and the headline cannot end up
   // drawn differently. `base` is the size the design asked for; the second
@@ -31433,7 +31606,7 @@ function EssentialsScreen({ onClose, dialCountry, ccy, ccyCode = "USD", iHaveEno
        because the caveats underneath it — placeholder data, a regional
        default where a country has no entry of its own — are the kind of
        thing somebody should be able to go and read, not squint at. */
-  }<button
+  }<CareEntryCard key={careRound} onOpen={() => setCareOpen(true)} /><button
     onClick={() => setHowOpen(true)}
     className="v2-tap"
     style={{ display: "flex", alignItems: "center", gap: 12, width: "100%", border: "none", borderRadius: T.radiusLg, background: T.surface, boxShadow: T.shadowCard, padding: "16px 16px", cursor: "pointer", textAlign: "left" }}
@@ -31552,7 +31725,664 @@ function EssentialsScreen({ onClose, dialCountry, ccy, ccyCode = "USD", iHaveEno
     style={{ borderRadius: T.radiusMd, background: T.surfaceAlt, padding: "12px 14px", fontWeight: 700, color: T.ink }}
   >
       These are placeholder figures and have not been verified. Do not treat them as advice about what anything costs.
-    </div></div></HelpSheet></div>;
+    </div></div></HelpSheet>{careOpen && <CarePeopleScreen onClose={() => { setCareOpen(false); setCareRound((n) => n + 1); }} />}</div>;
+}
+
+
+// src/features/care/CarePeopleScreen.jsx
+//
+// ── PEOPLE I LOOK AFTER ──────────────────────────────────────────────────
+//
+// Someone who cannot use GLOOBAL themselves — a child, someone older,
+// someone with a disability — gets their own GLOOBAL ID and their own
+// Essentials, and somebody close to them uses it for them (server/lib/care.js).
+//
+// Anyone can be that helper: a parent, a big sister, a grandchild, a
+// friend. GLOOBAL does not know who is whose parent, so the helper says who
+// they are to the person, and the PERSON'S OWN DOCUMENT is what is checked —
+// automatically. Their Essentials start only once it has passed.
+//
+// From here a helper adds someone, sees where their document stands, opens
+// their account with the helper's own PIN (CareHelperPanel.jsx), invites one
+// more helper, sees everything every helper did in it, and can step back.
+
+// Who the HELPER is to the person. The server's list (models/CareLink.js),
+// in the words a person would use.
+var CARE_RELATIONSHIPS = [
+  { kind: "parent", label: "Parent" },
+  { kind: "sibling", label: "Brother or sister" },
+  { kind: "grandparent", label: "Grandparent" },
+  { kind: "grandchild", label: "Grandchild" },
+  { kind: "child", label: "Son or daughter" },
+  { kind: "spouse", label: "Husband or wife" },
+  { kind: "relative", label: "Relative" },
+  { kind: "friend", label: "Friend" },
+  { kind: "caretaker", label: "Caretaker" },
+  { kind: "other", label: "Other" },
+];
+function careRelationshipText(kind, note) {
+  if (kind === "other") return String(note || "").trim() || "Other";
+  const row = CARE_RELATIONSHIPS.find((r) => r.kind === kind);
+  return row ? row.label : "";
+}
+function careAgeText(age) {
+  const n = Number(age);
+  if (!Number.isFinite(n)) return "";
+  if (n < 1) return "Under 1";
+  return n === 1 ? "1 yr" : `${n} yrs`;
+}
+function careFirstName(name) {
+  return String(name || "").trim().split(/\s+/)[0] || "them";
+}
+function careToday() {
+  const d = new Date();
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+}
+function careAgeOn(birth) {
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(String(birth || ""))) return null;
+  const [y, m, d] = birth.split("-").map(Number);
+  const now = new Date();
+  let age = now.getFullYear() - y;
+  if (now.getMonth() + 1 < m || (now.getMonth() + 1 === m && now.getDate() < d)) age -= 1;
+  return age;
+}
+
+// The look every card here shares.
+function careCard(extra) {
+  return { borderRadius: T.radiusLg, background: T.surface, boxShadow: T.shadowCard, padding: "16px 16px", display: "flex", flexDirection: "column", gap: 12, ...(extra || {}) };
+}
+function careInput(extra) {
+  return { width: "100%", boxSizing: "border-box", border: `1px solid ${T.line}`, borderRadius: T.radiusMd, padding: "12px 13px", fontSize: 15, fontWeight: 600, color: T.ink, background: T.surface, fontFamily: T.fontBody, ...(extra || {}) };
+}
+function careButton(enabled, extra) {
+  return { border: "none", borderRadius: T.radiusMd, padding: "13px 0", background: enabled ? T.gradButton : T.surfaceAlt, color: enabled ? "#fff" : T.inkFaint, fontSize: 14, fontWeight: 800, cursor: enabled ? "pointer" : "default", width: "100%", ...(extra || {}) };
+}
+function careQuietButton(extra) {
+  return { border: `1px solid ${T.line}`, borderRadius: T.radiusMd, padding: "12px 0", background: T.surface, color: T.ink, fontSize: 13.5, fontWeight: 700, cursor: "pointer", width: "100%", ...(extra || {}) };
+}
+var CARE_CAPTION = { fontSize: 11, fontWeight: 800, textTransform: "uppercase", letterSpacing: 0.4 };
+
+function CareNote({ note }) {
+  if (!note) return null;
+  return <div role={note.ok ? "status" : "alert"} data-testid="care-note" style={{ fontSize: 12.5, fontWeight: 700, color: note.ok ? T.positive : T.negative, lineHeight: 1.45 }}>{note.text}</div>;
+}
+
+// Where their document stands, in three words and a colour.
+function CareStatusChip({ doc, ready }) {
+  const status = doc ? doc.status : "waiting";
+  const tone = status === "verified" ? T.positive : status === "rejected" ? T.negative : T.inkSoft;
+  const soft = status === "verified" ? T.positiveSoft : status === "rejected" ? T.negativeSoft : T.surfaceAlt;
+  const Icon = status === "verified" ? CareShield : status === "rejected" ? CareAlert : CareHourglass;
+  const text = status === "verified" && ready === false ? "Checking the order" : (doc && doc.statusText) || "Waiting for check";
+  return <span data-testid="care-status" style={{ display: "inline-flex", alignItems: "center", gap: 5, padding: "4px 9px", borderRadius: 999, background: soft, color: tone, fontSize: 11.5, fontWeight: 800, whiteSpace: "nowrap" }}><Icon size={12} color={tone} />{text}</span>;
+}
+
+function CareChips({ options, value, onChange, testid }) {
+  return <div data-testid={testid} style={{ display: "flex", flexWrap: "wrap", gap: 7 }}>{options.map((o) => {
+    const on = value === o.value;
+    return <button key={o.value} type="button" onClick={() => onChange(o.value)} className="v2-tap" aria-pressed={on} style={{ border: `1px solid ${on ? T.accent : T.line}`, borderRadius: 999, padding: "8px 12px", background: on ? T.accentSoft : T.surface, color: on ? T.accent : T.ink, fontSize: 12.5, fontWeight: on ? 800 : 600, cursor: "pointer" }}>{o.label}</button>;
+  })}</div>;
+}
+
+function CareField({ label, hint, children }) {
+  return <label style={{ display: "flex", flexDirection: "column", gap: 6 }}><span style={{ ...CARE_CAPTION, color: T.inkSoft }}>{label}</span>{children}{hint ? <span style={{ fontSize: 11.5, color: T.inkSoft, lineHeight: 1.45 }}>{hint}</span> : null}</label>;
+}
+
+// ── THE CARD ON MY ESSENTIALS ────────────────────────────────────────────
+// Says how many people this account looks after, and whether anyone has
+// asked it to help. Quiet when there is neither.
+function CareEntryCard({ onOpen }) {
+  const [state, setState] = useState110(null);
+  useEffect110(() => {
+    let live = true;
+    GloobalApi.carePeople().then((r) => { if (live && r && r.ok) setState(r); });
+    return () => { live = false; };
+  }, []);
+  const people = (state && state.people) || [];
+  const invitations = (state && state.invitations) || [];
+  const line = invitations.length
+    ? `${invitations.length === 1 ? "1 person has" : `${invitations.length} people have`} asked you to help`
+    : people.length
+      ? `${people.length === 1 ? "1 person" : `${people.length} people`} · their own Essentials`
+      : "A child, someone older, someone with a disability — their own GLOOBAL ID and Essentials, used by you for them.";
+  return <button onClick={onOpen} className="v2-tap" data-testid="care-entry" style={{ display: "flex", alignItems: "center", gap: 12, width: "100%", border: "none", borderRadius: T.radiusLg, background: T.surface, boxShadow: T.shadowCard, padding: "16px 16px", cursor: "pointer", textAlign: "left" }}>
+    <span style={{ width: 40, height: 40, borderRadius: 12, background: "#2E7A4F1F", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}><CareHeart size={19} color="#2E7A4F" /></span>
+    <span style={{ flex: 1, minWidth: 0 }}>
+      <span style={{ display: "block", fontSize: 15.5, fontWeight: 800, color: T.ink }}>People I look after</span>
+      <span style={{ display: "block", fontSize: 11.5, color: invitations.length ? T.accent : T.inkSoft, fontWeight: invitations.length ? 800 : 500, marginTop: 2, lineHeight: 1.4 }}>{line}</span>
+    </span>
+    {invitations.length ? <span style={{ minWidth: 20, height: 20, borderRadius: 999, background: T.accent, color: "#fff", fontSize: 11, fontWeight: 900, display: "flex", alignItems: "center", justifyContent: "center", padding: "0 6px" }}>{invitations.length}</span> : null}
+    <CareChevron size={18} color={T.inkFaint} />
+  </button>;
+}
+
+// ── ADDING SOMEONE ───────────────────────────────────────────────────────
+function CareAddForm({ docs, onCancel, onAdded }) {
+  const [name, setName] = useState110("");
+  const [birth, setBirth] = useState110("");
+  const [relationship, setRelationship] = useState110("");
+  const [relationshipNote, setRelationshipNote] = useState110("");
+  const [kind, setKind] = useState110("");
+  const [number, setNumber] = useState110("");
+  const [consent, setConsent] = useState110("");
+  const [order, setOrder] = useState110("");
+  const [busy, setBusy] = useState110(false);
+  const [note, setNote] = useState110(null);
+  const age = careAgeOn(birth);
+  const adultAge = Number(docs && docs.adultAge) || 18;
+  const adult = age != null && age >= adultAge;
+  // A child: a birth certificate or a document any age can hold. An adult:
+  // any listed government document.
+  const offered = ((docs && docs.docs) || []).filter((d) => (age == null ? true : adult ? d.for !== "child" : d.for !== "adult"));
+  const chosen = offered.find((d) => d.kind === kind) || null;
+  useEffect110(() => { if (kind && !chosen) { setKind(""); setNumber(""); } }, [kind, chosen]);
+  const ready = name.trim().length >= 2 && age != null && age >= 0 && relationship && (relationship !== "other" || relationshipNote.trim().length >= 2)
+    && chosen && number.trim().length >= 4 && (!adult || consent === "said_yes" || (consent === "guardianship" && order.trim().length >= 4));
+  const first = careFirstName(name);
+  const submit = async () => {
+    if (!ready || busy) return;
+    setBusy(true); setNote(null);
+    const r = await GloobalApi.careAdd({
+      name: name.trim(), birthDate: birth, relationship, relationshipNote: relationship === "other" ? relationshipNote.trim() : "",
+      document: { kind, number: number.trim() },
+      consent: adult ? consent : undefined,
+      guardianship: adult && consent === "guardianship" ? { number: order.trim() } : undefined,
+    });
+    setBusy(false);
+    if (r.ok) onAdded(r);
+    else setNote({ ok: false, text: r.message });
+  };
+  return <div data-testid="care-add" style={{ display: "flex", flexDirection: "column", gap: 14 }}>
+    <div style={careCard({ gap: 14 })}>
+      <CareField label="Their full name" hint="As it is written on their document."><input data-testid="care-add-name" value={name} onChange={(e) => setName(e.target.value)} maxLength={80} autoComplete="off" style={careInput()} /></CareField>
+      <CareField label="Date of birth" hint={age != null && age >= 0 ? `${careAgeText(age)}${adult ? "" : " · a child"}` : null}><input data-testid="care-add-birth" type="date" value={birth} max={careToday()} onChange={(e) => setBirth(e.target.value)} style={careInput()} /></CareField>
+    </div>
+    <div style={careCard({ gap: 10 })}>
+      <span style={{ ...CARE_CAPTION, color: T.inkSoft }}>You are their</span>
+      <CareChips testid="care-add-relationship" options={CARE_RELATIONSHIPS.map((r) => ({ value: r.kind, label: r.label }))} value={relationship} onChange={setRelationship} />
+      {relationship === "other" ? <input data-testid="care-add-relationship-note" value={relationshipNote} onChange={(e) => setRelationshipNote(e.target.value)} maxLength={40} placeholder="Neighbour, teacher, guardian…" autoComplete="off" style={careInput()} /> : null}
+      <span style={{ fontSize: 11.5, color: T.inkSoft, lineHeight: 1.45 }}>Anyone close to them can look after them here. What is checked is their own document.</span>
+    </div>
+    <div style={careCard({ gap: 10 })}>
+      <span style={{ ...CARE_CAPTION, color: T.inkSoft }}>{age == null ? "Their document" : adult ? "One of their government documents" : "Their birth certificate, or a document for a child"}</span>
+      {age == null
+        ? <span style={{ fontSize: 12.5, color: T.inkSoft, lineHeight: 1.45 }}>Enter their date of birth first — a child and an adult use different documents.</span>
+        : <CareChips testid="care-add-doc" options={offered.map((d) => ({ value: d.kind, label: d.label }))} value={kind} onChange={(k) => { setKind(k); setNumber(""); }} />}
+      {chosen ? <CareField label={chosen.number}><input data-testid="care-add-number" value={number} onChange={(e) => setNumber(e.target.value.toUpperCase())} maxLength={40} autoComplete="off" autoCapitalize="characters" spellCheck={false} style={careInput({ letterSpacing: 1 })} /></CareField> : null}
+    </div>
+    {adult ? <div style={careCard({ gap: 10 })} data-testid="care-add-consent">
+      <span style={{ ...CARE_CAPTION, color: T.inkSoft }}>{first} is an adult</span>
+      <CareChips options={[{ value: "said_yes", label: `${first} agrees to my help` }, { value: "guardianship", label: "They can't say — I have a guardianship order" }]} value={consent} onChange={setConsent} />
+      {consent === "guardianship" ? <CareField label="Order or certificate number" hint="The guardianship order is checked the same way as their document."><input data-testid="care-add-order" value={order} onChange={(e) => setOrder(e.target.value.toUpperCase())} maxLength={40} autoComplete="off" spellCheck={false} style={careInput({ letterSpacing: 1 })} /></CareField> : null}
+    </div> : null}
+    <div style={{ display: "flex", gap: 10, alignItems: "flex-start", padding: "2px 4px" }}>
+      <CareShield size={16} color={T.inkSoft} style={{ flexShrink: 0, marginTop: 1 }} />
+      <span style={{ fontSize: 12, color: T.inkSoft, lineHeight: 1.5 }}>{first === "them" ? "They get" : `${first} gets`} their own GLOOBAL ID straight away. Their document is checked automatically, and their Essentials start once it has passed. The number is sealed; only its last digits are shown.</span>
+    </div>
+    <CareNote note={note} />
+    <div style={{ display: "flex", gap: 10 }}>
+      <button onClick={onCancel} className="v2-tap" style={careQuietButton({ flex: 1 })}>Cancel</button>
+      <button onClick={submit} className="v2-tap" data-testid="care-add-save" disabled={!ready || busy} style={careButton(ready && !busy, { flex: 2 })}>{busy ? "Adding…" : name.trim().length >= 2 ? `Add ${first}` : "Add"}</button>
+    </div>
+  </div>;
+}
+
+// ── ONE PERSON ───────────────────────────────────────────────────────────
+function CarePersonView({ person, onChanged, onOpenAccount, onLeft }) {
+  const [actions, setActions] = useState110(null);
+  const [inviting, setInviting] = useState110(false);
+  const [inviteId, setInviteId] = useState110("");
+  const [inviteRel, setInviteRel] = useState110("");
+  const [inviteNote, setInviteNote] = useState110("");
+  const [busy, setBusy] = useState110("");
+  const [note, setNote] = useState110(null);
+  const [leaving, setLeaving] = useState110(false);
+  useEffect110(() => {
+    let live = true;
+    GloobalApi.careActions(person.id).then((r) => { if (live) setActions(r && r.ok ? r.actions || [] : []); });
+    return () => { live = false; };
+  }, [person.id]);
+  const lens = useGeuLens();
+  const first = careFirstName(person.name);
+  const helpers = person.helpers || [];
+  const open = helpers.filter((h) => h.status === "active" || h.status === "invited");
+  const iAmFirst = person.role === "first";
+  const doc = person.document;
+  const invite = async () => {
+    if (busy) return;
+    setBusy("invite"); setNote(null);
+    const r = await GloobalApi.careInvite(person.id, { symbolId: inviteId.trim(), relationship: inviteRel, relationshipNote: inviteRel === "other" ? inviteNote.trim() : "" });
+    setBusy("");
+    if (r.ok) { setInviting(false); setInviteId(""); setInviteRel(""); setNote({ ok: true, text: "Invited. They become a helper once they accept." }); onChanged(r); }
+    else setNote({ ok: false, text: r.message });
+  };
+  const remove = async (h) => {
+    if (busy) return;
+    setBusy(h.linkId); setNote(null);
+    const r = await GloobalApi.careRemoveHelper(person.id, h.linkId);
+    setBusy("");
+    if (r.ok) { setNote({ ok: true, text: `${h.name || "They"} no longer helps ${first}.` }); onChanged(r); }
+    else setNote({ ok: false, text: r.message });
+  };
+  const leave = async () => {
+    if (busy) return;
+    setBusy("leave"); setNote(null);
+    const r = await GloobalApi.careLeave(person.id);
+    setBusy("");
+    if (r.ok) onLeft(r);
+    else { setLeaving(false); setNote({ ok: false, text: r.message }); }
+  };
+  const inviteReady = inviteId.trim().length >= 3 && inviteRel && (inviteRel !== "other" || inviteNote.trim().length >= 2);
+  return <div data-testid="care-person" style={{ display: "flex", flexDirection: "column", gap: 14 }}>
+    <div style={careCard({ alignItems: "center", textAlign: "center", gap: 8, padding: "20px 16px" })}>
+      <span style={{ width: 58, height: 58, borderRadius: "50%", background: T.accentSoft, color: T.accent, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 24, fontWeight: 900, fontFamily: T.fontDisplay }}>{first.charAt(0).toUpperCase()}</span>
+      <span style={{ fontSize: 19, fontWeight: 900, color: T.ink, fontFamily: T.fontDisplay }}>{person.name}</span>
+      <span data-testid="care-person-id" style={{ fontSize: 13, fontWeight: 700, color: T.inkSoft, letterSpacing: 0.3 }}>GLOOBAL ID · {person.symbolId}</span>
+      <span style={{ fontSize: 12, color: T.inkSoft }}>{careAgeText(person.age)} · you are their {careRelationshipText(person.relationship, person.relationshipNote).toLowerCase()}{person.relationshipConfirmed ? " · confirmed by the record" : ""}</span>
+    </div>
+
+    <div style={careCard()}>
+      <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+        <span style={{ flex: 1, minWidth: 0 }}>
+          <span style={{ display: "block", fontSize: 14.5, fontWeight: 800, color: T.ink }}>{doc ? doc.label : "Their document"}</span>
+          {doc ? <span style={{ display: "block", fontSize: 12, color: T.inkSoft, marginTop: 2, letterSpacing: 0.5 }}>{doc.shown}</span> : null}
+        </span>
+        <CareStatusChip doc={doc} ready={person.essentialsReady} />
+      </div>
+      {person.guardianship ? <div style={{ display: "flex", alignItems: "center", gap: 10, borderTop: `1px solid ${T.line}`, paddingTop: 11 }}>
+        <span style={{ flex: 1, minWidth: 0 }}><span style={{ display: "block", fontSize: 13.5, fontWeight: 700, color: T.ink }}>{person.guardianship.label}</span><span style={{ display: "block", fontSize: 12, color: T.inkSoft, marginTop: 2, letterSpacing: 0.5 }}>{person.guardianship.shown}</span></span>
+        <CareStatusChip doc={person.guardianship} />
+      </div> : null}
+      <div data-testid="care-person-essentials" style={{ fontSize: 12.5, color: person.essentialsReady ? T.positive : T.inkSoft, fontWeight: person.essentialsReady ? 800 : 500, lineHeight: 1.5 }}>
+        {person.essentialsReady
+          ? `${first}'s Essentials are on, in ${first}'s own account.`
+          : doc && doc.status === "rejected"
+            ? `The document did not pass. ${first}'s Essentials stay off until a document does.`
+            : doc && doc.waitingForService
+              ? `Checks for this document are being connected. It waits until then — nothing is approved by hand. ${first}'s Essentials start the moment it passes.`
+              : `Waiting for the automatic check. ${first}'s Essentials start the moment it passes.`}
+      </div>
+    </div>
+
+    <button onClick={onOpenAccount} className="v2-tap" data-testid="care-open" style={careButton(true, { display: "flex", alignItems: "center", justifyContent: "center", gap: 8, padding: "15px 0", fontSize: 15 })}><CareKey size={17} color="#fff" />Open {first}'s account</button>
+    <span style={{ fontSize: 11.5, color: T.inkSoft, textAlign: "center", marginTop: -6, lineHeight: 1.45 }}>With your own PIN. Everything you do there is written down as done by you.</span>
+
+    <div style={careCard()} data-testid="care-helpers">
+      <span style={{ ...CARE_CAPTION, color: T.inkSoft }}>{first}'s helpers</span>
+      {helpers.map((h) => <div key={h.linkId} style={{ display: "flex", alignItems: "center", gap: 10 }}>
+        <span style={{ flex: 1, minWidth: 0 }}>
+          <span style={{ display: "block", fontSize: 14, fontWeight: 700, color: T.ink, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{h.isMe ? "You" : h.name || h.symbolId}</span>
+          <span style={{ display: "block", fontSize: 11.5, color: T.inkSoft, marginTop: 2 }}>{careRelationshipText(h.relationship)}{h.role === "first" ? " · added them" : ""}{h.status === "invited" ? " · invited, not yet accepted" : ""}</span>
+        </span>
+        {iAmFirst && !h.isMe && h.role === "second" ? <button onClick={() => remove(h)} className="v2-tap" disabled={Boolean(busy)} data-testid="care-remove-helper" style={{ border: `1px solid ${T.line}`, borderRadius: 999, padding: "7px 12px", background: T.surface, color: T.negative, fontSize: 12, fontWeight: 800, cursor: "pointer" }}>{busy === h.linkId ? "…" : "Remove"}</button> : null}
+      </div>)}
+      {open.length < 2 && !inviting ? <button onClick={() => { setInviting(true); setNote(null); }} className="v2-tap" data-testid="care-invite-open" style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 7, border: `1px dashed ${T.line}`, borderRadius: T.radiusMd, padding: "12px 0", background: "transparent", color: T.accent, fontSize: 13.5, fontWeight: 800, cursor: "pointer" }}><CareUserPlus size={16} color={T.accent} />Invite a second helper</button> : null}
+      {inviting ? <div style={{ display: "flex", flexDirection: "column", gap: 10, borderTop: `1px solid ${T.line}`, paddingTop: 12 }}>
+        <CareField label="Their GLOOBAL ID" hint="They need their own GLOOBAL Bank open to accept."><input data-testid="care-invite-id" value={inviteId} onChange={(e) => setInviteId(e.target.value)} maxLength={40} autoComplete="off" autoCapitalize="none" spellCheck={false} style={careInput()} /></CareField>
+        <span style={{ ...CARE_CAPTION, color: T.inkSoft }}>They are {first}'s</span>
+        <CareChips options={CARE_RELATIONSHIPS.map((r) => ({ value: r.kind, label: r.label }))} value={inviteRel} onChange={setInviteRel} />
+        {inviteRel === "other" ? <input value={inviteNote} onChange={(e) => setInviteNote(e.target.value)} maxLength={40} placeholder="Who they are to them" autoComplete="off" style={careInput()} /> : null}
+        <div style={{ display: "flex", gap: 10 }}>
+          <button onClick={() => setInviting(false)} className="v2-tap" style={careQuietButton({ flex: 1 })}>Cancel</button>
+          <button onClick={invite} className="v2-tap" data-testid="care-invite-send" disabled={!inviteReady || Boolean(busy)} style={careButton(inviteReady && !busy, { flex: 2 })}>{busy === "invite" ? "Inviting…" : "Invite"}</button>
+        </div>
+      </div> : null}
+    </div>
+
+    <CareNote note={note} />
+
+    <div style={careCard({ gap: 10 })} data-testid="care-actions">
+      <span style={{ ...CARE_CAPTION, color: T.inkSoft }}>What helpers did</span>
+      {actions == null
+        ? <span style={{ fontSize: 12.5, color: T.inkFaint }}>Loading…</span>
+        : actions.length === 0
+          ? <span style={{ fontSize: 12.5, color: T.inkSoft, lineHeight: 1.45 }}>Nothing yet. Every payment, Essentials use or transfer made in {first}'s account shows here, with who did it.</span>
+          : actions.slice(0, 30).map((a, i) => <div key={i} style={{ display: "flex", alignItems: "center", gap: 10, borderTop: i ? `1px solid ${T.line}` : "none", paddingTop: i ? 9 : 0 }}>
+            <span style={{ flex: 1, minWidth: 0 }}>
+              <span style={{ display: "block", fontSize: 13.5, fontWeight: 700, color: a.ok ? T.ink : T.inkFaint }}>{a.what}{a.ok ? "" : " (did not go through)"}{a.to ? ` · to ${a.to}` : ""}</span>
+              <span style={{ display: "block", fontSize: 11.5, color: T.inkSoft, marginTop: 2 }}>{a.byMe ? "You" : a.by || "A helper"} · {a.at ? new Date(a.at).toLocaleDateString("en-GB", { day: "numeric", month: "short" }) : ""} {a.at ? formatClockTime(a.at) : ""}</span>
+            </span>
+            {a.amount != null ? <span style={{ fontSize: 13.5, fontWeight: 800, color: T.ink, whiteSpace: "nowrap" }}>{a.currency ? <GeuFigure amount={a.amount} currency={a.currency} lens={lens} size={13.5} /> : Number(a.amount).toLocaleString("en-US", { maximumFractionDigits: 2 })}</span> : null}
+          </div>)}
+    </div>
+
+    {leaving
+      ? <div style={careCard({ gap: 10 })} data-testid="care-leave-confirm">
+        <span style={{ fontSize: 13.5, color: T.ink, lineHeight: 1.5, fontWeight: 600 }}>{helpers.some((h) => !h.isMe && h.status === "active") ? `${first}'s other helper keeps looking after them.` : `Nobody will be looking after ${first} on GLOOBAL. Their account, ID and money stay theirs; whoever adds them next with the same document takes over.`}</span>
+        <div style={{ display: "flex", gap: 10 }}>
+          <button onClick={() => setLeaving(false)} className="v2-tap" style={careQuietButton({ flex: 1 })}>Keep helping</button>
+          <button onClick={leave} className="v2-tap" data-testid="care-leave-yes" style={careButton(true, { flex: 1, background: T.negative })}>{busy === "leave" ? "…" : "Step back"}</button>
+        </div>
+      </div>
+      : <button onClick={() => setLeaving(true)} className="v2-tap" data-testid="care-leave" style={{ border: "none", background: "transparent", color: T.negative, fontSize: 13, fontWeight: 800, cursor: "pointer", padding: "6px 0 10px" }}>Step back as {first}'s helper</button>}
+  </div>;
+}
+
+// ── OPENING THEIR ACCOUNT ────────────────────────────────────────────────
+// The helper's own PIN, checked and counted like any PIN check.
+function CareOpenPin({ person, onClose, onOpened }) {
+  const [pin, setPin] = useState110("");
+  const [busy, setBusy] = useState110(false);
+  const [error, setError] = useState110("");
+  const submit = useCallback50(async () => {
+    if (busy || pin.length !== 6) return;
+    setBusy(true); setError("");
+    const r = await GloobalApi.careOpen(person.id, pin);
+    setBusy(false);
+    if (r.ok && r.token) { setPin(""); onOpened(r); return; }
+    setError(r.message);
+    setTimeout(() => setPin(""), 700);
+  }, [busy, pin, person.id, onOpened]);
+  return <div role="dialog" aria-modal="true" aria-label={`Open ${person.name}'s account`} style={{ position: "fixed", inset: 0, zIndex: 330, background: T.bg, display: "flex", flexDirection: "column", fontFamily: T.fontBody, padding: "calc(14px + env(safe-area-inset-top, 0px)) 18px calc(22px + env(safe-area-inset-bottom, 0px))", boxSizing: "border-box" }}>
+    <GloobalPinPanel testid="care-pin" title={`Open ${careFirstName(person.name)}'s account`} note="Enter YOUR PIN — the one you use for your own account." value={pin} onChange={(v) => { setError(""); setPin(v); }} onSubmit={submit} busy={busy} error={error} onBack={onClose} backLabel="Cancel" />
+  </div>;
+}
+
+// ── THE SCREEN ───────────────────────────────────────────────────────────
+function CarePeopleScreen({ onClose }) {
+  const [state, setState] = useState110(null);
+  const [docs, setDocs] = useState110(null);
+  const [view, setView] = useState110({ name: "list" });
+  const [note, setNote] = useState110(null);
+  const [busy, setBusy] = useState110("");
+  const [opening, setOpening] = useState110(null);
+  const [acting, setActing] = useState110(null);
+  // Bumped when their account is closed, so the person's page reads what
+  // was just done in it.
+  const [round, setRound] = useState110(0);
+  // Each view starts at its top, not where the last one was scrolled to.
+  const scroller = useRef111(null);
+  useEffect110(() => { if (scroller.current) scroller.current.scrollTop = 0; }, [view.name, view.id]);
+  const load = useCallback50(async () => {
+    const r = await GloobalApi.carePeople();
+    if (r.ok) setState(r);
+    else setState((s) => s || { people: [], invitations: [], max: 10, failed: r.message });
+  }, []);
+  useEffect110(() => { load(); GloobalApi.careDocs().then((r) => { if (r.ok) setDocs(r); }); }, [load]);
+  const people = (state && state.people) || [];
+  const invitations = (state && state.invitations) || [];
+  const max = Number(state && state.max) || 10;
+  const shown = view.name === "person" ? people.find((p) => p.id === view.id) : null;
+  const answer = async (inv, accept) => {
+    if (busy) return;
+    setBusy(inv.linkId); setNote(null);
+    const r = await GloobalApi.careAnswer(inv.linkId, accept);
+    setBusy("");
+    if (r.ok) { setState(r); setNote({ ok: true, text: accept ? `You now help ${careFirstName(inv.name)}.` : "Declined." }); }
+    else setNote({ ok: false, text: r.message });
+  };
+  const back = () => {
+    if (view.name !== "list") { setView({ name: "list" }); setNote(null); return; }
+    onClose();
+  };
+  const title = view.name === "add" ? "Add someone" : shown ? careFirstName(shown.name) : "People I look after";
+  return <div data-testid="care-screen" style={{ position: "fixed", inset: 0, zIndex: 310, background: T.bg, display: "flex", flexDirection: "column", overflow: "hidden" }}>
+    <AppSymbolBg zIndex={-1} />
+    <div style={{ display: "flex", alignItems: "center", gap: 12, padding: "calc(18px + env(safe-area-inset-top, 0px)) 18px 14px", flexShrink: 0 }}>
+      <NavBackButton onClick={back} />
+      <span style={{ fontSize: 19, fontWeight: 800, color: T.ink, fontFamily: T.fontDisplay, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{title}</span>
+    </div>
+    <div ref={scroller} style={{ flex: 1, minHeight: 0, overflowY: "auto", WebkitOverflowScrolling: "touch", padding: "6px 18px calc(30px + env(safe-area-inset-bottom, 0px))", display: "flex", flexDirection: "column", gap: 14 }}>
+      {view.name === "add"
+        ? <CareAddForm docs={docs} onCancel={() => setView({ name: "list" })} onAdded={(r) => { setState(r); setView(r.person ? { name: "person", id: r.person.id } : { name: "list" }); setNote(null); }} />
+        : shown
+          ? <CarePersonView key={`${shown.id}:${round}`} person={shown} onChanged={(r) => { if (r && r.people) setState(r); }} onOpenAccount={() => setOpening(shown)} onLeft={(r) => { setState(r); setView({ name: "list" }); setNote({ ok: true, text: `You no longer help ${careFirstName(shown.name)}.` }); }} />
+          : <>
+            {state == null ? <div style={{ fontSize: 13, color: T.inkFaint, padding: "10px 4px" }}>Loading…</div> : null}
+            {state && state.failed ? <div role="alert" style={{ fontSize: 12.5, fontWeight: 700, color: T.negative }}>{state.failed}</div> : null}
+
+            {invitations.map((inv) => {
+              const by = (inv.helpers || []).find((h) => h.role === "first");
+              return <div key={inv.linkId} style={careCard({ background: T.accentSoft, boxShadow: "none" })} data-testid="care-invitation">
+                <span style={{ fontSize: 14, fontWeight: 800, color: T.ink, lineHeight: 1.45 }}>{by && by.name ? by.name : "Someone"} asked you to help look after {inv.name}</span>
+                <span style={{ fontSize: 12, color: T.inkSoft, lineHeight: 1.45 }}>{careAgeText(inv.age)} · GLOOBAL ID {inv.symbolId}. You would be able to use {careFirstName(inv.name)}'s account for them, with your own PIN. Everything you do there is shown to their other helper.</span>
+                <div style={{ display: "flex", gap: 10 }}>
+                  <button onClick={() => answer(inv, false)} className="v2-tap" disabled={Boolean(busy)} style={careQuietButton({ flex: 1 })}>Decline</button>
+                  <button onClick={() => answer(inv, true)} className="v2-tap" disabled={Boolean(busy)} data-testid="care-accept" style={careButton(true, { flex: 1 })}>{busy === inv.linkId ? "…" : "Accept"}</button>
+                </div>
+              </div>;
+            })}
+
+            {state && !people.length && !invitations.length ? <div style={careCard({ gap: 10 })} data-testid="care-empty">
+              <span style={{ width: 44, height: 44, borderRadius: 13, background: "#2E7A4F1F", display: "flex", alignItems: "center", justifyContent: "center" }}><CareHeart size={21} color="#2E7A4F" /></span>
+              <span style={{ fontSize: 16, fontWeight: 800, color: T.ink, fontFamily: T.fontDisplay }}>Their own Essentials, in their own account</span>
+              <span style={{ fontSize: 13, color: T.inkSoft, lineHeight: 1.55 }}>For someone who can't use GLOOBAL themselves — a child, someone older, someone with a disability. They get their own GLOOBAL ID. You open their account with your PIN and use it for them: their Essentials, paying, moving money.</span>
+              <span style={{ fontSize: 13, color: T.inkSoft, lineHeight: 1.55 }}>Anyone close to them can do this — a parent, a big sister, a grandchild, a friend. Their document is what is checked: a birth certificate for a child, a government document for an adult.</span>
+            </div> : null}
+
+            {people.map((p) => <button key={p.id} onClick={() => { setView({ name: "person", id: p.id }); setNote(null); }} className="v2-tap" data-testid="care-person-row" style={{ display: "flex", alignItems: "center", gap: 12, width: "100%", border: "none", borderRadius: T.radiusLg, background: T.surface, boxShadow: T.shadowCard, padding: "14px 14px", cursor: "pointer", textAlign: "left" }}>
+              <span style={{ width: 42, height: 42, borderRadius: "50%", background: T.accentSoft, color: T.accent, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 17, fontWeight: 900, flexShrink: 0, fontFamily: T.fontDisplay }}>{careFirstName(p.name).charAt(0).toUpperCase()}</span>
+              <span style={{ flex: 1, minWidth: 0 }}>
+                <span style={{ display: "block", fontSize: 15, fontWeight: 800, color: T.ink, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{p.name}</span>
+                <span style={{ display: "block", fontSize: 11.5, color: T.inkSoft, marginTop: 2, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{careAgeText(p.age)} · {p.symbolId}</span>
+                <span style={{ display: "block", marginTop: 7 }}><CareStatusChip doc={p.document} ready={p.essentialsReady} /></span>
+              </span>
+              <CareChevron size={18} color={T.inkFaint} />
+            </button>)}
+
+            <CareNote note={note} />
+
+            {state && people.length < max ? <button onClick={() => { setView({ name: "add" }); setNote(null); }} className="v2-tap" data-testid="care-add-open" style={careButton(true, { display: "flex", alignItems: "center", justifyContent: "center", gap: 8, padding: "15px 0" })}><CareUserPlus size={17} color="#fff" />Add someone</button> : null}
+            {state && people.length >= max ? <span style={{ fontSize: 12, color: T.inkSoft, textAlign: "center" }}>You can look after up to {max} people.</span> : null}
+          </>}
+    </div>
+    {opening ? <CareOpenPin person={opening} onClose={() => setOpening(null)} onOpened={(r) => { setOpening(null); setActing({ token: r.token, person: r.person || opening }); }} /> : null}
+    {acting ? <CareHelperPanel token={acting.token} person={acting.person} onClose={(ended) => { setActing(null); setRound((n) => n + 1); load(); if (ended) { setView({ name: "list" }); setNote({ ok: false, text: ended }); } }} /> : null}
+  </div>;
+}
+
+
+// src/features/care/CareHelperPanel.jsx
+//
+// ── INSIDE THE ACCOUNT OF SOMEONE YOU LOOK AFTER ─────────────────────────
+//
+// Opened from People I look after with the helper's own PIN. Everything
+// here is THEIR account — their balance, their Essentials, their payments —
+// reached with a short session that names the helper too (server/lib/care.js,
+// GloobalApi.careSession). That session is held in this panel only: it is
+// never saved, never replaces this phone's own sign-in, and closing the
+// panel drops it.
+//
+// The helper can do everything the person could: use their Essentials, pay
+// anyone, pay the helper themselves. Each payment asks for the HELPER'S PIN,
+// and each one is written down as done by this helper, for the other helper
+// to see. Who the account IS (its ID, PIN, face, passkeys) cannot be changed
+// from here; the server refuses it in a helper's session.
+
+// A helper's session that the server no longer accepts: it ran out, or this
+// person stopped being theirs to help.
+function careSessionOver(r) {
+  return Boolean(r && !r.ok && r.status === 401 && r.code === "auth_token_invalid");
+}
+
+function CareHelperPanel({ token, person, onClose }) {
+  const session = useRef110(null);
+  if (!session.current) session.current = GloobalApi.careSession(token);
+  const first = careFirstName(person && person.name);
+  // Every figure carries both its names (features/geuLens/), as everywhere.
+  const lens = useGeuLens();
+  const [who, setWho] = useState111(null);
+  const [ess, setEss] = useState111(null);
+  const [rows, setRows] = useState111(null);
+  const [busy, setBusy] = useState111("");
+  const [note, setNote] = useState111(null);
+  const [to, setTo] = useState111("");
+  const [amount, setAmount] = useState111("");
+  const [memo, setMemo] = useState111("");
+  const [payee, setPayee] = useState111(null);
+  const [pinOpen, setPinOpen] = useState111(false);
+  const [pin, setPin] = useState111("");
+  const [pinError, setPinError] = useState111("");
+  const payKey = useRef110("");
+
+  const over = useCallback51((r) => {
+    if (!careSessionOver(r)) return false;
+    onClose(`${first}'s account was closed — sessions last an hour, and end when a helper steps back. Open it again to carry on.`);
+    return true;
+  }, [first, onClose]);
+
+  const refresh = useCallback51(async () => {
+    const s = session.current;
+    const [a, e] = await Promise.all([s.acting(), s.essentials()]);
+    if (over(a) || over(e)) return;
+    if (a.ok) setWho(a);
+    if (e.ok) setEss(e);
+    else if (!a.ok) setNote({ ok: false, text: e.message });
+    const h = await s.history((a.ok && a.person && a.person.symbolId) || person.symbolId);
+    if (over(h)) return;
+    setRows(h.ok && Array.isArray(h.transactions) ? h.transactions : []);
+  }, [over, person.symbolId]);
+  useEffect111(() => { refresh(); }, [refresh]);
+
+  const currency = ess && ess.currency;
+  const helper = who && who.helper;
+  const left = Number(ess && ess.leftToday) || 0;
+
+  const useToday = async () => {
+    if (busy || !(left > 0)) return;
+    setBusy("draw"); setNote(null);
+    const r = await session.current.draw(left, generateRequestId());
+    setBusy("");
+    if (over(r)) return;
+    if (r.ok) {
+      setEss((prev) => ({ ...(prev || {}), ...r }));
+      setNote({ ok: true, text: Number(r.applied) > 0 ? `${geuLensBarMoney(r.applied, r.currency || currency, lens, currency)} of today's Essentials is now in ${first}'s balance.` : "Nothing left to use today." });
+      refresh();
+    } else setNote({ ok: false, text: r.message });
+  };
+
+  const typed = Number(String(amount).replace(/,/g, ""));
+  const payReady = to.trim().length >= 3 && typed > 0;
+  const checkPayee = async () => {
+    if (busy || !payReady) return;
+    setBusy("resolve"); setNote(null);
+    const r = await session.current.resolve(to.trim());
+    setBusy("");
+    if (over(r)) return;
+    if (r.ok && r.user) { payKey.current = generateRequestId(); setPayee(r.user); }
+    else setNote({ ok: false, text: r.ok ? "No GLOOBAL account has that ID." : r.message });
+  };
+  const send = useCallback51(async () => {
+    if (!payee || pin.length !== 6 || busy) return;
+    setBusy("send"); setPinError("");
+    const r = await session.current.send({
+      senderSymbolId: (who && who.person && who.person.symbolId) || person.symbolId,
+      receiverSymbolId: payee.symbolId,
+      amountBasis: "source",
+      sourceAmount: typed,
+      amount: typed,
+      note: memo.trim(),
+      pin,
+      payMethod: "Gloobal Bank",
+      idempotencyKey: payKey.current,
+    });
+    setBusy("");
+    if (over(r)) return;
+    if (r.ok) {
+      setPin(""); setPinOpen(false);
+      setNote({ ok: true, text: `Paid ${geuLensBarMoney(typed, currency, lens, currency)} to ${payee.fullName || payee.symbolId} from ${first}'s account.` });
+      setPayee(null); setTo(""); setAmount(""); setMemo("");
+      refresh();
+      return;
+    }
+    // A wrong PIN stays on the pad; anything else is the payment's answer.
+    if (r.status === 401 && r.attemptsRemaining != null) { setPinError(r.message); setTimeout(() => setPin(""), 700); return; }
+    setPin(""); setPinOpen(false);
+    setNote({ ok: false, text: r.message });
+  }, [payee, pin, busy, who, person.symbolId, typed, memo, over, currency, first, refresh, lens]);
+
+  const helperName = helper && helper.name ? careFirstName(helper.name) : "you";
+  return <div data-testid="care-helper-panel" role="dialog" aria-modal="true" aria-label={`${person.name}'s account`} style={{ position: "fixed", inset: 0, zIndex: 340, background: T.bg, display: "flex", flexDirection: "column", overflow: "hidden", fontFamily: T.fontBody }}>
+    {/* Always on screen: whose account this is, and who is using it. */}
+    <div data-testid="care-helper-banner" style={{ flexShrink: 0, background: "#2E7A4F", color: "#fff", padding: "calc(14px + env(safe-area-inset-top, 0px)) 18px 14px", display: "flex", alignItems: "center", gap: 12 }}>
+      <span style={{ width: 40, height: 40, borderRadius: "50%", background: "rgba(255,255,255,0.18)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 17, fontWeight: 900, flexShrink: 0, fontFamily: T.fontDisplay }}>{first.charAt(0).toUpperCase()}</span>
+      <span style={{ flex: 1, minWidth: 0 }}>
+        <span style={{ display: "block", fontSize: 16, fontWeight: 900, fontFamily: T.fontDisplay, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{person.name}'s account</span>
+        <span style={{ display: "block", fontSize: 11.5, opacity: 0.85, marginTop: 2, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{person.symbolId} · used by {helperName}</span>
+      </span>
+      <button onClick={() => onClose()} className="v2-tap" aria-label="Close their account" data-testid="care-helper-close" style={{ display: "flex", alignItems: "center", gap: 5, border: "none", borderRadius: 999, background: "rgba(255,255,255,0.18)", color: "#fff", padding: "8px 12px", fontSize: 12.5, fontWeight: 800, cursor: "pointer", flexShrink: 0 }}><CareCloseIcon size={14} color="#fff" />Close</button>
+    </div>
+
+    <div style={{ flex: 1, minHeight: 0, overflowY: "auto", WebkitOverflowScrolling: "touch", padding: "16px 18px calc(30px + env(safe-area-inset-bottom, 0px))", display: "flex", flexDirection: "column", gap: 14 }}>
+      <div style={careCard({ gap: 4 })} data-testid="care-helper-balance">
+        <span style={{ ...CARE_CAPTION, color: T.inkSoft }}>{first}'s balance</span>
+        <span style={{ fontSize: 28, fontWeight: 900, color: T.ink, fontFamily: T.fontDisplay, letterSpacing: -0.5 }}>{ess ? <GeuFigure amount={ess.balance} currency={currency} lens={lens} size={28} /> : "…"}</span>
+      </div>
+
+      <div style={careCard()} data-testid="care-helper-essentials">
+        <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+          <span style={{ width: 36, height: 36, borderRadius: 11, background: "#2E7A4F1F", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>{ess && ess.waitingForCheck ? <CareWait size={17} color="#2E7A4F" /> : <CareSprout size={17} color="#2E7A4F" />}</span>
+          <span style={{ flex: 1, minWidth: 0 }}>
+            <span style={{ display: "block", fontSize: 14.5, fontWeight: 800, color: T.ink }}>{first}'s Essentials today</span>
+            <span style={{ display: "block", fontSize: 12, color: T.inkSoft, marginTop: 2, lineHeight: 1.45 }}>{!ess
+              ? "…"
+              : ess.waitingForCheck
+                ? "Waiting for check — they start once their document has passed."
+                : !ess.available
+                  ? "Not set up in their country yet."
+                  : left > 0 ? <><GeuFigure amount={left} currency={currency} lens={lens} size={12} /> left of <GeuFigure amount={ess.dailyLimit} currency={currency} lens={lens} size={12} /></> : "Used for today. More tomorrow."}</span>
+          </span>
+        </div>
+        {ess && !ess.waitingForCheck && ess.available ? <button onClick={useToday} className="v2-tap" data-testid="care-helper-use" disabled={Boolean(busy) || !(left > 0)} style={careButton(!busy && left > 0)}>{busy === "draw" ? "Using…" : left > 0 ? "Use today's" : "Used today"}</button> : null}
+        {ess && !ess.waitingForCheck && ess.available ? <span style={{ fontSize: 11.5, color: T.inkSoft, lineHeight: 1.45 }}>It goes into {first}'s own balance and stays in GLOOBAL, for {first}.</span> : null}
+      </div>
+
+      <div style={careCard()} data-testid="care-helper-pay">
+        <span style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 14.5, fontWeight: 800, color: T.ink }}><CareSend size={16} color={T.accent} />Pay from {first}'s account</span>
+        {payee
+          ? <>
+            <div style={{ borderRadius: T.radiusMd, background: T.surfaceAlt, padding: "12px 13px", display: "flex", flexDirection: "column", gap: 3 }}>
+              <span style={{ fontSize: 12, color: T.inkSoft }}>To</span>
+              <span data-testid="care-helper-payee" style={{ fontSize: 15, fontWeight: 800, color: T.ink }}>{payee.fullName || payee.symbolId}{helper && payee.symbolId === helper.symbolId ? " (you)" : ""}</span>
+              <span style={{ fontSize: 12, color: T.inkSoft }}>{payee.symbolId}</span>
+              <span style={{ fontSize: 22, fontWeight: 900, color: T.ink, fontFamily: T.fontDisplay, marginTop: 6 }}><GeuFigure amount={typed} currency={currency} lens={lens} size={22} /></span>
+              {memo.trim() ? <span style={{ fontSize: 12, color: T.inkSoft }}>{memo.trim()}</span> : null}
+            </div>
+            <div style={{ display: "flex", gap: 10 }}>
+              <button onClick={() => setPayee(null)} className="v2-tap" style={careQuietButton({ flex: 1 })}>Change</button>
+              <button onClick={() => { setPin(""); setPinError(""); setPinOpen(true); }} className="v2-tap" data-testid="care-helper-confirm" style={careButton(true, { flex: 2 })}>Pay with your PIN</button>
+            </div>
+          </>
+          : <>
+            <CareField label="To — their GLOOBAL ID"><input data-testid="care-helper-to" value={to} onChange={(e) => setTo(e.target.value)} maxLength={40} autoComplete="off" autoCapitalize="none" spellCheck={false} style={careInput()} /></CareField>
+            {helper && helper.symbolId ? <div><button type="button" onClick={() => setTo(helper.symbolId)} className="v2-tap" data-testid="care-helper-to-me" style={{ border: `1px solid ${to === helper.symbolId ? T.accent : T.line}`, borderRadius: 999, padding: "7px 12px", background: to === helper.symbolId ? T.accentSoft : T.surface, color: to === helper.symbolId ? T.accent : T.ink, fontSize: 12.5, fontWeight: 700, cursor: "pointer" }}>To me ({helperName})</button></div> : null}
+            <CareField label={`Amount${currency ? ` (${currency})` : ""}`}><input data-testid="care-helper-amount" value={amount} onChange={(e) => setAmount(e.target.value.replace(/[^0-9.,]/g, ""))} inputMode="decimal" autoComplete="off" style={careInput({ fontSize: 18, fontWeight: 800 })} /></CareField>
+            <CareField label="What it's for (optional)"><input value={memo} onChange={(e) => setMemo(e.target.value)} maxLength={140} autoComplete="off" style={careInput()} /></CareField>
+            <button onClick={checkPayee} className="v2-tap" data-testid="care-helper-next" disabled={!payReady || Boolean(busy)} style={careButton(payReady && !busy)}>{busy === "resolve" ? "Checking…" : "Continue"}</button>
+          </>}
+      </div>
+
+      <CareNote note={note} />
+
+      <div style={careCard({ gap: 10 })} data-testid="care-helper-history">
+        <span style={{ ...CARE_CAPTION, color: T.inkSoft }}>{first}'s history</span>
+        {rows == null
+          ? <span style={{ fontSize: 12.5, color: T.inkFaint }}>Loading…</span>
+          : rows.length === 0
+            ? <span style={{ fontSize: 12.5, color: T.inkSoft }}>No payments yet.</span>
+            : rows.slice(0, 20).map((t, i) => {
+              const out = t.direction === "sent";
+              const shownAmount = out && t.debitAmount != null ? t.debitAmount : t.amount;
+              const shownCcy = out && t.senderCurrency ? t.senderCurrency : t.currency;
+              const other = t.counterparty ? (t.counterparty.fullName || t.counterparty.symbolId) : t.type === "disbursement" ? "Essentials" : "";
+              const Icon = out ? CareOut : CareIn;
+              return <div key={t.id || i} style={{ display: "flex", alignItems: "center", gap: 10, borderTop: i ? `1px solid ${T.line}` : "none", paddingTop: i ? 9 : 0 }}>
+                <span style={{ width: 32, height: 32, borderRadius: "50%", background: out ? T.negativeSoft : T.positiveSoft, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}><Icon size={15} color={out ? T.negative : T.positive} /></span>
+                <span style={{ flex: 1, minWidth: 0 }}>
+                  <span style={{ display: "block", fontSize: 13.5, fontWeight: 700, color: T.ink, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{other || (out ? "Paid" : "Received")}</span>
+                  <span style={{ display: "block", fontSize: 11.5, color: T.inkSoft, marginTop: 2 }}>{t.createdAt ? `${new Date(t.createdAt).toLocaleDateString("en-GB", { day: "numeric", month: "short" })} ${formatClockTime(t.createdAt)}` : ""}</span>
+                </span>
+                <span style={{ fontSize: 13.5, fontWeight: 800, color: out ? T.ink : T.positive, whiteSpace: "nowrap" }}><GeuFigure amount={shownAmount} currency={shownCcy} own={currency} lens={lens} size={13.5} sign={out ? "−" : "+"} /></span>
+              </div>;
+            })}
+      </div>
+      <span style={{ fontSize: 11.5, color: T.inkSoft, textAlign: "center", lineHeight: 1.5, padding: "0 10px" }}>Everything done here is written down as done by {helper && helper.name ? helper.name : "you"}, and their other helper can see it. Their ID, PIN and face stay theirs and cannot be changed from here.</span>
+    </div>
+
+    {pinOpen && payee ? <div role="dialog" aria-modal="true" aria-label="Confirm with your PIN" style={{ position: "fixed", inset: 0, zIndex: 350, background: T.bg, display: "flex", flexDirection: "column", padding: "calc(14px + env(safe-area-inset-top, 0px)) 18px calc(22px + env(safe-area-inset-bottom, 0px))", boxSizing: "border-box" }}>
+      <GloobalPinPanel testid="care-helper-pin" title={`Pay from ${first}'s account`} note="Enter YOUR PIN." value={pin} onChange={(v) => { setPinError(""); setPin(v); }} onSubmit={send} busy={busy === "send"} error={pinError} onBack={() => { setPinOpen(false); setPin(""); }} backLabel="Cancel" top={<span style={{ display: "inline-flex", padding: "10px 18px", borderRadius: 999, background: T.surface, boxShadow: T.shadowCard, fontSize: 22, fontWeight: 800, color: T.ink, fontFamily: T.fontDisplay }}><GeuFigure amount={typed} currency={currency} lens={lens} size={22} /></span>} />
+    </div> : null}
+  </div>;
 }
 
 
@@ -37871,6 +38701,178 @@ function PayLaterLedger({ title, rows, direction, ccy, ccyCode = "USD" }) {
 
 
 
+
+// ── PAYLATER, BY THE DAY: THE ACCOUNT'S REAL FIGURES ─────────────────────
+//
+// The server keeps PayLater now (lib/paylaterDaily.js): the limit is your
+// own seeds, using costs 0.05% a day on what is in use, and what people pay
+// for using is shared every day with the people holding. This file is the
+// screen side of it — the figures are read from the server, and Use, Repay
+// and "Add to balance" move real balances there.
+//
+// usePaylaterLive() is null until the server answers (the screen then shows
+// what this phone knows, as before), so an old server or no network changes
+// nothing.
+
+// One number as money in the account's own currency, with the lens.
+function paylaterMoney(amount, ccyCode, lens) {
+  return geuLensBarMoney(Number(amount) || 0, ccyCode, lens, ccyCode);
+}
+// "30 Nov" from 2026-11-30.
+function paylaterDayLabel(day) {
+  const d = new Date(`${day}T00:00:00Z`);
+  return Number.isNaN(d.getTime()) ? day : d.toLocaleDateString("en-GB", { day: "numeric", month: "short", timeZone: "UTC" });
+}
+
+function usePaylaterLive(open) {
+  const [me, setMe] = useState103(null);
+  const [pool, setPool] = useState103(null);
+  const [busy, setBusy] = useState103("");
+  const [note, setNote] = useState103(null); // { ok, text }
+  const alive = useRef103(true);
+  useEffect103(() => { alive.current = true; return () => { alive.current = false; }; }, []);
+  const load = async () => {
+    const [m, p] = await Promise.all([GloobalApi.getPaylaterDaily(), GloobalApi.getPaylaterPool()]);
+    if (!alive.current) return;
+    if (m) setMe(m);
+    if (p) setPool(p);
+  };
+  useEffect103(() => { if (open) load(); }, [open]);
+  // One at a time, with a key made once per tap, so a retry of the same tap
+  // can never move money twice.
+  const run = async (what, call, said) => {
+    if (busy) return null;
+    setBusy(what); setNote(null);
+    const r = await call(generateRequestId());
+    if (!alive.current) return r;
+    setBusy("");
+    if (r && r.ok) {
+      setMe(r);
+      setNote({ ok: true, text: said(r) });
+      try { window.dispatchEvent(new Event("gloobal:balanceChanged")); } catch (e) { /* no window */ }
+      GloobalApi.getPaylaterPool().then((p) => { if (alive.current && p) setPool(p); });
+    } else {
+      setNote({ ok: false, text: (r && r.message) || "Could not do that just now. Nothing was moved." });
+    }
+    return r;
+  };
+  return { me, pool, busy, note, clearNote: () => setNote(null), load, run };
+}
+
+// The three cards under the limit: what is in use, what your seeds are
+// earning, and the pool day by day.
+function PayLaterLiveCards({ live, ccyCode }) {
+  const lens = useGeuLens();
+  const { me, pool, busy, note, run } = live;
+  const [useAmount, setUseAmount] = useState103("");
+  const [repayAmount, setRepayAmount] = useState103("");
+  const [asking, setAsking] = useState103(""); // "" | "use" | "repay"
+  if (!me) return null;
+  const money = (v) => paylaterMoney(v, ccyCode, lens);
+  const card = { borderRadius: T.radiusLg, background: T.surface, boxShadow: T.shadowCard, padding: 18 };
+  const label = { fontSize: 12, fontWeight: 600, color: T.inkSoft };
+  const big = (color) => ({ fontSize: 20, fontWeight: 800, color, fontFamily: T.fontDisplay, marginTop: 3, whiteSpace: "nowrap" });
+  const small = { fontSize: 11.5, color: T.inkFaint, marginTop: 2, lineHeight: 1.45 };
+  const primary = (disabled) => ({ border: "none", borderRadius: 999, padding: "11px 20px", fontSize: 13, fontWeight: 800, color: "#fff", background: T.gradButton, boxShadow: `0 6px 16px rgba(${T.accentRgb},0.3)`, cursor: disabled ? "default" : "pointer", opacity: disabled ? 0.5 : 1, flexShrink: 0, fontFamily: T.fontBody });
+  const quiet = { border: `1px solid ${T.line}`, borderRadius: 999, padding: "10px 18px", fontSize: 13, fontWeight: 800, color: T.ink, background: T.surface, cursor: "pointer", flexShrink: 0, fontFamily: T.fontBody };
+  const field = (value, set, testid, aria) => <input data-testid={testid} readOnly inputMode="none" data-amount-pad="2" data-amount-label={aria} aria-label={aria} value={value} placeholder="0" onChange={(e) => set(String(e.target.value || "").replace(/[^0-9.]/g, ""))} style={{ flex: 1, minWidth: 0, height: 46, borderRadius: 14, border: `1px solid ${T.line}`, background: T.surfaceAlt, padding: "0 14px", fontSize: 17, fontWeight: 800, color: T.ink, fontFamily: T.fontDisplay, outline: "none" }} />;
+  const inUse = Number(me.inUse) || 0;
+  const using = inUse > 0;
+  const doUse = async () => {
+    const amount = Math.round((Number(useAmount) || 0) * 100) / 100;
+    if (!(amount > 0)) return;
+    const r = await run("use", (key) => GloobalApi.usePaylater(amount, key), (x) => `${money(x.used)} is in your balance · ${money(x.costPerDay)} a day while it is in use`);
+    if (r && r.ok) { setUseAmount(""); setAsking(""); }
+  };
+  const doRepay = async (all) => {
+    const amount = all ? undefined : Math.round((Number(repayAmount) || 0) * 100) / 100;
+    if (!all && !(amount > 0)) return;
+    const r = await run("repay", (key) => GloobalApi.repayPaylater(amount, key), (x) => (Number(x.inUse) > 0 ? `${money(x.paid)} repaid · ${money(x.inUse)} still in use` : `${money(x.paid)} repaid · nothing in use now`));
+    if (r && r.ok) { setRepayAmount(""); setAsking(""); }
+  };
+  const doClaim = () => run("claim", (key) => GloobalApi.claimPaylaterGrowth(key), (x) => `${money(x.claimed)} added to your balance`);
+  const days = (pool && pool.days) || [];
+  // Bars are drawn against the busiest day shown, so quiet and busy days
+  // can be told apart at a glance; the percentage is said in words.
+  const poolTop = Math.max(0.01, ...days.map((d) => Number(d.usedShare) || 0));
+  const usedNow = Math.round(((pool && pool.today && pool.today.usedShare) || 0) * 100);
+  const record = me.record || { early: 0, onTime: 0, late: 0 };
+  const paidBack = record.early + record.onTime + record.late;
+
+  return <>
+    {note ? <div role="status" data-testid="paylater-note" style={{ borderRadius: 14, padding: "11px 14px", fontSize: 12.5, fontWeight: 700, lineHeight: 1.4, background: note.ok ? T.positiveSoft : "rgba(220,38,38,0.08)", color: note.ok ? T.positive : T.negative }}>{note.text}</div> : null}
+
+    {/* In use */}
+    <div data-testid="paylater-inuse" style={card}>
+      {/* One figure to a line: two money figures side by side do not fit a phone. */}
+      <div style={label}>In use</div>
+      <div style={big(using ? T.negative : T.positive)}>{money(inUse)}</div>
+      <div style={small}>{using ? <>It has cost {money(me.costSoFar)} so far · {money(me.costPerDay)} a day</> : "Nothing in use — nothing to pay"}</div>
+      {using ? <div data-testid="paylater-torepay" style={{ display: "flex", alignItems: "baseline", justifyContent: "space-between", gap: 10, marginTop: 12, paddingTop: 12, borderTop: `1px solid ${T.line}` }}><span style={label}>To repay today</span><b style={{ fontSize: 15, color: T.ink, fontFamily: T.fontDisplay, whiteSpace: "nowrap" }}>{money(me.toRepay)}</b></div> : null}
+      <div style={{ display: "flex", gap: 8, marginTop: 14, flexWrap: "wrap" }}>
+        {Number(me.available) > 0 ? <button type="button" data-testid="paylater-use-open" onClick={() => setAsking(asking === "use" ? "" : "use")} className="v2-tap" style={asking === "use" ? quiet : primary(false)}>Use PayLater</button> : null}
+        {using ? <button type="button" data-testid="paylater-repay-all" disabled={Boolean(busy)} onClick={() => doRepay(true)} className="v2-tap" style={primary(Boolean(busy))}>{busy === "repay" ? "Repaying…" : `Repay ${money(me.toRepay)}`}</button> : null}
+        {using ? <button type="button" data-testid="paylater-repay-open" onClick={() => setAsking(asking === "repay" ? "" : "repay")} className="v2-tap" style={quiet}>Repay a part</button> : null}
+      </div>
+      {asking === "use" ? <div style={{ marginTop: 12 }}>
+        <div style={{ display: "flex", gap: 8 }}>{field(useAmount, setUseAmount, "paylater-use-amount", "Amount to use")}<button type="button" data-testid="paylater-use-go" disabled={Boolean(busy) || !(Number(useAmount) > 0) || Number(useAmount) > Number(me.available)} onClick={doUse} className="v2-tap" style={primary(Boolean(busy) || !(Number(useAmount) > 0) || Number(useAmount) > Number(me.available))}>{busy === "use" ? "Moving…" : "Use"}</button></div>
+        <div style={small}>{Number(useAmount) > Number(me.available) ? <span style={{ color: T.negative, fontWeight: 700 }}>You can use up to {money(me.available)}</span> : Number(useAmount) > 0 ? <>Goes into your GLOOBAL balance now. Costs {money(Math.round(Number(useAmount) * me.ratePerDay * 100) / 100)} a day until you repay.</> : <>Up to {money(me.available)}. It goes into your GLOOBAL balance.</>}</div>
+      </div> : null}
+      {asking === "repay" ? <div style={{ marginTop: 12 }}>
+        <div style={{ display: "flex", gap: 8 }}>{field(repayAmount, setRepayAmount, "paylater-repay-amount", "Amount to repay")}<button type="button" data-testid="paylater-repay-go" disabled={Boolean(busy) || !(Number(repayAmount) > 0)} onClick={() => doRepay(false)} className="v2-tap" style={primary(Boolean(busy) || !(Number(repayAmount) > 0))}>{busy === "repay" ? "Repaying…" : "Repay"}</button></div>
+        <div style={small}>What it has cost is paid first, then what is in use.</div>
+      </div> : null}
+      <div style={Object.assign({}, small, { marginTop: 12 })}>Using costs 1.5% a month, counted by the day. While something is in use, the seeds behind it stay in My Assets and do not earn.</div>
+    </div>
+
+    {/* Growth */}
+    <div data-testid="paylater-growth" style={card}>
+      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12 }}>
+        <span style={{ minWidth: 0 }}>
+          <div style={Object.assign({}, label, { display: "flex", alignItems: "center", gap: 6 })}><SproutPl size={14} color={T.positive} />Your seeds have earned</div>
+          <div style={big(T.positive)}>{money(me.growth)}</div>
+          <div style={small}>{me.lastGrowth ? <>{money(me.lastGrowth.amount)} on {paylaterDayLabel(me.lastGrowth.day)}</> : "Added each day PayLater is used"}{Number(me.holding) > 0 ? <> · holding {money(me.holding)}</> : null}</div>
+        </span>
+        {Number(me.growth) > 0 ? <button type="button" data-testid="paylater-claim" disabled={Boolean(busy)} onClick={doClaim} className="v2-tap" style={quiet}>{busy === "claim" ? "Adding…" : "Add to balance"}</button> : null}
+      </div>
+      <div style={Object.assign({}, small, { marginTop: 10 })}>What people pay for using PayLater is shared every day with everyone holding seeds. The more it is used, the more they grow. It is only ever added.</div>
+    </div>
+
+    {/* The pool, day by day */}
+    <div data-testid="paylater-pool" style={card}>
+      <div style={{ display: "flex", alignItems: "baseline", justifyContent: "space-between", gap: 12 }}>
+        <span style={Object.assign({}, label, { display: "flex", alignItems: "center", gap: 6 })}><TrendingUpPl size={14} color={T.accent} />PayLater pool in use</span>
+        <b style={{ fontSize: 15, color: T.ink, fontFamily: T.fontDisplay }}>{usedNow}% today</b>
+      </div>
+      {days.length ? <>
+        <div aria-hidden="true" style={{ display: "flex", alignItems: "flex-end", gap: 3, height: 64, marginTop: 12 }}>{days.map((d) => <span key={d.day} title={`${paylaterDayLabel(d.day)} · ${Math.round(d.usedShare * 100)}% in use`} style={{ flex: 1, minWidth: 2, height: `${Math.max(6, Math.round(d.usedShare / poolTop * 100))}%`, borderRadius: 3, background: T.gradButton, opacity: 0.85 }} />)}</div>
+        <div style={{ display: "flex", justifyContent: "space-between", fontSize: 10.5, color: T.inkFaint, marginTop: 5 }}><span>{paylaterDayLabel(days[0].day)}</span><span>{paylaterDayLabel(days[days.length - 1].day)}</span></div>
+        <div style={Object.assign({}, small, { marginTop: 8 })}>On {paylaterDayLabel(days[days.length - 1].day)}, every {money(1000)} held earned {money(days[days.length - 1].growthPer1000)}.</div>
+      </> : <div style={Object.assign({}, small, { marginTop: 8 })}>The first day will show here once it is over.</div>}
+    </div>
+
+    {/* The milestone scale: the step you are on, and what the next asks */}
+    <div data-testid="paylater-record" style={card}>
+      <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+        <CheckPl size={22} color={record.late ? T.inkFaint : T.positive} style={{ flexShrink: 0 }} />
+        <span style={{ flex: 1, fontSize: 12.5, color: T.ink, lineHeight: 1.45 }}><b>{paidBack > 0 ? `Repaid ${paidBack} ${paidBack === 1 ? "time" : "times"}` : "Nothing repaid yet"}</b>{paidBack > 0 ? <span style={{ display: "block", color: T.inkFaint }}>{record.early} early · {record.onTime} on time · {record.late} late</span> : null}</span>
+        <b data-testid="paylater-factor" style={{ fontSize: 15, fontFamily: T.fontDisplay, color: Number(me.factor) > 1 ? T.positive : T.ink, whiteSpace: "nowrap" }}>{Math.round((Number(me.factor) || 1) * 100)}%</b>
+      </div>
+      <div data-testid="paylater-steps" style={{ display: "flex", gap: 6, marginTop: 12 }}>{[1, 1.05, 1.1].map((f) => <span key={f} style={{ flex: 1, textAlign: "center", borderRadius: 10, padding: "7px 0", fontSize: 12, fontWeight: 800, background: Math.abs((Number(me.factor) || 1) - f) < 0.001 ? T.accent : (Number(me.factor) || 1) > f ? T.accentSoft : T.surfaceAlt, color: Math.abs((Number(me.factor) || 1) - f) < 0.001 ? "#fff" : (Number(me.factor) || 1) > f ? T.accent : T.inkFaint }}>{Math.round(f * 100)}%</span>)}</div>
+      <div style={Object.assign({}, small, { marginTop: 10 })}>{(() => {
+        const ms = me.milestone;
+        if (!ms) return "Your limit is your own seeds.";
+        const next = ms.next;
+        const base = Number(me.factor) > 1 ? `Your limit is ${Math.round(Number(me.factor) * 100)}% of your seeds.` : "Your limit is your own seeds.";
+        if (!next) return `${base} This is the top step for now. A late repayment brings it back to 100%.`;
+        if (ms.needsHooman) return `${base} Keep your Hooman Score check-ins going to start stepping up to ${Math.round(next.factor * 100)}% — only that you answer counts, never what you answer.`;
+        return `${base} ${Math.round(next.factor * 100)}% after ${next.repaid} repayments${next.early ? `, ${next.early} of them early` : ""}, none late in your last ${next.window}.`;
+      })()}</div>
+    </div>
+  </>;
+}
+
+
 // src/features/paylater/PayLaterScreen.jsx
 
 
@@ -37880,6 +38882,13 @@ function PayLaterScreen({ onClose, ccy, ccyCode = "USD", paylaterAvailable, payl
   // own currency, so the lens applies to all of them or none. Read from the
   // shared store the balance card's toggle writes.
   const lens = useGeuLens();
+  // The server's own figures (PayLater by the day). Null until it answers;
+  // until then, and on an old server, the screen shows what this phone knows.
+  const live = usePaylaterLive(true);
+  if (live.me) {
+    paylaterAvailable = Number(live.me.available) || 0;
+    paylaterLimit = Number(live.me.limit) || 0;
+  }
   // The two headline figures get the bar — see the standing-alone rule in
   // AssetsScreen. "of X limit" below the first one does not: it is a
   // sentence, and the figure it qualifies already carries both unit names
@@ -37910,7 +38919,7 @@ function PayLaterScreen({ onClose, ccy, ccyCode = "USD", paylaterAvailable, payl
     onClick={onViewAssets}
     className="v2-tap"
     style={{ display: "flex", alignItems: "center", gap: 5, border: "none", background: "none", padding: 0, marginTop: 12, cursor: "pointer" }}
-  ><span style={{ fontSize: 11, fontWeight: 700, color: T.accent }}>Your limit = your current assets</span><ChevronRight2 size={13} color={T.accent} /></button></div>{
+  ><span style={{ fontSize: 11, fontWeight: 700, color: T.accent }}>{live.me ? "Your limit = your own seeds in My Assets" : "Your limit = your current assets"}</span><ChevronRight2 size={13} color={T.accent} /></button></div>{live.me ? <PayLaterLiveCards live={live} ccyCode={ccyCode} /> : <>{
     /* Pending dues */
   }<div style={{ borderRadius: T.radiusLg, background: T.surface, boxShadow: T.shadowCard, padding: "18px" }}><div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12 }}><span><div style={{ fontSize: 12, fontWeight: 600, color: T.inkSoft }}>Pending dues</div><div style={{ fontSize: dueSize, fontWeight: 800, color: paylaterDue > 0 ? T.negative : T.positive, fontFamily: T.fontDisplay, marginTop: 3, whiteSpace: "nowrap" }}><GeuLead parts={dueParts} px={dueSize} />{dueParts.trail && <span style={geuLensTrailStyle(dueSize)}> {dueParts.trail}</span>}</div><div style={{ fontSize: 11.5, color: T.inkFaint, marginTop: 2 }}>{paylaterDue > 0 ? "Due Aug 1" : "Nothing due \u2014 all clear"}</div></span>{paylaterDue > 0 && <button
     onClick={onPayNow}
@@ -37929,7 +38938,7 @@ function PayLaterScreen({ onClose, ccy, ccyCode = "USD", paylaterAvailable, payl
     }}
   >
                 Pay now
-              </button>}</div></div>{
+              </button>}</div></div></>}{
     /* History — split into the two directions of the ledger. */
   }<PayLaterLedger title="Paid with PayLater" rows={paylaterSending} direction="out" ccy={ccy} ccyCode={ccyCode} /><PayLaterLedger title="What raised your limit" rows={paylaterReceiving} direction="in" ccy={ccy} ccyCode={ccyCode} />{onOpenHistory && <button
     type="button"
@@ -39242,7 +40251,12 @@ function PersonalDetailsScreen({
   const dial = (dialCountry && dialCountry.dialCode) || "";
   const mobileShown = (() => {
     const m = String(mobileNumber || "");
-    const rest = dial && m.startsWith(dial) ? m.slice(dial.length) : m.replace(/^\+/, "");
+    // A number stored with its country code but no "+" (older accounts:
+    // "919000000001") still has the code taken off, or it showed twice.
+    const dialDigits = dial.replace(/\D/g, "");
+    const rest = dial && m.startsWith(dial) ? m.slice(dial.length)
+      : dialDigits && !m.startsWith("+") && m.startsWith(dialDigits) && m.length - dialDigits.length >= 6 ? m.slice(dialDigits.length)
+      : m.replace(/^\+/, "");
     const lead = dial ? `${dial} ` : (m.startsWith("+") ? "+" : "");
     if (showMobile || rest.length < 6) return `${lead}${rest}`;
     return `${lead}${rest.slice(0, 2)}••• ••${rest.slice(-3)}`;
@@ -47037,6 +48051,7 @@ var SHOP_PAGE_TYPE_KINDS = {
   store: [["grocery", "*"], ["farm", ["farmer", "dairyfarm", "poultry", "fishery", "nursery", "seeds", "cattlefeed", "honey", "flowergrower", "mandi"]],
     ["fashion", ["clothes", "saree", "shoes", "jewellery", "kids", "boutique", "bangles", "bags", "handloom"]],
     ["electronics", ["mobile", "computer", "appliances"]], ["home", ["furniture", "decor", "hardware", "utensils"]],
+    ["building", ["cement", "steel", "sand", "bricks", "tiles", "paint", "plumbing", "electrical", "wood", "glass", "roofing", "solar"]],
     ["education", ["books", "stationery"]], ["art", ["handmade", "pottery", "gifts", "framing", "idol", "bamboo", "toys"]], ["health", ["pharmacy", "optical"]]],
   services: [["beauty", "*"], ["fashion", ["tailor", "laundry", "cobbler", "embroidery"]], ["repair", "*"],
     ["home", ["cleaning", "pestcontrol", "movers", "gardening", "cook", "scrap", "mattress"]],
@@ -47044,7 +48059,7 @@ var SHOP_PAGE_TYPE_KINDS = {
     ["electronics", ["phonerepair", "internet", "printing", "recharge", "cyber", "tvrepair"]]],
   classes: [["education", ["tuition", "coaching", "music", "dance", "language", "computerclass", "sports", "preschool", "driving", "library", "craftclass"]], ["health", ["gym", "yoga"]]],
   portfolio: [["creator", "*"], ["art", ["painting", "photography", "design", "handmade"]]],
-  bookings: [["travel", "*"], ["events", "*"], ["home", ["rent"]], ["farm", ["tractor"]]],
+  bookings: [["travel", "*"], ["events", "*"], ["home", ["rent"]], ["farm", ["tractor"]], ["building", ["machinery"]]],
   giving: [["community", "*"]],
   // No list, only pay: the people paid for a day's work come first here.
   pay: [["work", "*"], ["creator", ["freelancer", "consultant", "developer", "designer", "writer"]], ["travel", ["taxi", "auto", "erickshaw", "rickshaw", "driver", "tempo", "courier"]], ["repair", ["plumber", "electrician", "carpenter", "painter", "mason"]]]
@@ -47120,6 +48135,11 @@ var SHOP_KIND_WORDS = {
   "art.bamboo": "cane basket tokri",
   "art.toys": "khilona balloon gubbara",
   "events.lights": "generator genset lighting",
+  "building.cement": "siment opc ppc bag construction", "building.steel": "sariya saria tmt rod bar loha", "building.sand": "reti bajri gitti aggregate stone grit",
+  "building.bricks": "eent int block fly ash", "building.tiles": "marble granite flooring kota stone", "building.paint": "colour color putty primer",
+  "building.plumbing": "pipe tank tap sanitary nal", "building.electrical": "wire switch light bijli fitting", "building.wood": "lakdi plywood door board timber",
+  "building.glass": "kaanch window aluminium", "building.roofing": "tin sheet chadar khaprail roof", "building.solar": "panel inverter battery street light",
+  "building.machinery": "jcb mixer crane tractor hire",
   "community.shg": "self help group mahila mandal samooh",
   "community.gaushala": "cow shelter gau seva",
   "community.school": "fees college donation",
@@ -47361,6 +48381,19 @@ var SHOP_KIND_STARTERS = {
   "art.bamboo": [["Bamboo basket", "", 150], ["Cane chair", "", 1200], ["Winnowing tray (soop)", "", 120]],
   "art.toys": [["Balloon", "", 10], ["Toy car", "", 80], ["Soft toy", "", 250], ["Balloon bunch", "", 100]],
   "events.lights": [["Light decoration", "Per day", 3000], ["Generator", "Per day", 2500], ["LED wall", "Per day", 8000]],
+  "building.cement": [["OPC 53 cement", "50 kg bag", 380], ["PPC cement", "50 kg bag", 360], ["White cement", "1 kg", 40]],
+  "building.steel": [["TMT bar 8 mm", "Per kg", 65], ["TMT bar 12 mm", "Per kg", 63], ["Binding wire", "Per kg", 90]],
+  "building.sand": [["River sand", "Per cubic foot", 60], ["Gravel 20 mm (gitti)", "Per cubic foot", 55], ["M-sand", "Per cubic foot", 45]],
+  "building.bricks": [["Red bricks", "Per 1,000", 7500], ["Fly ash bricks", "Per 1,000", 6000], ["Concrete block", "Per block", 45]],
+  "building.tiles": [["Floor tiles", "Per sq ft", 45], ["Wall tiles", "Per sq ft", 40], ["Marble", "Per sq ft", 120]],
+  "building.paint": [["Exterior emulsion", "20 litres", 4800], ["Interior emulsion", "20 litres", 3200], ["Primer", "20 litres", 2200]],
+  "building.plumbing": [["PVC pipe 1 inch", "3 m length", 180], ["Water tank", "1,000 litres", 7000], ["Tap", "", 250]],
+  "building.electrical": [["House wire 1.5 mm", "90 m coil", 1400], ["Switch board", "", 300], ["LED bulb 9 W", "", 90]],
+  "building.wood": [["Plywood 18 mm", "8 × 4 ft sheet", 2600], ["Door frame", "", 3500], ["Teak wood", "Per cubic foot", 4500]],
+  "building.glass": [["Window glass 5 mm", "Per sq ft", 60], ["Aluminium window", "Per sq ft", 450], ["Mirror", "Per sq ft", 90]],
+  "building.roofing": [["Tin sheet", "Per sheet", 900], ["Cement sheet", "Per sheet", 650], ["Roof tiles (khaprail)", "Per 100", 1500]],
+  "building.solar": [["Solar panel 330 W", "", 9000], ["Inverter battery 150 Ah", "", 14000], ["Solar street light", "", 6500]],
+  "building.machinery": [["JCB", "Per hour", 1200], ["Concrete mixer", "Per day", 1500], ["Tractor trolley", "Per trip", 800]],
   "community.shg": [["Monthly saving", "", 100], ["Membership", "", 50], ["Group product", "", 200]],
   "community.gaushala": [["Feed a cow", "One day", 101], ["Monthly seva", "", 1100], ["Medical care", "", 501]],
   "community.school": [["Monthly fee", "", 1500], ["Admission fee", "", 2000], ["Exam fee", "", 300]],
@@ -50710,7 +51743,7 @@ function CreatorShareOverviewScreen({ onBack, myRate = 0, side = "personal", sho
   } else if (me && shares) {
     mine = <CsCard testId="share-mine" accent={CREATOR_SHARE_TAG_COLOR} title={<>Your part of it {badge(creatorSharePct(me.ratePct))}</>} sub="Counted from your own payments">
       <div style={{ display: "flex", gap: 10, marginTop: 12 }}>{tile("You gave", money(me.gave.share), `to ${me.gave.people} ${me.gave.people === 1 ? "person" : "people"} who paid you`, "↗")}{tile("Came back to you", money(me.got.share), `from ${me.got.people} shop${me.got.people === 1 ? "" : "s"} you paid`, "↙")}</div>
-      {me.planted > 0 ? note(<CsUp size={16} strokeWidth={2.6} />, <><b style={{ color: T.ink }}>{money(me.planted)} → {money(me.plantedNow)}</b> planted in My Assets, growing 1% a month. Nothing taken out yet.</>) : null}
+      {me.planted > 0 ? note(<CsUp size={16} strokeWidth={2.6} />, <><b style={{ color: T.ink }}>{money(me.plantedNow)}</b> planted in My Assets, growing each day with what PayLater users pay. Nothing taken out yet.</>) : null}
       <div style={{ fontSize: 12, fontWeight: 600, color: T.inkSoft, marginTop: 10 }}>You share more than <b style={{ color: T.ink }}>{me.aboveSharePct}%</b> of people.</div>
     </CsCard>;
   } else if (me) {
@@ -50748,7 +51781,7 @@ function CreatorShareOverviewScreen({ onBack, myRate = 0, side = "personal", sho
   const growing = <CsCard testId="share-growing" title="Still growing in My Assets" sub="Shared money people have left planted">
     <div style={{ display: "flex", alignItems: "center", gap: 12, marginTop: 12 }}>
       <div aria-hidden="true" style={{ width: 60, height: 60, borderRadius: 18, background: T.surfaceAlt, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}><svg viewBox="0 0 64 64" width="42" height="42"><path d="M32 46V26" stroke="#5DAE5F" strokeWidth="3" strokeLinecap="round"/><path d="M32 30q-12 -8 -15 2 9 4 15 -2z" fill="#6CC47E"/><path d="M32 24q12 -9 16 1 -9 5 -16 -1z" fill="#80D18E"/><path d="M20 46h24l-3 12H23z" fill="#E8701E"/><path d="M18 44h28v4H18z" fill="#F7925E"/></svg></div>
-      <div style={{ flex: 1, minWidth: 0 }}><b style={{ display: "block", fontSize: 16, fontWeight: 800, color: T.ink }}>{money(g.planted)}{t.share > 0 ? <> of {money(t.share)}</> : ""}</b><span style={{ fontSize: 11.5, color: T.inkSoft, fontWeight: 600, lineHeight: 1.4, display: "block" }}>still planted · grown <b style={{ color: T.positive }}>+{money(g.grown)}</b> so far at 1% a month</span>
+      <div style={{ flex: 1, minWidth: 0 }}><b style={{ display: "block", fontSize: 16, fontWeight: 800, color: T.ink }}>{money(g.planted)}{t.share > 0 ? <> of {money(t.share)}</> : ""}</b><span style={{ fontSize: 11.5, color: T.inkSoft, fontWeight: 600, lineHeight: 1.4, display: "block" }}>still planted{g.grown > 0 ? <> · grown <b style={{ color: T.positive }}>+{money(g.grown)}</b> so far</> : null} · grows each day with what PayLater users pay</span>
         <div style={{ height: 7, borderRadius: 4, background: T.surfaceSunk, marginTop: 8, overflow: "hidden" }}><div style={{ width: `${t.share > 0 ? Math.min(100, (g.planted / t.share) * 100) : 0}%`, height: "100%", background: T.positive, borderRadius: 4 }} /></div></div>
     </div>
   </CsCard>;
@@ -52394,7 +53427,7 @@ function BazaarMapDetails({ shop, placeName, onClose, onOpen, onPay, onChat, onT
   return <div data-testid="map-details" style={{ position: "absolute", left: 0, right: 0, bottom: 0, zIndex: 6, background: T.bg, borderRadius: "24px 24px 0 0", padding: "12px 18px calc(16px + env(safe-area-inset-bottom, 0px))", boxShadow: "0 -8px 26px rgba(40,10,25,0.16)" }}>
     <span aria-hidden="true" style={{ display: "block", width: 40, height: 4, borderRadius: 2, background: T.line, margin: "0 auto 12px" }} />
     <button type="button" data-testid="map-details-close" aria-label="Close" onClick={onClose} style={{ position: "absolute", top: 14, right: 14, width: 32, height: 32, border: "none", borderRadius: "50%", background: T.surfaceAlt, display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer", color: T.inkSoft }}><BmX size={15} /></button>
-    <div style={{ display: "flex", gap: 12, alignItems: "center", paddingRight: 36 }}><BusinessMark name={shop.handle || ""} logo={shop.logo} size={54} radius={16} /><div style={{ minWidth: 0 }}><b data-testid="map-details-name" style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 17, color: T.ink, fontFamily: T.fontDisplay, minWidth: 0 }}><span style={{ minWidth: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{creatorDisplayName(shop)}</span><GloobalNameBadge symbolId={shop.symbolId} shop size={17} /></b>{bazaarMapMeta(shop)}</div></div>
+    <div style={{ display: "flex", gap: 12, alignItems: "center", paddingRight: 36 }}><BusinessMark name={shop.handle || ""} logo={shop.logo} size={54} radius={16} /><div style={{ minWidth: 0, flex: 1 }}><b data-testid="map-details-name" style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 17, color: T.ink, fontFamily: T.fontDisplay, minWidth: 0 }}><span style={{ minWidth: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{creatorDisplayName(shop)}</span><GloobalNameBadge symbolId={shop.symbolId} shop size={17} /></b>{bazaarMapMeta(shop)}</div>{/* Its Creator Share, as on every Bazaar row (0194). */}<BazaarShareTag pct={shop.sharePct} /></div>
     <div data-testid="map-details-address" style={{ display: "flex", gap: 10, background: T.surface, borderRadius: 16, boxShadow: T.shadowCard, padding: 13, marginTop: 13 }}><BmPin size={18} color={T.accent} style={{ flexShrink: 0 }} /><div style={{ flex: 1, minWidth: 0 }}>{a.street ? <b style={{ display: "block", fontSize: 13, color: T.ink, lineHeight: 1.3 }}>{a.street}</b> : null}{a.landmark ? <span style={{ display: "block", fontSize: 12, fontWeight: 600, color: T.inkSoft, marginTop: 3 }}>{a.landmark}</span> : null}{a.town ? <span style={{ display: "block", fontSize: 12, fontWeight: 600, color: T.inkSoft, marginTop: 3 }}>{a.town}</span> : null}</div><button type="button" aria-label="Copy address" data-testid="map-details-copy" onClick={copy} style={{ border: "none", background: "none", padding: 0, height: 20, cursor: "pointer", color: T.inkFaint }}><BmCopy size={16} /></button></div>
     <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginTop: 14 }}><div><b data-testid="map-details-distance" style={{ display: "block", fontSize: 25, lineHeight: 1, color: T.accent, fontFamily: T.fontDisplay }}>{bazaarDistanceLabel(shop.distanceM)}</b><span style={{ fontSize: 11, fontWeight: 600, color: T.inkSoft }}>straight line{placeName ? ` from ${placeName}` : ""}</span></div><a data-testid="map-start" href={bazaarMapStartUrl(shop)} target="_blank" rel="noopener noreferrer" style={bazaarMapStartStyle(true)}><BmNav size={18} />Start</a></div>
     <div style={{ textAlign: "right", fontSize: 10.5, fontWeight: 600, color: T.inkFaint, marginTop: 5 }}>Start opens directions in Google Maps</div>
@@ -53458,7 +54491,7 @@ function MyDataScreen({ onClose }) {
 // captureBrowserGeo — the app's one place for asking. It is kept for this
 // visit only, never saved, and sent with the search but stored nowhere.
 
-// The same eighteen, in the same order, as server/lib/bazaar.js. The order
+// The same nineteen, in the same order, as server/lib/bazaar.js. The order
 // here is only the setup screen's; Pay & Services orders them by payments.
 var BAZAAR_CATEGORY_INFO = [
   { key: "food", label: "Food & Chai", Icon: BzFood },
@@ -53474,6 +54507,7 @@ var BAZAAR_CATEGORY_INFO = [
   { key: "travel", label: "Travel & Transport", Icon: BzTravel },
   { key: "art", label: "Art & Craft", Icon: BzArt },
   { key: "events", label: "Events", Icon: BzEvents },
+  { key: "building", label: "Building materials", Icon: BzBuilding },
   { key: "farm", label: "Farm & Fresh", Icon: BzFarm },
   { key: "work", label: "Daily work & Help", Icon: BzWork },
   { key: "creator", label: "Creators & Freelance", Icon: BzCreator },
@@ -53498,6 +54532,7 @@ var BAZAAR_SUBCATEGORY_INFO = {
   travel: [["taxi", "Taxi"], ["auto", "Auto"], ["tours", "Tours"], ["hotel", "Hotel"], ["tickets", "Tickets"], ["bikerental", "Bike rental"], ["courier", "Courier & delivery"], ["guide", "Guide"], ["tempo", "Tempo & truck"], ["erickshaw", "E-rickshaw"], ["rickshaw", "Cycle rickshaw"], ["driver", "Driver on hire"], ["schoolvan", "School van"]],
   art: [["handmade", "Handmade"], ["pottery", "Pottery"], ["painting", "Painting"], ["gifts", "Gifts"], ["photography", "Photography"], ["design", "Design"], ["framing", "Framing"], ["idol", "Idol & statue maker"], ["bamboo", "Bamboo & cane work"], ["toys", "Toys & balloons"]],
   events: [["wedding", "Wedding"], ["decoration", "Decoration"], ["catering", "Catering"], ["dj", "DJ"], ["tent", "Tent"], ["flowers", "Flowers"], ["photovideo", "Photo & video"], ["pandit", "Pandit & puja"], ["band", "Band & dhol"], ["anchor", "Anchor & host"], ["lights", "Lights & generator"]],
+  building: [["cement", "Cement"], ["steel", "Steel & TMT bars"], ["sand", "Sand & gravel"], ["bricks", "Bricks & blocks"], ["tiles", "Tiles & marble"], ["paint", "Paint"], ["plumbing", "Pipes & plumbing"], ["electrical", "Wires & electrical"], ["wood", "Wood & plywood"], ["glass", "Glass & aluminium"], ["roofing", "Roofing sheets"], ["solar", "Solar & inverters"], ["machinery", "Machine hire (JCB, mixer)"]],
   farm: [["farmer", "Farmer"], ["dairyfarm", "Dairy farm"], ["poultry", "Poultry & eggs"], ["fishery", "Fish farm"], ["nursery", "Plant nursery"], ["seeds", "Seeds & fertiliser"], ["cattlefeed", "Cattle feed"], ["honey", "Honey & bee keeping"], ["flowergrower", "Flower grower"], ["mandi", "Mandi trader"], ["tractor", "Tractor & JCB"]],
   work: [["labour", "Daily labour"], ["helper", "Helper & loader"], ["porter", "Porter (coolie)"], ["guard", "Security guard"], ["sweeper", "Sweeper & cleaner"], ["maid", "Maid"], ["babysitter", "Babysitter (aaya)"], ["eldercare", "Elder care"], ["homecook", "Home cook"], ["gardener", "Gardener (mali)"], ["rider", "Delivery rider"], ["waiter", "Waiter & event staff"]],
   creator: [["youtuber", "YouTuber"], ["musician", "Musician"], ["writer", "Writer"], ["artist", "Artist"], ["photographer", "Photographer"], ["videomaker", "Video maker"], ["designer", "Designer"], ["developer", "Developer"], ["influencer", "Influencer"], ["podcaster", "Podcaster"], ["freelancer", "Freelancer"], ["consultant", "Consultant"], ["astrology", "Astrology"]],
@@ -62127,7 +63162,8 @@ function DashboardScreen({ dialCountry, onLogout, onOpenSend, onPayCreator, onPa
   />}{
     /* Single-asset growth chart — from the month cashback was earned
        up to the month it fully compounds to 100% of the original
-       spend, at the fixed 1%/month rate. Layered above My Assets. */
+       spend. (No fixed rate since 25 Nov 2026: seeds grow by the day
+       with what PayLater users pay.) Layered above My Assets. */
   }{showMyShops && shareRole === "merchant" && <ScreenErrorBoundary name="My shops" onClose={() => setShowMyShops(false)}><MyShopsScreen
     shops={shopsInfo}
     active={creatorSymbol}
@@ -62312,18 +63348,11 @@ function DashboardScreen({ dialCountry, onLogout, onOpenSend, onPayCreator, onPa
       // was for (App.jsx, openSendToCreator).
       if (onPayCreator) onPayCreator({ creator, amount, lines });
     }}
-  /></ScreenErrorBoundary>}{assetDetail && <div style={{ position: "fixed", inset: 0, zIndex: 340, background: T.bg, display: "flex", flexDirection: "column", overflow: "hidden" }}><div style={{ display: "flex", alignItems: "center", gap: 12, padding: "calc(18px + env(safe-area-inset-top, 0px)) 18px 14px", flexShrink: 0 }}><NavBackButton onClick={requestCloseAssetDetail} /><span style={{ fontSize: 16, fontWeight: 800, color: T.ink, fontFamily: T.fontDisplay }}>{assetDetail.row.business}</span></div><div style={{ flex: 1, minHeight: 0, overflowY: "auto", WebkitOverflowScrolling: "touch", padding: "6px 18px 30px", display: "flex", flexDirection: "column", gap: 16 }}><div style={{ borderRadius: T.radiusLg, background: T.surface, boxShadow: T.shadowCard, padding: "18px 18px 14px" }}><div style={{ fontSize: 12, fontWeight: 600, color: T.inkSoft }}>Current value</div><div style={{ fontSize: 26, fontWeight: 800, color: T.positive, fontFamily: T.fontDisplay, marginTop: 3, whiteSpace: "nowrap" }}>{geuLensBarMoney(assetDetail.row.value, ccyCode, displayLens, ccyCode)}</div><div style={{ fontSize: 11.5, color: T.inkFaint, marginTop: 2 }}>{assetDetail.row.monthsAccrued === 0 ? "Just earned" : `${(assetDetail.row.monthsAccrued / 12).toFixed(1)} yr into growing toward ${geuLensBarMoney(assetDetail.target, ccyCode, displayLens, ccyCode)}`}</div>{
-    /* Growth curve: cashback (t=0) compounding at 1%/month up
-       to the point it equals 100% of the original spend. */
-  }<svg viewBox={`0 0 ${CHART_W} ${CHART_H}`} width="100%" height="150" style={{ marginTop: 14, display: "block" }} preserveAspectRatio="none">{
-    /* Target line — 100% of original spending */
-  }<line x1={CHART_PAD_L} y1={assetDetail.targetY} x2={CHART_W - CHART_PAD_R} y2={assetDetail.targetY} stroke={T.line} strokeWidth="1.5" strokeDasharray="4 4" />{
-    /* Baseline (0 value) */
-  }<line x1={CHART_PAD_L} y1={assetDetail.baseY} x2={CHART_W - CHART_PAD_R} y2={assetDetail.baseY} stroke={T.line} strokeWidth="1.5" />{
-    /* Growth curve */
-  }<polyline points={assetDetail.pathPoints} fill="none" stroke={T.positive} strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" />{
-    /* Today marker */
-  }<line x1={assetDetail.todayX} y1={assetDetail.todayY} x2={assetDetail.todayX} y2={assetDetail.baseY} stroke={T.accent} strokeWidth="1.5" strokeDasharray="3 3" /><circle cx={assetDetail.todayX} cy={assetDetail.todayY} r="4.5" fill={T.accent} stroke="#fff" strokeWidth="1.5" /></svg><div style={{ display: "flex", justifyContent: "space-between", fontSize: 10.5, color: T.inkFaint, marginTop: -4 }}><span>Year 0</span><span>~{(assetDetail.monthsToTarget / 12).toFixed(1)} yrs</span></div><div style={{ display: "flex", alignItems: "center", gap: 6, marginTop: 10 }}><span style={{ width: 8, height: 8, borderRadius: "50%", background: T.accent, flexShrink: 0 }} /><span style={{ fontSize: 11, color: T.inkSoft }}>Today</span><span style={{ width: 14, height: 2, background: T.line, marginLeft: 10, flexShrink: 0 }} /><span style={{ fontSize: 11, color: T.inkSoft }}>100% of original spend (<GeuFigure amount={assetDetail.target} currency={ccyCode} lens={displayLens} size={11} />)</span></div></div><div style={{ borderRadius: T.radiusLg, background: T.surface, boxShadow: T.shadowCard, padding: "16px 18px", display: "flex", flexDirection: "column", gap: 12 }}>{[
+  /></ScreenErrorBoundary>}{assetDetail && <div style={{ position: "fixed", inset: 0, zIndex: 340, background: T.bg, display: "flex", flexDirection: "column", overflow: "hidden" }}><div style={{ display: "flex", alignItems: "center", gap: 12, padding: "calc(18px + env(safe-area-inset-top, 0px)) 18px 14px", flexShrink: 0 }}><NavBackButton onClick={requestCloseAssetDetail} /><span style={{ fontSize: 16, fontWeight: 800, color: T.ink, fontFamily: T.fontDisplay }}>{assetDetail.row.business}</span></div><div style={{ flex: 1, minHeight: 0, overflowY: "auto", WebkitOverflowScrolling: "touch", padding: "6px 18px 30px", display: "flex", flexDirection: "column", gap: 16 }}><div style={{ borderRadius: T.radiusLg, background: T.surface, boxShadow: T.shadowCard, padding: "18px 18px 14px" }}><div style={{ fontSize: 12, fontWeight: 600, color: T.inkSoft }}>Current value</div><div style={{ fontSize: 26, fontWeight: 800, color: T.positive, fontFamily: T.fontDisplay, marginTop: 3, whiteSpace: "nowrap" }}>{geuLensBarMoney(assetDetail.row.value, ccyCode, displayLens, ccyCode)}</div><div style={{ fontSize: 11.5, color: T.inkFaint, marginTop: 2 }}>{"Held in My Assets. Grows each day PayLater is used."}</div>{
+    /* No curve: growth is no longer a fixed rate with a known end. It is
+       what people using PayLater paid that day, shared with holders
+       (features/paylater/PayLaterLive.jsx shows it day by day). */
+  }</div><div style={{ borderRadius: T.radiusLg, background: T.surface, boxShadow: T.shadowCard, padding: "16px 18px", display: "flex", flexDirection: "column", gap: 12 }}>{[
     ...assetDetail.row.chip === "CS" ? [["Creator", assetDetail.row.creatorName]] : [],
     ["Paid", `${geuLensBarMoney(assetDetail.row.amountPaid, ccyCode, displayLens, ccyCode)}`],
     // Two decimals, not one, and this is load-bearing rather than cosmetic.
@@ -62341,7 +63370,7 @@ function DashboardScreen({ dialCountry, onLogout, onOpenSend, onPayCreator, onPa
     // without also constraining the slider, or the two will disagree again.
     ["Cashback", `${(assetDetail.row.cashbackRate * 100).toFixed(2)}% \xB7 ${geuLensBarMoney(assetDetail.row.cashback, ccyCode, displayLens, ccyCode)}`],
     ["Earned on", assetDetail.row.time ? `${assetDetail.row.date}, ${assetDetail.row.time}` : assetDetail.row.date],
-    ["Time to 100%", `${(assetDetail.monthsToTarget / 12).toFixed(1)} yrs`],
+    ["Growth", "Shared daily from PayLater use"],
     // The payment itself, last, because it is the way OUT of this screen
     // rather than another fact about the seed. Absent entirely on a seed
     // planted before the link was recorded — a row saying "unknown" is
@@ -64551,6 +65580,19 @@ function SendMoneyScreen({ onClose, sender, prefillReceiver = null, prefillChoic
   // What the pool still has today. Reactive to the ledger, so drawing on
   // it anywhere updates this row without a reload.
   const essentialsLeft = useEssentialsPoolRemaining(Number(essentialsDailyLimit) || 0);
+  // What PayLater can carry right now — read from the server each time the
+  // sheet opens. PayLater is used by the server as part of the payment
+  // itself (one step), so the row only says whether it carries all of
+  // this, part of it, or nothing.
+  const [paylaterAvailableNow, setPaylaterAvailableNow] = useState15(null);
+  useEffect13(() => {
+    if (!payMethodOpen) return undefined;
+    let alive = true;
+    Promise.resolve(GloobalApi.getPaylaterDaily && GloobalApi.getPaylaterDaily()).then((m) => {
+      if (alive) setPaylaterAvailableNow(m && Number.isFinite(Number(m.available)) ? Number(m.available) : null);
+    }).catch(() => {});
+    return () => { alive = false; };
+  }, [payMethodOpen]);
   // How much Essentials actually carried of the payment in flight. Read
   // by the receipt; cleared whenever a new payment starts.
   const essentialsAppliedRef = useRef11(0);
@@ -65739,7 +66781,13 @@ function SendMoneyScreen({ onClose, sender, prefillReceiver = null, prefillChoic
       note: !(essentialsLeft > 0) ? "Nothing left today" : essentialsLeft + 0.005 >= (Number(senderAmount) || 0) ? "Covers all of this today" : "Covers part — the rest from GLOOBAL Bank",
       disabled: !(essentialsLeft > 0)
     },
-    { key: "gpaylater", label: "Gloobal PayLater", displayLabel: <GloobalWordmark suffix=" PayLater" /> },
+    {
+      key: "gpaylater",
+      label: "Gloobal PayLater",
+      displayLabel: <GloobalWordmark suffix=" PayLater" />,
+      note: paylaterAvailableNow === null ? null : !(paylaterAvailableNow > 0) ? "Nothing to use right now" : paylaterAvailableNow + 0.005 >= (Number(senderAmount) || 0) ? "Covers all of this" : "Covers part — the rest from GLOOBAL Bank",
+      disabled: paylaterAvailableNow !== null && !(paylaterAvailableNow > 0)
+    },
     { key: "local", label: "Local Banks" }
   ].map(({ key, label, displayLabel, note, disabled }) => <button
     key={key}
@@ -66262,6 +67310,319 @@ function ProjectContributionList({ projectId, enabled = true, money, tint, accen
 }
 
 
+// src/features/projects/ProjectPlan.jsx
+//
+// ── WHAT THE MONEY BUYS, AND WHO GLOOBAL BUYS IT FROM ────────────────────
+//
+// A Hooman Project's plan, line by line, each line one kind of cost
+// (server/models/Project.js, server/lib/projectReview.js validatePlan):
+//
+//   Material  cement, steel, bricks   GLOOBAL buys it itself, from a seller
+//   Tech      laptops, solar panels   on GLOOBAL बाज़ार near the site — the
+//                                     applicant never picks the seller
+//   People    wages                   people × days × a day's pay, exactly
+//   Other     anything else           paid against receipts
+//
+//   ProjectPlanEditor   the applicant's plan, while it is a draft
+//   ProjectSiteCard     where the work happens: a pin, from the phone's
+//                       location, a tap on the map, or a pasted map link
+//   PlanLinesView       the plan as read — by the applicant once it is sent
+//                       (with the seller GLOOBAL picked) and on the desk
+//   ProjectSellerDesk   GLOOBAL's reviewers: the ranked sellers for each
+//                       material and tech line, GLOOBAL's choice confirmed
+//                       in one tap, or another (saying why), or none
+//
+// The ranking is the server's (server/lib/projectSuppliers.js); this shows
+// its order and its reason, in its words.
+
+var PLAN_KINDS = [
+  { key: "material", label: "Material", Icon: PlanMaterialIcon, hint: "Cement, steel, bricks… GLOOBAL buys it itself, from a seller near the site." },
+  { key: "tech", label: "Tech", Icon: PlanTechIcon, hint: "Laptops, solar panels, machines… GLOOBAL buys it itself, from a seller near the site." },
+  { key: "human", label: "People", Icon: PlanPeopleIcon, hint: "Wages: how many people, for how many days, at a day's pay. Paid to each worker's own GLOOBAL ID." },
+  { key: "other", label: "Other", Icon: PlanOtherIcon, hint: "Anything else — permits, transport. Paid against receipts." }
+];
+var PLAN_SELLER_KINDS = ["material", "tech"];
+var PLAN_UNITS = ["bags", "tonnes", "kg", "pieces", "metres", "sq ft", "cubic ft", "litres", "trips", "sets"];
+// The shop most lines of a kind come from, picked for the applicant to change.
+var PLAN_DEFAULT_CATEGORY = { material: "building", tech: "electronics" };
+
+// A line from the server, in the editor's shape (amounts as typed text).
+function planLineFromServer(l) {
+  return {
+    label: l.label || "", kind: l.kind || "", amountMajor: l.amountMinor ? (l.amountMinor / 100).toFixed(2) : "",
+    quantity: l.quantity != null ? String(l.quantity) : "", unit: l.unit || "", quality: l.quality || "",
+    category: l.category || "", subcategory: l.subcategory || "",
+    people: l.people ? String(l.people) : "", days: l.days ? String(l.days) : "", rateMajor: l.rateMinor ? (l.rateMinor / 100).toFixed(2) : ""
+  };
+}
+
+// What the server is sent: only what the line's kind uses.
+function planLineToServer(l) {
+  const base = { label: l.label, kind: l.kind || undefined };
+  if (l.kind === "human") return { ...base, people: l.people, days: l.days, rateMajor: l.rateMajor };
+  if (PLAN_SELLER_KINDS.includes(l.kind)) return { ...base, amountMajor: l.amountMajor, quantity: l.quantity, unit: l.unit, quality: l.quality, category: l.category, subcategory: l.subcategory };
+  return { ...base, amountMajor: l.amountMajor };
+}
+
+// A line's amount in minor units; wages are worked out, never typed.
+function planLineMinor(l) {
+  if (l.kind === "human") return Math.round(Number(l.people || 0) * Number(l.days || 0) * Math.round(Number(l.rateMajor || 0) * 100));
+  return Math.round(Number(l.amountMajor || 0) * 100);
+}
+
+// What a line still needs, in words — the same checks the server makes.
+function planLineGap(l) {
+  if (!String(l.label || "").trim()) return "Give it a name.";
+  if (!l.kind) return "Say what kind of cost it is.";
+  if (l.kind === "human") {
+    if (!(Number(l.people) >= 1)) return "How many people?";
+    if (!(Number(l.days) >= 1)) return "For how many days?";
+    if (!(Number(l.rateMajor) > 0)) return "One person's pay for a day?";
+    return "";
+  }
+  if (!(Number(l.amountMajor) > 0)) return "How much does it cost in all?";
+  if (PLAN_SELLER_KINDS.includes(l.kind)) {
+    if (!(Number(l.quantity) > 0)) return "How much is needed?";
+    if (!String(l.unit || "").trim()) return "In what unit?";
+    if (!l.category) return "Which kind of shop sells it?";
+  }
+  return "";
+}
+
+function planCategoryLabel(cat, sub) {
+  const c = (typeof BAZAAR_CATEGORY_INFO !== "undefined" ? BAZAAR_CATEGORY_INFO : []).find((x) => x.key === cat);
+  const s = ((typeof BAZAAR_SUBCATEGORY_INFO !== "undefined" ? BAZAAR_SUBCATEGORY_INFO : {})[cat] || []).find((x) => x[0] === sub);
+  return [c && c.label, s && s[1]].filter(Boolean).join(" › ");
+}
+
+// A saved line's details in one line of words.
+function planLineDetail(l, currency) {
+  if (PLAN_SELLER_KINDS.includes(l.kind)) return [`${Number(l.quantity || 0).toLocaleString("en-IN")} ${l.unit || ""}`.trim(), l.quality, planCategoryLabel(l.category, l.subcategory)].filter(Boolean).join(" · ");
+  if (l.kind === "human") return `${l.people} ${l.people === 1 ? "person" : "people"} × ${l.days} ${l.days === 1 ? "day" : "days"} × ${projectMoney(l.rateMinor, currency)} a day`;
+  if (l.kind === "other") return "Paid against receipts";
+  return "Kind of cost not said yet";
+}
+
+// A point from a pasted map link or typed "lat, lng". Google Maps links
+// carry it after "@" or in ?q= / ?ll=; a bare pair is taken as it is.
+function parseSitePoint(text) {
+  const s = String(text || "");
+  const m = s.match(/@(-?\d+(?:\.\d+)?),\s*(-?\d+(?:\.\d+)?)/)
+    || s.match(/[?&](?:q|ll|query|destination)=(-?\d+(?:\.\d+)?)(?:,|%2C)\s*(-?\d+(?:\.\d+)?)/i)
+    || s.match(/^\s*(-?\d{1,2}(?:\.\d+)?)\s*[,\s]\s*(-?\d{1,3}(?:\.\d+)?)\s*$/);
+  if (!m) return null;
+  const lat = Number(m[1]);
+  const lng = Number(m[2]);
+  if (!(Math.abs(lat) <= 90 && Math.abs(lng) <= 180) || (lat === 0 && lng === 0)) return null;
+  return { lat: Math.round(lat * 1e6) / 1e6, lng: Math.round(lng * 1e6) / 1e6 };
+}
+
+var planKindOf = (key) => PLAN_KINDS.find((k) => k.key === key) || null;
+var planInput = { boxSizing: "border-box", border: `1px solid ${T.line}`, borderRadius: 10, padding: "8px 10px", background: T.bg, fontSize: 14, color: T.ink, fontFamily: "inherit", outline: "none", minWidth: 0 };
+var planFieldLabel = { fontSize: 11, fontWeight: 700, color: T.inkFaint, marginBottom: 3, display: "block" };
+
+function PlanKindChip({ kind, small }) {
+  const k = planKindOf(kind);
+  if (!k) return <span style={{ fontSize: 10.5, fontWeight: 800, color: "#B45309", background: "#F59E0B22", borderRadius: 999, padding: "2px 8px" }}>Kind?</span>;
+  const Icon = k.Icon;
+  return <span data-testid="plan-kind-chip" data-kind={k.key} style={{ display: "inline-flex", alignItems: "center", gap: 4, fontSize: small ? 10.5 : 11.5, fontWeight: 800, color: T.accent, background: T.accentSoft, borderRadius: 999, padding: small ? "2px 8px" : "3px 9px", whiteSpace: "nowrap" }}><Icon size={small ? 10 : 12} />{k.label}</span>;
+}
+
+// ── THE APPLICANT'S PLAN ─────────────────────────────────────────────────
+function ProjectPlanEditor({ plan, setPlan, goal, busy, onSave }) {
+  const currency = goal && goal.currency;
+  const sum = plan.reduce((a, l) => a + planLineMinor(l), 0);
+  const change = (i, patch) => setPlan((p) => p.map((x, j) => {
+    if (j !== i) return x;
+    const next = { ...x, ...patch };
+    // Picking a kind that buys from a shop suggests the usual shop.
+    if (patch.kind && PLAN_SELLER_KINDS.includes(patch.kind) && !PLAN_SELLER_KINDS.includes(x.kind)) next.category = next.category || PLAN_DEFAULT_CATEGORY[patch.kind];
+    return next;
+  }));
+  const blank = { label: "", kind: "", amountMajor: "", quantity: "", unit: "", quality: "", category: "", subcategory: "", people: "", days: "", rateMajor: "" };
+  const cats = typeof BAZAAR_CATEGORY_INFO !== "undefined" ? BAZAAR_CATEGORY_INFO.filter((c) => c.key !== "other") : [];
+  return <div data-testid="project-plan-editor" style={projectCard()}>
+    <div style={{ display: "flex", alignItems: "baseline" }}><span style={projectTitle}>Funding plan</span><span style={{ ...projectSmall, marginLeft: "auto" }}>{goal ? `Goal ${projectMoney(goal.minor, goal.currency)}` : "Set a goal on the project first"}</span></div>
+    <div style={{ ...projectSmall, marginTop: 2 }}>What the money is for, line by line, adding up to the goal. Say what kind of cost each line is: GLOOBAL buys materials and tech itself, from sellers it picks near the site.</div>
+    <datalist id="plan-units">{PLAN_UNITS.map((u) => <option key={u} value={u} />)}</datalist>
+    <div style={{ marginTop: 10, display: "flex", flexDirection: "column", gap: 10 }}>{plan.map((l, i) => {
+      const k = planKindOf(l.kind);
+      const gap = planLineGap(l);
+      return <div key={i} data-testid="plan-line" data-kind={l.kind || ""} style={{ border: `1px solid ${T.line}`, borderRadius: 14, padding: "10px 10px 12px", display: "flex", flexDirection: "column", gap: 8, background: T.surface }}>
+        <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
+          <input aria-label={`Plan line ${i + 1}`} value={l.label} maxLength={80} onChange={(e) => change(i, { label: e.target.value })} placeholder={l.kind === "human" ? "e.g. Masons" : "e.g. Cement"} style={{ ...planInput, flex: 1, fontWeight: 700 }} />
+          <button type="button" aria-label="Remove line" onClick={() => setPlan((p) => p.filter((_, j) => j !== i))} style={{ width: 34, height: 34, border: "none", background: "transparent", cursor: "pointer", flexShrink: 0 }}><PlanTrashIcon size={15} color={T.inkFaint} /></button>
+        </div>
+        <div role="group" aria-label={`Plan line ${i + 1} kind`} style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 5 }}>{PLAN_KINDS.map((kk) => {
+          const on = l.kind === kk.key;
+          const Icon = kk.Icon;
+          return <button key={kk.key} type="button" data-testid={`plan-kind-${i}-${kk.key}`} aria-pressed={on} onClick={() => change(i, { kind: kk.key })} style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 4, height: 32, padding: "0 4px", minWidth: 0, borderRadius: 999, border: on ? "none" : `1px solid ${T.line}`, background: on ? T.accent : T.surface, color: on ? "#fff" : T.ink, fontSize: 12, fontWeight: 700, fontFamily: "inherit", cursor: "pointer", whiteSpace: "nowrap" }}><Icon size={12} style={{ flexShrink: 0 }} />{kk.label}</button>;
+        })}</div>
+        {k ? <div style={{ ...projectSmall, fontSize: 11.5 }}>{k.hint}</div> : null}
+        {PLAN_SELLER_KINDS.includes(l.kind) ? <>
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8 }}>
+            <label><span style={planFieldLabel}>How much</span><input aria-label={`Plan line ${i + 1} quantity`} data-amount-pad="2" data-amount-label="How much" readOnly inputMode="none" value={l.quantity} onChange={(e) => change(i, { quantity: e.target.value.replace(/[^0-9.]/g, "") })} placeholder="400" style={{ ...planInput, width: "100%" }} /></label>
+            <label><span style={planFieldLabel}>Unit</span><input aria-label={`Plan line ${i + 1} unit`} list="plan-units" value={l.unit} maxLength={20} onChange={(e) => change(i, { unit: e.target.value })} placeholder="bags" style={{ ...planInput, width: "100%" }} /></label>
+          </div>
+          <label><span style={planFieldLabel}>Grade or brand, if it matters</span><input aria-label={`Plan line ${i + 1} grade`} value={l.quality} maxLength={120} onChange={(e) => change(i, { quality: e.target.value })} placeholder="e.g. OPC 53, ISI mark" style={{ ...planInput, width: "100%" }} /></label>
+          <label><span style={planFieldLabel}>Which Bazaar shops sell it</span><select aria-label={`Plan line ${i + 1} sold by`} value={l.category ? `${l.category}|${l.subcategory || ""}` : ""} onChange={(e) => { const [category, subcategory] = e.target.value.split("|"); change(i, { category: category || "", subcategory: subcategory || "" }); }} style={{ ...planInput, width: "100%" }}><option value="">Pick…</option>{cats.map((c) => <optgroup key={c.key} label={c.label}><option value={`${c.key}|`}>{`${c.label} — any`}</option>{((typeof BAZAAR_SUBCATEGORY_INFO !== "undefined" ? BAZAAR_SUBCATEGORY_INFO : {})[c.key] || []).map(([key, label]) => <option key={key} value={`${c.key}|${key}`}>{`${c.label} › ${label}`}</option>)}</optgroup>)}</select></label>
+        </> : null}
+        {l.kind === "human" ? <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1.3fr", gap: 8 }}>
+          <label><span style={planFieldLabel}>People</span><input aria-label={`Plan line ${i + 1} people`} data-amount-pad="0" data-amount-label="People" readOnly inputMode="none" value={l.people} onChange={(e) => change(i, { people: e.target.value.replace(/[^0-9]/g, "") })} placeholder="4" style={{ ...planInput, width: "100%" }} /></label>
+          <label><span style={planFieldLabel}>Days</span><input aria-label={`Plan line ${i + 1} days`} data-amount-pad="0" data-amount-label="Days" readOnly inputMode="none" value={l.days} onChange={(e) => change(i, { days: e.target.value.replace(/[^0-9]/g, "") })} placeholder="20" style={{ ...planInput, width: "100%" }} /></label>
+          <label><span style={planFieldLabel}>A day's pay</span><input aria-label={`Plan line ${i + 1} day's pay`} data-amount-pad="2" data-amount-label="A day's pay" readOnly inputMode="none" value={l.rateMajor} onChange={(e) => change(i, { rateMajor: e.target.value.replace(/[^0-9.]/g, "") })} placeholder="600" style={{ ...planInput, width: "100%" }} /></label>
+        </div> : null}
+        <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+          <span style={{ ...projectSmall, flex: 1, color: gap ? "#B45309" : T.positive }}>{gap || "✓ Complete"}</span>
+          {l.kind === "human"
+            ? <span data-testid="plan-line-wages" style={{ fontSize: 14, fontWeight: 800, color: T.ink }}>{`= ${projectMoney(planLineMinor(l), currency)}`}</span>
+            : <input aria-label={`Plan line ${i + 1} amount`} data-amount-pad="2" data-amount-label="Plan amount" readOnly inputMode="none" value={l.amountMajor} onChange={(e) => change(i, { amountMajor: e.target.value.replace(/[^0-9.]/g, "") })} placeholder="0" style={projectAmountInput} />}
+        </div>
+      </div>;
+    })}</div>
+    <div style={{ display: "flex", alignItems: "center", gap: 10, marginTop: 10 }}><button type="button" onClick={() => setPlan((p) => [...p, { ...blank }])} style={{ ...projectButton(false), height: 36, display: "flex", alignItems: "center", gap: 6 }}><PlanPlusIcon size={14} />Add line</button><span data-testid="plan-sum" style={{ ...projectSmall, marginLeft: "auto", color: goal && sum === goal.minor ? T.positive : T.inkSoft }}>{`Adds up to ${projectMoney(sum, currency)}`}</span></div>
+    <button type="button" data-testid="project-plan-save" disabled={busy || !plan.length} onClick={onSave} style={{ ...projectButton(false, busy || !plan.length), width: "100%", marginTop: 10 }}>Save plan</button>
+  </div>;
+}
+
+// ── WHERE THE WORK HAPPENS ───────────────────────────────────────────────
+function ProjectSiteCard({ site, busy, onSave }) {
+  const saved = site && Number.isFinite(site.lat) ? { lat: site.lat, lng: site.lng } : null;
+  const [pin, setPin] = useState113(saved);
+  const [label, setLabel] = useState113((site && site.label) || "");
+  const [paste, setPaste] = useState113("");
+  const [err, setErr] = useState113("");
+  const [locating, setLocating] = useState113(false);
+  useEffect113(() => { setPin(saved); setLabel((site && site.label) || ""); }, [site && site.lat, site && site.lng, site && site.label]);
+  const moved = pin && (!saved || pin.lat !== saved.lat || pin.lng !== saved.lng || label !== ((site && site.label) || ""));
+  const locate = async () => {
+    setErr(""); setLocating(true);
+    try {
+      const seen = await captureBrowserGeo({ timeoutMs: 12000, highAccuracy: true });
+      if (seen && seen.status === LOCATION_STATUS.AVAILABLE) setPin({ lat: Math.round(seen.latitude * 1e6) / 1e6, lng: Math.round(seen.longitude * 1e6) / 1e6 });
+      else setErr("Location is off. Turn it on at the site, or paste a map link.");
+    } finally { setLocating(false); }
+  };
+  const fromPaste = () => {
+    const p = parseSitePoint(paste);
+    if (!p) { setErr("That isn't a map point. Paste a Google Maps link, or two numbers like 27.5512, 76.6045."); return; }
+    setErr(""); setPin(p); setPaste("");
+  };
+  return <div data-testid="project-site" data-pinned={saved ? "1" : "0"} style={projectCard()}>
+    <div style={{ display: "flex", alignItems: "center", gap: 8 }}><PlanPinIcon size={16} color={T.accent} /><span style={{ ...projectTitle, flex: 1 }}>Project site</span>{saved ? <span data-testid="site-pinned" style={{ fontSize: 11, fontWeight: 800, color: T.positive, background: `${T.positive}18`, borderRadius: 999, padding: "3px 8px" }}>Pinned</span> : null}</div>
+    <div style={{ ...projectSmall, marginTop: 2 }}>GLOOBAL finds the sellers for your materials around this point. Only you and GLOOBAL's reviewers see it.</div>
+    {pin ? <div style={{ marginTop: 10 }}><RpPinMap pin={pin} onMove={setPin} height={170} /><div style={{ ...projectSmall, marginTop: 6 }}>{`${pin.lat.toFixed(5)}, ${pin.lng.toFixed(5)} · tap the map to move the pin`}</div></div> : null}
+    <div style={{ display: "flex", gap: 8, marginTop: 10 }}>
+      <button type="button" data-testid="site-locate" disabled={busy || locating} onClick={locate} style={{ ...projectButton(!pin, busy || locating), flex: 1, height: 40, display: "flex", alignItems: "center", justifyContent: "center", gap: 6 }}><PlanLocateIcon size={15} />{locating ? "Finding you…" : "I'm at the site now"}</button>
+    </div>
+    <div style={{ display: "flex", gap: 8, marginTop: 8 }}>
+      <input data-testid="site-paste" aria-label="Map link or point" value={paste} onChange={(e) => setPaste(e.target.value)} placeholder="Or paste a map link" style={{ ...planInput, flex: 1 }} />
+      <button type="button" data-testid="site-paste-go" disabled={!paste.trim()} onClick={fromPaste} style={{ ...projectButton(false, !paste.trim()), height: 38 }}>Use</button>
+    </div>
+    {pin ? <input aria-label="What is at the site" value={label} maxLength={120} onChange={(e) => setLabel(e.target.value)} placeholder="What is here, e.g. Kheri turn-off on the Alwar road" style={{ ...planInput, width: "100%", marginTop: 8 }} /> : null}
+    {err ? <div data-testid="site-error" style={{ ...projectSmall, color: T.negative, marginTop: 6 }}>{err}</div> : null}
+    {moved ? <button type="button" data-testid="site-save" disabled={busy} onClick={() => onSave({ lat: pin.lat, lng: pin.lng, label })} style={{ ...projectButton(true, busy), width: "100%", marginTop: 10 }}>{saved ? "Move the pin here" : "Pin the site here"}</button> : null}
+  </div>;
+}
+
+// ── THE PLAN AS READ ─────────────────────────────────────────────────────
+// `flat`: rows only, for inside another card (the desk's project card).
+function PlanLinesView({ plan, currency, flat, title = "What the money buys" }) {
+  if (!plan || !plan.length) return null;
+  const rows = plan.map((l, i) => {
+    const p = l.pick;
+    return <div key={i} data-testid="plan-view-line" data-kind={l.kind || ""} style={{ borderTop: i ? `1px solid ${T.line}` : "none", paddingTop: i ? 8 : 0, display: "flex", flexDirection: "column", gap: 3 }}>
+      <div style={{ display: "flex", alignItems: "center", gap: 7 }}><PlanKindChip kind={l.kind} small /><span style={{ flex: 1, minWidth: 0, fontSize: 13, fontWeight: 700, color: T.ink }}>{l.label}</span><span style={{ fontSize: 13, fontWeight: 800, color: T.ink, whiteSpace: "nowrap" }}>{projectMoney(l.amountMinor, currency)}</span></div>
+      <span style={{ ...projectSmall, fontSize: 11.5 }}>{planLineDetail(l, currency)}</span>
+      {PLAN_SELLER_KINDS.includes(l.kind) ? (p ? <span data-testid="plan-view-pick" data-other={p.other ? "1" : "0"} style={{ display: "flex", alignItems: "flex-start", gap: 6, fontSize: 12, color: T.ink, background: p.other ? "#F59E0B18" : `${T.positive}12`, borderRadius: 10, padding: "6px 8px", lineHeight: 1.45 }}>{p.other ? <PlanOtherIcon size={13} style={{ flexShrink: 0, marginTop: 2 }} /> : <PlanStoreIcon size={13} color={T.positive} style={{ flexShrink: 0, marginTop: 2 }} />}<span>{p.other ? "No suitable seller nearby: paid against receipts." : <>GLOOBAL buys this from <b>{p.name}</b>{p.distanceKm != null ? ` · ${p.distanceKm} km from the site` : ""}</>}</span></span>
+        : <span style={{ ...projectSmall, fontSize: 11.5, color: T.inkFaint }}>GLOOBAL picks the seller during the review.</span>) : null}
+    </div>;
+  });
+  if (flat) return <div style={{ marginTop: 8, display: "flex", flexDirection: "column", gap: 8 }}>{rows}</div>;
+  return <div data-testid="plan-view" style={projectCard()}><div style={projectTitle}>{title}</div><div style={{ marginTop: 10, display: "flex", flexDirection: "column", gap: 8 }}>{rows}</div></div>;
+}
+
+// ── GLOOBAL'S DESK: WHICH SELLER ─────────────────────────────────────────
+function SellerRow({ c, currency, quantity, unit, first }) {
+  return <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
+    <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+      <span style={{ width: 30, height: 30, borderRadius: 10, background: first ? T.accentSoft : `${T.inkFaint}18`, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}><PlanStoreIcon size={15} color={first ? T.accent : T.inkSoft} /></span>
+      <span style={{ flex: 1, minWidth: 0 }}><span style={{ display: "block", fontSize: 14, fontWeight: 800, color: T.ink }}>{c.name}</span><span style={{ display: "block", ...projectSmall, fontSize: 11.5 }}>{[c.area, `${c.distanceKm} km`].filter(Boolean).join(" · ")}</span></span>
+      <span title="GLOOBAL's score" style={{ fontSize: 12, fontWeight: 800, color: first ? T.accent : T.inkSoft, background: first ? T.accentSoft : `${T.inkFaint}18`, borderRadius: 999, padding: "3px 8px" }}>{`${c.score}/100`}</span>
+    </div>
+    <span data-testid="desk-seller-reason" style={{ ...projectSmall, fontSize: 11.5, color: T.ink }}>{c.reason}</span>
+    {c.item ? <span style={{ ...projectSmall, fontSize: 11.5 }}>{`Listed: ${c.item.title}${c.item.note ? ` (${c.item.note})` : ""} at ${projectMoney(c.item.priceMinor, currency)}`}{c.estimateMinor != null ? ` — about ${projectMoney(c.estimateMinor, currency)} for ${Number(quantity).toLocaleString("en-IN")} ${unit}, if the unit matches` : ""}</span> : null}
+  </div>;
+}
+
+function ProjectSellerLine({ line, currency, canPick, onPick, busy }) {
+  const [changing, setChanging] = useState113(false);
+  const [showAll, setShowAll] = useState113(false);
+  const [choice, setChoice] = useState113(null); // sellerId, or "other"
+  const [note, setNote] = useState113("");
+  const top = line.candidates[0];
+  const p = line.pick;
+  const open = !p || changing;
+  const go = async (body) => { const ok = await onPick(line.index, body); if (ok) { setChanging(false); setChoice(null); setNote(""); setShowAll(false); } };
+  const others = line.candidates.slice(1);
+  return <div data-testid="desk-seller-line" data-index={line.index} data-picked={p ? (p.other ? "other" : "seller") : ""} style={projectCard()}>
+    <div style={{ display: "flex", alignItems: "center", gap: 8 }}><PlanKindChip kind={line.kind} small /><span style={{ ...projectTitle, flex: 1 }}>{line.label}</span><span style={{ ...projectSmall, whiteSpace: "nowrap" }}>{projectMoney(line.amountMinor, currency)}</span></div>
+    <div style={{ ...projectSmall, fontSize: 11.5, marginTop: 2 }}>{planLineDetail(line, currency)}{line.radiusKm ? ` · sellers within ${line.radiusKm} km of the site` : ""}</div>
+    {p ? <div data-testid="desk-seller-picked" style={{ marginTop: 10, borderRadius: 12, padding: "10px 12px", background: p.other ? "#F59E0B18" : `${T.positive}12`, display: "flex", flexDirection: "column", gap: 4 }}>
+      <span style={{ display: "flex", alignItems: "flex-start", gap: 6 }}><PlanCheckIcon size={15} color={T.positive} style={{ flexShrink: 0, marginTop: 2 }} /><span style={{ flex: 1, minWidth: 0, fontSize: 13.5, fontWeight: 800, color: T.ink }}>{p.other ? "No suitable seller: paid against receipts" : `Buying from ${p.name}`}</span>{!p.other && p.rank === 1 ? <span style={{ flexShrink: 0, whiteSpace: "nowrap", fontSize: 10.5, fontWeight: 800, color: T.accent, background: T.accentSoft, borderRadius: 999, padding: "3px 8px" }}>GLOOBAL's choice</span> : null}</span>
+      {p.note ? <span style={{ ...projectSmall, fontSize: 11.5, color: T.ink }}>{`Why: ${p.note}`}</span> : null}
+      {canPick && !changing ? <button type="button" data-testid="desk-seller-change" onClick={() => setChanging(true)} style={{ ...projectButton(false), height: 32, alignSelf: "flex-start", fontSize: 12.5 }}>Change</button> : null}
+    </div> : null}
+    {open && canPick ? <>
+      {top ? <div style={{ marginTop: 10, borderRadius: 14, border: `1.5px solid ${T.accent}55`, padding: "10px 12px", display: "flex", flexDirection: "column", gap: 8 }}>
+        <span style={{ fontSize: 11, fontWeight: 800, color: T.accent, letterSpacing: 0.3 }}>GLOOBAL WOULD BUY FROM</span>
+        <SellerRow c={top} currency={currency} quantity={line.quantity} unit={line.unit} first />
+        <button type="button" data-testid="desk-seller-confirm" disabled={busy} onClick={() => go({ sellerId: top.sellerId })} style={{ ...projectButton(true, busy), width: "100%" }}>Confirm GLOOBAL's choice</button>
+      </div> : <div data-testid="desk-seller-none" style={{ ...projectSmall, marginTop: 10, color: "#B45309" }}>{line.note}</div>}
+      {others.length ? <button type="button" data-testid="desk-seller-others" onClick={() => setShowAll((v) => !v)} style={{ marginTop: 8, border: "none", background: "transparent", color: T.accent, fontSize: 12.5, fontWeight: 800, fontFamily: "inherit", cursor: "pointer", display: "flex", alignItems: "center", gap: 4, padding: 0 }}><PlanMoreIcon size={14} style={{ transform: showAll ? "rotate(180deg)" : "none" }} />{showAll ? "Hide the other sellers" : `The other ${others.length + (line.more || 0)} seller${others.length + (line.more || 0) === 1 ? "" : "s"}`}</button> : null}
+      {showAll ? <div style={{ marginTop: 8, display: "flex", flexDirection: "column", gap: 10 }}>{others.map((c) => <div key={c.sellerId} data-testid="desk-seller-other" style={{ borderTop: `1px solid ${T.line}`, paddingTop: 10 }}>
+        <SellerRow c={c} currency={currency} quantity={line.quantity} unit={line.unit} />
+        <button type="button" data-testid="desk-seller-pick" onClick={() => setChoice(c.sellerId)} style={{ ...projectButton(false), height: 32, marginTop: 6, fontSize: 12.5 }}>{`Pick ${c.name} instead`}</button>
+      </div>)}</div> : null}
+      <button type="button" data-testid="desk-seller-receipts" onClick={() => setChoice("other")} style={{ marginTop: 8, border: "none", background: "transparent", color: T.inkSoft, fontSize: 12, fontWeight: 700, fontFamily: "inherit", cursor: "pointer", padding: 0, textAlign: "left" }}>None suits — pay against receipts</button>
+      {choice ? <div style={{ marginTop: 8 }}>
+        <textarea data-testid="desk-seller-note" value={note} onChange={(e) => setNote(e.target.value)} placeholder={choice === "other" ? "Why no seller suits — the applicant reads how it will be paid" : "Why not GLOOBAL's first choice?"} style={projectTextArea} />
+        <button type="button" data-testid="desk-seller-note-go" disabled={busy || note.trim().length < 5} onClick={() => go(choice === "other" ? { other: true, note } : { sellerId: choice, note })} style={{ ...projectButton(true, busy || note.trim().length < 5), width: "100%", marginTop: 8 }}>{choice === "other" ? "Pay against receipts" : `Pick ${(line.candidates.find((c) => c.sellerId === choice) || {}).name || "this seller"}`}</button>
+      </div> : null}
+    </> : null}
+    {line.excluded && line.excluded.length ? <div data-testid="desk-seller-excluded" style={{ ...projectSmall, fontSize: 11.5, marginTop: 10, color: T.inkFaint }}>{`Left out — connected to the applicant: ${line.excluded.map((e) => `${e.name} (${e.why})`).join("; ")}.`}</div> : null}
+  </div>;
+}
+
+function ProjectSellerDesk({ projectId, onToast }) {
+  const [data, setData] = useState113(null);
+  const [busy, setBusy] = useState113(false);
+  const [error, setError] = useState113("");
+  const load = async () => {
+    const r = await GloobalApi.projectSellers(projectId);
+    if (r.ok) { setData(r); setError(""); } else setError(r.message);
+  };
+  useEffect113(() => { load(); }, [projectId]);
+  if (!data) return error ? <div style={{ ...projectSmall, color: T.negative, padding: "0 4px" }}>{error}</div> : null;
+  if (!data.lines || !data.lines.length) return null;
+  const onPick = async (n, body) => {
+    setBusy(true); setError("");
+    try {
+      const r = await GloobalApi.pickProjectSeller(projectId, n, body);
+      if (!r.ok) { setError(r.message); return false; }
+      onToast?.(body.other ? "Marked: paid against receipts" : "Seller picked");
+      await load();
+      return true;
+    } finally { setBusy(false); }
+  };
+  return <div data-testid="desk-sellers" style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+    <div style={{ padding: "2px 4px" }}><span style={{ ...projectTitle, display: "block" }}>Who GLOOBAL buys from</span><span style={projectSmall}>{data.site ? "Ranked by price, record, distance, fit, Creator Share and spread. The applicant doesn't choose; you confirm." : "The applicant hasn't pinned the site, so no sellers can be found yet."}</span></div>
+    {data.lines.map((l) => <ProjectSellerLine key={l.index} line={l} currency={data.currency} canPick={data.canPick} onPick={onPick} busy={busy} />)}
+    {error ? <div data-testid="desk-seller-error" style={{ ...projectSmall, color: T.negative, padding: "0 4px" }}>{error}</div> : null}
+  </div>;
+}
+
+
 // src/features/projects/projectReview.jsx
 
 // ── HOOMAN PROJECTS: APPLYING FOR GLOOBAL FUNDING ───────────────────────
@@ -66344,15 +67705,20 @@ function ProjectMilestones({ review, owner, onUpdate, busy }) {
 // ── THE APPLICANT ───────────────────────────────────────────────────────
 function ProjectApplicantPanel({ project, onChanged, onToast }) {
   const [data, setData] = useState100(null);
+  // The conversation with Hooman Intelligence (ProjectTalk.jsx): applying
+  // goes through it when the server has it switched on.
+  const [talkInfo, setTalkInfo] = useState100(null);
+  const [talkOpen, setTalkOpen] = useState100(false);
   const [plan, setPlan] = useState100([]);
   const [answers, setAnswers] = useState100({});
   const [busy, setBusy] = useState100(false);
   const [error, setError] = useState100(null);
   const load = async () => {
     try {
-      const r = await GloobalApi.getProjectReview(project.id);
+      const [r, talk] = await Promise.all([GloobalApi.getProjectReview(project.id), GloobalApi.projectTalk(project.id)]);
       setData(r);
-      setPlan((r.plan || []).map((l) => ({ label: l.label, amountMajor: (l.amountMinor / 100).toFixed(2) })));
+      setTalkInfo(talk);
+      setPlan((r.plan || []).map(planLineFromServer));
     } catch (e) {
       setError((e && e.message) || "Couldn't load the review.");
     }
@@ -66379,28 +67745,14 @@ function ProjectApplicantPanel({ project, onChanged, onToast }) {
   if (review.state === "none") return null;
   const draft = review.state === "draft";
   const goal = project.goal;
-  const planSum = plan.reduce((a, l) => a + Math.round(Number(l.amountMajor || 0) * 100), 0);
+  // Materials and tech are bought near the site, so a plan with them asks for it.
+  const siteNeeded = plan.some((l) => PLAN_SELLER_KINDS.includes(l.kind)) || (data.plan || []).some((l) => PLAN_SELLER_KINDS.includes(l.kind));
   const openQs = (review.questions || []).filter((q) => !q.answeredAt);
   const reqs = data.requirements || [];
   const ready = reqs.length && reqs.every((r) => r.ok);
-  return <div data-testid="project-applicant-panel" style={{ display: "flex", flexDirection: "column", gap: 12 }}><div style={{ ...projectCard(), display: "flex", flexDirection: "column", gap: 6 }}><div style={{ display: "flex", alignItems: "center", gap: 8 }}><RevShield size={17} color={T.accent} /><span style={{ ...projectTitle, flex: 1 }}>GLOOBAL funding</span><ProjectStatusChip review={review} /></div>{review.nextStep ? <div data-testid="project-next-step" style={projectSmall}>{review.nextStep}</div> : null}{review.reason ? <div data-testid="project-reason" style={{ ...projectSmall, color: T.ink, background: `${T.inkFaint}18`, borderRadius: 10, padding: "8px 10px" }}><b>Why: </b>{review.reason}</div> : null}</div>{draft ? <div style={projectCard()}><div style={projectTitle}>Before you submit</div><div style={{ marginTop: 8, display: "flex", flexDirection: "column", gap: 8 }}>{reqs.map((r) => <div key={r.key} data-testid="project-requirement" data-ok={r.ok ? "1" : "0"} style={{ display: "flex", gap: 10 }}><span style={{ width: 20, height: 20, borderRadius: "50%", flexShrink: 0, display: "flex", alignItems: "center", justifyContent: "center", background: r.ok ? T.positive : `${T.inkFaint}33` }}>{r.ok ? <RevCheck size={12} color="#fff" /> : <RevX size={12} color={T.inkSoft} />}</span><span><span style={{ display: "block", fontSize: 13, fontWeight: 700, color: T.ink }}>{r.label}</span>{!r.ok ? <span style={{ display: "block", ...projectSmall }}>{r.hint}</span> : null}</span></div>)}</div></div> : null}{draft ? <div style={projectCard()}><div style={{ display: "flex", alignItems: "baseline" }}><span style={projectTitle}>Funding plan</span><span style={{ ...projectSmall, marginLeft: "auto" }}>{goal ? `Goal ${projectMoney(goal.minor, goal.currency)}` : "Set a goal on the project first"}</span></div><div style={{ ...projectSmall, marginTop: 2 }}>What the money is for, line by line. It has to add up to the goal.</div><div style={{ marginTop: 10, display: "flex", flexDirection: "column", gap: 8 }}>{plan.map((l, i) => <div key={i} style={{ display: "flex", gap: 8, alignItems: "center" }}><input
-    aria-label={`Plan line ${i + 1}`}
-    value={l.label}
-    maxLength={80}
-    onChange={(e) => setPlan((p) => p.map((x, j) => (j === i ? { ...x, label: e.target.value } : x)))}
-    placeholder="e.g. Steel and cement"
-    style={{ ...projectAmountInput, flex: 1, width: "auto", textAlign: "left" }}
-  /><input
-    aria-label={`Plan line ${i + 1} amount`}
-    data-amount-pad="2"
-    data-amount-label="Plan amount"
-    readOnly
-    inputMode="none"
-    value={l.amountMajor}
-    onChange={(e) => setPlan((p) => p.map((x, j) => (j === i ? { ...x, amountMajor: e.target.value.replace(/[^0-9.]/g, "") } : x)))}
-    placeholder="0"
-    style={projectAmountInput}
-  /><button type="button" aria-label="Remove line" onClick={() => setPlan((p) => p.filter((_, j) => j !== i))} style={{ width: 34, height: 34, border: "none", background: "transparent", cursor: "pointer" }}><RevTrash size={15} color={T.inkFaint} /></button></div>)}</div><div style={{ display: "flex", alignItems: "center", gap: 10, marginTop: 10 }}><button type="button" onClick={() => setPlan((p) => [...p, { label: "", amountMajor: "" }])} style={{ ...projectButton(false), height: 36, display: "flex", alignItems: "center", gap: 6 }}><RevPlus size={14} />Add line</button><span style={{ ...projectSmall, marginLeft: "auto", color: goal && planSum === goal.minor ? T.positive : T.inkSoft }}>{`Adds up to ${projectMoney(planSum, goal && goal.currency)}`}</span></div><button type="button" data-testid="project-plan-save" disabled={busy || !plan.length} onClick={() => act(() => GloobalApi.setProjectPlan(project.id, plan), "Plan saved")} style={{ ...projectButton(false, busy || !plan.length), width: "100%", marginTop: 10 }}>Save plan</button></div> : null}{draft ? <button type="button" data-testid="project-submit" disabled={busy || !ready} onClick={() => act(() => GloobalApi.submitProject(project.id), "Sent to GLOOBAL for review")} style={{ ...projectButton(true, busy || !ready), width: "100%" }}>{ready ? "Submit for GLOOBAL review" : "Finish the checklist to submit"}</button> : null}{openQs.map((q) => <div key={q.id} data-testid="project-question" style={{ ...projectCard(), border: "1px solid #F59E0B66" }}><div style={projectTitle}>GLOOBAL asks</div><div style={{ ...projectSmall, color: T.ink, marginTop: 4 }}>{q.question}</div><textarea data-testid="project-answer" value={answers[q.id] || ""} onChange={(e) => setAnswers((a) => ({ ...a, [q.id]: e.target.value }))} placeholder="Your answer" style={projectTextArea} /><button type="button" data-testid="project-answer-send" disabled={busy || !(answers[q.id] || "").trim()} onClick={() => act(() => GloobalApi.answerProjectQuestion(project.id, q.id, answers[q.id]), "Answer sent")} style={{ ...projectButton(true, busy), width: "100%", marginTop: 8 }}>Send answer</button></div>)}<ProjectMilestones review={review} owner busy={busy} onUpdate={(i, text) => act(() => GloobalApi.postMilestoneUpdate(project.id, i, text), "Update posted")} />{error ? <div data-testid="project-review-error" style={{ ...projectSmall, color: T.negative, padding: "0 4px" }}>{error}</div> : null}<ProjectTimeline timeline={review.timeline} />{review.state === "declined" || review.state === "withdrawn" ? <button type="button" data-testid="project-reapply" disabled={busy} onClick={() => act(() => GloobalApi.reapplyProject(project.id), "Back to a draft: edit it and submit again")} style={{ ...projectButton(false, busy), width: "100%" }}>Edit and apply again</button> : !["completed", "draft"].includes(review.state) ? <button type="button" data-testid="project-withdraw" disabled={busy} onClick={() => act(() => GloobalApi.withdrawProject(project.id), "Withdrawn")} style={{ ...projectButton(false, busy), width: "100%", color: T.negative }}>Withdraw application</button> : null}</div>;
+  const talkOn = Boolean(talkInfo && talkInfo.ok && talkInfo.switchedOn);
+  const lastTalk = talkInfo && talkInfo.ok ? talkInfo.talk : null;
+  return <div data-testid="project-applicant-panel" style={{ display: "flex", flexDirection: "column", gap: 12 }}><div style={{ ...projectCard(), display: "flex", flexDirection: "column", gap: 6 }}><div style={{ display: "flex", alignItems: "center", gap: 8 }}><RevShield size={17} color={T.accent} /><span style={{ ...projectTitle, flex: 1 }}>GLOOBAL funding</span><ProjectStatusChip review={review} /></div>{review.nextStep ? <div data-testid="project-next-step" style={projectSmall}>{review.nextStep}</div> : null}{review.reason ? <div data-testid="project-reason" style={{ ...projectSmall, color: T.ink, background: `${T.inkFaint}18`, borderRadius: 10, padding: "8px 10px" }}><b>Why: </b>{review.reason}</div> : null}</div>{draft ? <div style={projectCard()}><div style={projectTitle}>Before you submit</div><div style={{ marginTop: 8, display: "flex", flexDirection: "column", gap: 8 }}>{reqs.map((r) => <div key={r.key} data-testid="project-requirement" data-ok={r.ok ? "1" : "0"} style={{ display: "flex", gap: 10 }}><span style={{ width: 20, height: 20, borderRadius: "50%", flexShrink: 0, display: "flex", alignItems: "center", justifyContent: "center", background: r.ok ? T.positive : `${T.inkFaint}33` }}>{r.ok ? <RevCheck size={12} color="#fff" /> : <RevX size={12} color={T.inkSoft} />}</span><span><span style={{ display: "block", fontSize: 13, fontWeight: 700, color: T.ink }}>{r.label}</span>{!r.ok ? <span style={{ display: "block", ...projectSmall }}>{r.hint}</span> : null}</span></div>)}</div></div> : null}{draft ? <ProjectPlanEditor plan={plan} setPlan={setPlan} goal={goal} busy={busy} onSave={() => act(() => GloobalApi.setProjectPlan(project.id, plan.map(planLineToServer)), "Plan saved")} /> : null}{draft && (siteNeeded || data.site) ? <ProjectSiteCard site={data.site} busy={busy} onSave={(site) => act(() => GloobalApi.setProjectSite(project.id, site), "Site pinned")} /> : null}{!draft ? <PlanLinesView plan={data.plan} currency={goal && goal.currency} /> : null}{draft && talkOn ? <div data-testid="project-talk-card" style={{ ...projectCard(), display: "flex", flexDirection: "column", gap: 8 }}><div style={{ display: "flex", alignItems: "center", gap: 8 }}><span style={{ ...projectTitle, flex: 1 }}>Talk it through, then apply</span>{lastTalk && lastTalk.analysis && lastTalk.state === "done" ? <TalkReadinessChip readiness={lastTalk.analysis.readiness} label={lastTalk.analysis.readinessLabel} /> : null}</div><div style={projectSmall}>{lastTalk && lastTalk.state === "done" ? "Your conversation is finished. Open it to read the analysis and send the project." : lastTalk && lastTalk.state === "talking" ? `Understood ${lastTalk.understood} of ${lastTalk.of} so far — carry on where you left off.` : "Hooman Intelligence takes its time to understand your project — nine things, one question at a time — then says how ready it is. When it's ready, it sends it for you."}</div><button type="button" data-testid="project-talk-open" onClick={() => setTalkOpen(true)} style={{ ...projectButton(true), width: "100%" }}>{lastTalk && lastTalk.state === "done" ? "Open the conversation" : lastTalk && lastTalk.state === "talking" ? "Carry on talking" : "Talk it through and apply"}</button></div> : draft ? <button type="button" data-testid="project-submit" disabled={busy || !ready} onClick={() => act(() => GloobalApi.submitProject(project.id), "Sent to GLOOBAL for review")} style={{ ...projectButton(true, busy || !ready), width: "100%" }}>{ready ? "Submit for GLOOBAL review" : "Finish the checklist to submit"}</button> : null}{!draft && lastTalk && lastTalk.analysis ? <button type="button" data-testid="project-talk-view" onClick={() => setTalkOpen(true)} style={{ ...projectButton(false), width: "100%", display: "flex", alignItems: "center", justifyContent: "center", gap: 8 }}>Your conversation with Hooman Intelligence<TalkReadinessChip readiness={lastTalk.analysis.readiness} label={lastTalk.analysis.readinessLabel} /></button> : null}{talkOpen ? <ProjectTalkScreen project={project} onClose={() => { setTalkOpen(false); load(); }} onApplied={() => { load(); onToast?.("Sent to GLOOBAL for review"); onChanged?.(); }} /> : null}{openQs.map((q) => <div key={q.id} data-testid="project-question" style={{ ...projectCard(), border: "1px solid #F59E0B66" }}><div style={projectTitle}>GLOOBAL asks</div><div style={{ ...projectSmall, color: T.ink, marginTop: 4 }}>{q.question}</div><textarea data-testid="project-answer" value={answers[q.id] || ""} onChange={(e) => setAnswers((a) => ({ ...a, [q.id]: e.target.value }))} placeholder="Your answer" style={projectTextArea} /><button type="button" data-testid="project-answer-send" disabled={busy || !(answers[q.id] || "").trim()} onClick={() => act(() => GloobalApi.answerProjectQuestion(project.id, q.id, answers[q.id]), "Answer sent")} style={{ ...projectButton(true, busy), width: "100%", marginTop: 8 }}>Send answer</button></div>)}<ProjectMilestones review={review} owner busy={busy} onUpdate={(i, text) => act(() => GloobalApi.postMilestoneUpdate(project.id, i, text), "Update posted")} />{error ? <div data-testid="project-review-error" style={{ ...projectSmall, color: T.negative, padding: "0 4px" }}>{error}</div> : null}<ProjectTimeline timeline={review.timeline} />{review.state === "declined" || review.state === "withdrawn" ? <button type="button" data-testid="project-reapply" disabled={busy} onClick={() => act(() => GloobalApi.reapplyProject(project.id), "Back to a draft: edit it and submit again")} style={{ ...projectButton(false, busy), width: "100%" }}>Edit and apply again</button> : !["completed", "draft"].includes(review.state) ? <button type="button" data-testid="project-withdraw" disabled={busy} onClick={() => act(() => GloobalApi.withdrawProject(project.id), "Withdrawn")} style={{ ...projectButton(false, busy), width: "100%", color: T.negative }}>Withdraw application</button> : null}</div>;
 }
 
 // ── GLOOBAL'S DESK ──────────────────────────────────────────────────────
@@ -66426,6 +67778,9 @@ function ProjectReviewDesk({ onClose, onPayMilestone, onToast }) {
 
 function ProjectReviewItem({ item, onPayMilestone, onToast, onChanged }) {
   const [full, setFull] = useState100(null);
+  // What the applicant and Hooman Intelligence said before it was sent.
+  const [talk, setTalk] = useState100(null);
+  const [showThread, setShowThread] = useState100(false);
   const [busy, setBusy] = useState100(false);
   const [error, setError] = useState100(null);
   const [question, setQuestion] = useState100("");
@@ -66435,6 +67790,8 @@ function ProjectReviewItem({ item, onPayMilestone, onToast, onChanged }) {
   const [milestones, setMilestones] = useState100([{ label: "To start", percent: "40" }, { label: "Halfway", percent: "30" }, { label: "To finish", percent: "30" }]);
   const load = async () => {
     try { setFull(await GloobalApi.getProjectReview(item.id)); } catch (e) { setError((e && e.message) || "Couldn't load it."); }
+    const t = await GloobalApi.projectTalk(item.id);
+    setTalk(t.ok ? t.talk : null);
   };
   useEffect97(() => { load(); }, [item.id]);
   const act = async (fn, okText) => {
@@ -66460,7 +67817,249 @@ function ProjectReviewItem({ item, onPayMilestone, onToast, onChanged }) {
   const reviewing = ["submitted", "under_review", "needs_info"].includes(state);
   const pctTotal = milestones.reduce((a, m) => a + Number(m.percent || 0), 0);
   const due = (review.milestones || []).findIndex((m) => m.state === "due");
-  return <div style={{ flex: 1, minHeight: 0, overflowY: "auto", padding: "4px 18px 30px", display: "flex", flexDirection: "column", gap: 12 }}><div style={projectCard()}><div style={{ display: "flex", alignItems: "center", gap: 8 }}><span style={{ ...projectTitle, flex: 1, fontSize: 16 }}>{item.title}</span><ProjectStatusChip review={review} /></div><div style={{ ...projectSmall, marginTop: 4 }}>{`${item.category}${item.countryIso ? ` · ${item.countryIso}` : ""} · by ${item.ownerSymbolId}`}</div>{item.goal ? <div style={{ ...projectSmall, marginTop: 6, color: T.ink }}><b>Asks for </b>{projectMoney(item.goal.minor, item.goal.currency)}</div> : null}{(full.plan || []).length ? <div style={{ marginTop: 8 }}>{full.plan.map((l, i) => <div key={i} style={{ display: "flex", ...projectSmall }}><span style={{ flex: 1 }}>{l.label}</span><span>{projectMoney(l.amountMinor, item.goal && item.goal.currency)}</span></div>)}</div> : null}<div style={{ marginTop: 8, display: "flex", flexWrap: "wrap", gap: 6 }}>{(full.requirements || []).map((r) => <span key={r.key} style={{ fontSize: 11, fontWeight: 700, borderRadius: 999, padding: "3px 8px", color: r.ok ? T.positive : T.negative, background: r.ok ? `${T.positive}18` : `${T.negative}14` }}>{`${r.ok ? "✓" : "✗"} ${r.label}`}</span>)}</div></div>{state === "submitted" ? <button type="button" data-testid="desk-start" disabled={busy} onClick={() => act(() => GloobalApi.reviewAction(item.id, "start"), "Review started")} style={{ ...projectButton(true, busy), width: "100%" }}>Start review</button> : null}{reviewing ? <div style={projectCard()}><div style={projectTitle}>Ask the applicant</div><textarea data-testid="desk-question" value={question} onChange={(e) => setQuestion(e.target.value)} placeholder="What do you need to know?" style={projectTextArea} /><button type="button" data-testid="desk-ask" disabled={busy || question.trim().length < 5} onClick={() => act(() => GloobalApi.reviewAction(item.id, "ask", { question }), "Question sent")} style={{ ...projectButton(false, busy), width: "100%", marginTop: 8 }}>Send question</button></div> : null}{state === "under_review" || state === "submitted" ? <div style={projectCard()}><div style={projectTitle}>Approve</div><div style={{ ...projectSmall, marginTop: 2 }}>How much GLOOBAL gives. 0 approves it for public giving only.</div><div style={{ display: "flex", alignItems: "center", gap: 8, marginTop: 8 }}><input data-testid="desk-amount" aria-label="GLOOBAL gives" data-amount-pad="2" data-amount-label="GLOOBAL gives" readOnly inputMode="none" value={amount} onChange={(e) => setAmount(e.target.value.replace(/[^0-9.]/g, ""))} placeholder="0" style={{ ...projectAmountInput, flex: 1, width: "auto" }} /><span style={{ fontSize: 13, fontWeight: 800, color: T.accent }}>{(item.goal && item.goal.currency) || ""}</span></div>{Number(amount) > 0 ? <div style={{ marginTop: 10, display: "flex", flexDirection: "column", gap: 6 }}>{milestones.map((m, i) => <div key={i} style={{ display: "flex", gap: 8, alignItems: "center" }}><input aria-label={`Milestone ${i + 1}`} value={m.label} onChange={(e) => setMilestones((ms) => ms.map((x, j) => (j === i ? { ...x, label: e.target.value } : x)))} style={{ ...projectAmountInput, flex: 1, width: "auto", textAlign: "left" }} /><input aria-label={`Milestone ${i + 1} percent`} data-amount-pad="0" data-amount-label="Percent" readOnly inputMode="none" value={m.percent} onChange={(e) => setMilestones((ms) => ms.map((x, j) => (j === i ? { ...x, percent: e.target.value.replace(/[^0-9]/g, "") } : x)))} style={{ ...projectAmountInput, width: 64 }} /><span style={projectSmall}>%</span></div>)}<span style={{ ...projectSmall, color: pctTotal === 100 ? T.positive : T.negative }}>{`Adds up to ${pctTotal}%`}</span></div> : null}<button type="button" data-testid="desk-approve" disabled={busy || (Number(amount) > 0 && pctTotal !== 100)} onClick={() => act(() => GloobalApi.reviewAction(item.id, "approve", { amountMajor: amount || "0", currency: item.goal && item.goal.currency, milestones: milestones.map((m) => ({ label: m.label, percent: Number(m.percent) })) }), "Approved")} style={{ ...projectButton(true, busy), width: "100%", marginTop: 10 }}>{Number(amount) > 0 ? `Approve and give ${amount}` : "Approve for public giving"}</button></div> : null}{reviewing || ["approved", "funding"].includes(state) ? <div style={projectCard()}><div style={projectTitle}>{reviewing ? "Decline" : "Pause"}</div><textarea data-testid="desk-reason" value={reason} onChange={(e) => setReason(e.target.value)} placeholder={reviewing ? "Why, so they know what to change" : "Why it is paused, and what restarts it"} style={projectTextArea} />{reviewing ? <div style={{ display: "flex", alignItems: "center", gap: 8, marginTop: 8 }}><span style={projectSmall}>They can apply again after</span><input aria-label="Days before applying again" data-amount-pad="0" data-amount-label="Days" readOnly inputMode="none" value={reapplyDays} onChange={(e) => setReapplyDays(e.target.value.replace(/[^0-9]/g, ""))} style={{ ...projectAmountInput, width: 60 }} /><span style={projectSmall}>days</span></div> : null}<button type="button" data-testid={reviewing ? "desk-decline" : "desk-pause"} disabled={busy || reason.trim().length < 10} onClick={() => act(() => GloobalApi.reviewAction(item.id, reviewing ? "decline" : "pause", reviewing ? { reason, reapplyDays: Number(reapplyDays || 0) } : { reason }), reviewing ? "Declined" : "Paused")} style={{ ...projectButton(false, busy), width: "100%", marginTop: 8, color: T.negative }}>{reviewing ? "Decline" : "Pause"}</button></div> : null}{state === "paused" ? <button type="button" data-testid="desk-resume" disabled={busy} onClick={() => act(() => GloobalApi.reviewAction(item.id, "resume"), "Resumed")} style={{ ...projectButton(true, busy), width: "100%" }}>Resume</button> : null}<ProjectMilestones review={review} />{due >= 0 && ["approved", "funding"].includes(state) ? <div style={projectCard()}><div style={projectTitle}>{`Pay "${review.milestones[due].label}"`}</div><div style={{ ...projectSmall, marginTop: 2 }}>Pay it on Send, then mark it paid. GLOOBAL checks that the payment really happened.</div><div style={{ display: "flex", gap: 8, marginTop: 10 }}><button type="button" data-testid="desk-pay" onClick={() => onPayMilestone && onPayMilestone({ toSymbolId: item.ownerSymbolId, amountMajor: (review.milestones[due].amountMinor / 100).toFixed(2) })} style={{ ...projectButton(false), flex: 1 }}>Pay on Send</button><button type="button" data-testid="desk-mark-paid" disabled={busy} onClick={() => act(() => GloobalApi.reviewMarkPaid(item.id, due), "Marked paid")} style={{ ...projectButton(true, busy), flex: 1 }}>Mark paid</button></div></div> : null}{error ? <div data-testid="desk-error" style={{ ...projectSmall, color: T.negative }}>{error}</div> : null}<ProjectTimeline timeline={review.timeline} />{(review.questions || []).length ? <div style={projectCard()}><div style={projectTitle}>Questions</div>{review.questions.map((q) => <div key={q.id} style={{ marginTop: 8 }}><div style={{ ...projectSmall, color: T.ink }}>{`Q: ${q.question}`}</div><div style={projectSmall}>{q.answeredAt ? `A: ${q.answer}` : "Not answered yet"}</div></div>)}</div> : null}</div>;
+  return <div style={{ flex: 1, minHeight: 0, overflowY: "auto", padding: "4px 18px 30px", display: "flex", flexDirection: "column", gap: 12 }}><div style={projectCard()}><div style={{ display: "flex", alignItems: "center", gap: 8 }}><span style={{ ...projectTitle, flex: 1, fontSize: 16 }}>{item.title}</span><ProjectStatusChip review={review} /></div><div style={{ ...projectSmall, marginTop: 4 }}>{`${item.category}${item.countryIso ? ` · ${item.countryIso}` : ""} · by ${item.ownerSymbolId}`}</div>{item.goal ? <div style={{ ...projectSmall, marginTop: 6, color: T.ink }}><b>Asks for </b>{projectMoney(item.goal.minor, item.goal.currency)}</div> : null}<PlanLinesView plan={full.plan} currency={item.goal && item.goal.currency} flat /><div style={{ marginTop: 8, display: "flex", flexWrap: "wrap", gap: 6 }}>{(full.requirements || []).map((r) => <span key={r.key} style={{ fontSize: 11, fontWeight: 700, borderRadius: 999, padding: "3px 8px", color: r.ok ? T.positive : T.negative, background: r.ok ? `${T.positive}18` : `${T.negative}14` }}>{`${r.ok ? "✓" : "✗"} ${r.label}`}</span>)}</div></div>{(full.plan || []).some((l) => PLAN_SELLER_KINDS.includes(l.kind)) ? <ProjectSellerDesk projectId={item.id} onToast={onToast} /> : null}{talk && talk.analysis ? <div data-testid="desk-talk" style={{ display: "flex", flexDirection: "column", gap: 8 }}>{talk.appliedAnyway ? <div style={{ ...projectSmall, color: "#B45309", padding: "0 4px" }}>Sent anyway: Hooman Intelligence said "{talk.analysis.readinessLabel}".</div> : null}<ProjectTalkAnalysis analysis={talk.analysis} onUseMilestones={state === "under_review" || state === "submitted" ? (ms) => setMilestones(ms.map((m) => ({ label: m.label, percent: String(m.percent) }))) : undefined} /><button type="button" data-testid="desk-talk-thread" onClick={() => setShowThread((v) => !v)} style={{ ...projectButton(false), width: "100%" }}>{showThread ? "Hide the conversation" : `Read the conversation (${talk.messages.length} messages)`}</button>{showThread ? <div style={{ ...projectCard(), background: T.bg, boxShadow: "none", border: `1px solid ${T.line}` }}><ProjectTalkThread messages={talk.messages} /></div> : null}</div> : null}{state === "submitted" ? <button type="button" data-testid="desk-start" disabled={busy} onClick={() => act(() => GloobalApi.reviewAction(item.id, "start"), "Review started")} style={{ ...projectButton(true, busy), width: "100%" }}>Start review</button> : null}{reviewing ? <div style={projectCard()}><div style={projectTitle}>Ask the applicant</div><textarea data-testid="desk-question" value={question} onChange={(e) => setQuestion(e.target.value)} placeholder="What do you need to know?" style={projectTextArea} /><button type="button" data-testid="desk-ask" disabled={busy || question.trim().length < 5} onClick={() => act(() => GloobalApi.reviewAction(item.id, "ask", { question }), "Question sent")} style={{ ...projectButton(false, busy), width: "100%", marginTop: 8 }}>Send question</button></div> : null}{state === "under_review" || state === "submitted" ? <div style={projectCard()}><div style={projectTitle}>Approve</div><div style={{ ...projectSmall, marginTop: 2 }}>How much GLOOBAL gives. 0 approves it for public giving only.</div><div style={{ display: "flex", alignItems: "center", gap: 8, marginTop: 8 }}><input data-testid="desk-amount" aria-label="GLOOBAL gives" data-amount-pad="2" data-amount-label="GLOOBAL gives" readOnly inputMode="none" value={amount} onChange={(e) => setAmount(e.target.value.replace(/[^0-9.]/g, ""))} placeholder="0" style={{ ...projectAmountInput, flex: 1, width: "auto" }} /><span style={{ fontSize: 13, fontWeight: 800, color: T.accent }}>{(item.goal && item.goal.currency) || ""}</span></div>{Number(amount) > 0 ? <div style={{ marginTop: 10, display: "flex", flexDirection: "column", gap: 6 }}>{milestones.map((m, i) => <div key={i} style={{ display: "flex", gap: 8, alignItems: "center" }}><input aria-label={`Milestone ${i + 1}`} value={m.label} onChange={(e) => setMilestones((ms) => ms.map((x, j) => (j === i ? { ...x, label: e.target.value } : x)))} style={{ ...projectAmountInput, flex: 1, width: "auto", textAlign: "left" }} /><input aria-label={`Milestone ${i + 1} percent`} data-amount-pad="0" data-amount-label="Percent" readOnly inputMode="none" value={m.percent} onChange={(e) => setMilestones((ms) => ms.map((x, j) => (j === i ? { ...x, percent: e.target.value.replace(/[^0-9]/g, "") } : x)))} style={{ ...projectAmountInput, width: 64 }} /><span style={projectSmall}>%</span></div>)}<span style={{ ...projectSmall, color: pctTotal === 100 ? T.positive : T.negative }}>{`Adds up to ${pctTotal}%`}</span></div> : null}<button type="button" data-testid="desk-approve" disabled={busy || (Number(amount) > 0 && pctTotal !== 100)} onClick={() => act(() => GloobalApi.reviewAction(item.id, "approve", { amountMajor: amount || "0", currency: item.goal && item.goal.currency, milestones: milestones.map((m) => ({ label: m.label, percent: Number(m.percent) })) }), "Approved")} style={{ ...projectButton(true, busy), width: "100%", marginTop: 10 }}>{Number(amount) > 0 ? `Approve and give ${amount}` : "Approve for public giving"}</button></div> : null}{reviewing || ["approved", "funding"].includes(state) ? <div style={projectCard()}><div style={projectTitle}>{reviewing ? "Decline" : "Pause"}</div><textarea data-testid="desk-reason" value={reason} onChange={(e) => setReason(e.target.value)} placeholder={reviewing ? "Why, so they know what to change" : "Why it is paused, and what restarts it"} style={projectTextArea} />{reviewing ? <div style={{ display: "flex", alignItems: "center", gap: 8, marginTop: 8 }}><span style={projectSmall}>They can apply again after</span><input aria-label="Days before applying again" data-amount-pad="0" data-amount-label="Days" readOnly inputMode="none" value={reapplyDays} onChange={(e) => setReapplyDays(e.target.value.replace(/[^0-9]/g, ""))} style={{ ...projectAmountInput, width: 60 }} /><span style={projectSmall}>days</span></div> : null}<button type="button" data-testid={reviewing ? "desk-decline" : "desk-pause"} disabled={busy || reason.trim().length < 10} onClick={() => act(() => GloobalApi.reviewAction(item.id, reviewing ? "decline" : "pause", reviewing ? { reason, reapplyDays: Number(reapplyDays || 0) } : { reason }), reviewing ? "Declined" : "Paused")} style={{ ...projectButton(false, busy), width: "100%", marginTop: 8, color: T.negative }}>{reviewing ? "Decline" : "Pause"}</button></div> : null}{state === "paused" ? <button type="button" data-testid="desk-resume" disabled={busy} onClick={() => act(() => GloobalApi.reviewAction(item.id, "resume"), "Resumed")} style={{ ...projectButton(true, busy), width: "100%" }}>Resume</button> : null}<ProjectMilestones review={review} />{due >= 0 && ["approved", "funding"].includes(state) ? <div style={projectCard()}><div style={projectTitle}>{`Pay "${review.milestones[due].label}"`}</div><div style={{ ...projectSmall, marginTop: 2 }}>Pay it on Send, then mark it paid. GLOOBAL checks that the payment really happened.</div><div style={{ display: "flex", gap: 8, marginTop: 10 }}><button type="button" data-testid="desk-pay" onClick={() => onPayMilestone && onPayMilestone({ toSymbolId: item.ownerSymbolId, amountMajor: (review.milestones[due].amountMinor / 100).toFixed(2) })} style={{ ...projectButton(false), flex: 1 }}>Pay on Send</button><button type="button" data-testid="desk-mark-paid" disabled={busy} onClick={() => act(() => GloobalApi.reviewMarkPaid(item.id, due), "Marked paid")} style={{ ...projectButton(true, busy), flex: 1 }}>Mark paid</button></div></div> : null}{error ? <div data-testid="desk-error" style={{ ...projectSmall, color: T.negative }}>{error}</div> : null}<ProjectTimeline timeline={review.timeline} />{(review.questions || []).length ? <div style={projectCard()}><div style={projectTitle}>Questions</div>{review.questions.map((q) => <div key={q.id} style={{ marginTop: 8 }}><div style={{ ...projectSmall, color: T.ink }}>{`Q: ${q.question}`}</div><div style={projectSmall}>{q.answeredAt ? `A: ${q.answer}` : "Not answered yet"}</div></div>)}</div> : null}</div>;
+}
+
+
+// src/features/projects/ProjectTalk.jsx
+//
+// ── UNDERSTAND IT FIRST, THEN APPLY ──────────────────────────────────────
+//
+// Before a Hooman Project goes to GLOOBAL's reviewers, its owner talks it
+// over with Hooman Intelligence, GLOOBAL's own assistant
+// (server/lib/projectTalk.js) until it is
+// understood: nine things — the problem, who benefits, what will be done,
+// why this person, the money, the steps, the risks, afterwards, and whether
+// it all fits — each clear, thin, missing or doesn't fit, with the owner's
+// own words as evidence. "Understood n of 9" shows as it goes; it can pause
+// and carry on later, or finish now to see where it stands. All nine clear
+// is "ready", and a yes sends it. For now Hooman Intelligence only advises:
+// people at GLOOBAL decide.
+//
+//   ProjectTalkScreen    the conversation, full screen
+//   ProjectTalkAnalysis  the analysis card (here, and on the review desk)
+//   ProjectTalkThread    the conversation as a read-only list (review desk)
+
+var TALK_READINESS = {
+  ready: { color: "#15803D", soft: "#DCFCE7", label: "Ready for review" },
+  almost: { color: "#B45309", soft: "#FEF3C7", label: "Almost ready" },
+  not_ready: { color: "#B91C1C", soft: "#FEE2E2", label: "Not ready yet" },
+};
+
+function TalkReadinessChip({ readiness, label }) {
+  const r = TALK_READINESS[readiness] || TALK_READINESS.almost;
+  return <span data-testid="talk-readiness" data-readiness={readiness} style={{ display: "inline-flex", alignItems: "center", gap: 6, padding: "5px 11px", borderRadius: 999, background: r.soft, color: r.color, fontSize: 12, fontWeight: 800, whiteSpace: "nowrap" }}><span style={{ width: 7, height: 7, borderRadius: "50%", background: r.color }} />{label || r.label}</span>;
+}
+
+var TALK_STATUS = {
+  clear: { color: "#15803D", soft: "#DCFCE7", word: "Clear" },
+  thin: { color: "#B45309", soft: "#FEF3C7", word: "Thin" },
+  missing: { color: "#64748B", soft: "#F1F5F9", word: "Missing" },
+  contradicting: { color: "#B91C1C", soft: "#FEE2E2", word: "Doesn't fit" },
+};
+
+// "Understood 6 of 9": one segment per item, and what is still open.
+function TalkProgress({ items, open, onToggle }) {
+  const list = items || [];
+  const clear = list.filter((i) => i.status === "clear").length;
+  return <div data-testid="talk-progress" data-understood={clear} style={{ borderRadius: 14, background: T.surface, boxShadow: T.shadowCard, padding: "10px 12px", display: "flex", flexDirection: "column", gap: 8 }}>
+    <button type="button" onClick={onToggle} aria-expanded={open} style={{ display: "flex", alignItems: "center", gap: 10, border: "none", background: "transparent", padding: 0, cursor: "pointer", textAlign: "left", fontFamily: "inherit" }}>
+      <span style={{ fontSize: 13, fontWeight: 800, color: T.ink, whiteSpace: "nowrap" }}>Understood {clear} of {list.length}</span>
+      <span style={{ flex: 1, display: "flex", gap: 3 }}>{list.map((i) => <span key={i.key} title={`${i.label}: ${(TALK_STATUS[i.status] || TALK_STATUS.missing).word}`} style={{ flex: 1, height: 7, borderRadius: 4, background: (TALK_STATUS[i.status] || TALK_STATUS.missing).color, opacity: i.status === "missing" ? 0.25 : 1 }} />)}</span>
+      <span style={{ fontSize: 11.5, fontWeight: 700, color: T.accent, whiteSpace: "nowrap" }}>{open ? "Hide" : "What's open"}</span>
+    </button>
+    {open ? <TalkChecklist items={list} /> : null}
+  </div>;
+}
+
+// The nine, with where each stands, the note, and the owner's own words.
+function TalkChecklist({ items, withEvidence }) {
+  return <div data-testid="talk-checklist" style={{ display: "flex", flexDirection: "column", gap: 8 }}>{(items || []).map((i) => {
+    const st = TALK_STATUS[i.status] || TALK_STATUS.missing;
+    return <div key={i.key} data-testid="talk-item" data-key={i.key} data-status={i.status} style={{ display: "flex", flexDirection: "column", gap: 3, paddingBottom: 7, borderBottom: `1px solid ${T.line}` }}>
+      <span style={{ display: "flex", alignItems: "center", gap: 8 }}>
+        <span style={{ flex: 1, minWidth: 0, fontSize: 13, fontWeight: 700, color: T.ink }}>{i.label}</span>
+        <span style={{ padding: "2px 8px", borderRadius: 999, background: st.soft, color: st.color, fontSize: 11, fontWeight: 800, whiteSpace: "nowrap" }}>{st.word}</span>
+      </span>
+      {i.note ? <span style={{ fontSize: 12, color: T.inkSoft, lineHeight: 1.45 }}>{i.note}</span> : i.status !== "clear" ? <span style={{ fontSize: 12, color: T.inkFaint, lineHeight: 1.45 }}>{i.clear}</span> : null}
+      {withEvidence && i.evidence && i.status !== "missing" ? <span style={{ fontSize: 12, color: T.ink, lineHeight: 1.45, fontStyle: "italic", borderLeft: `3px solid ${st.color}55`, paddingLeft: 8 }}>“{i.evidence}”</span> : null}
+    </div>;
+  })}</div>;
+}
+
+function TalkList({ icon: Icon, color, title, items }) {
+  if (!items || !items.length) return null;
+  return <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+    <span style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 11, fontWeight: 800, letterSpacing: 0.4, textTransform: "uppercase", color: T.inkSoft }}><Icon size={13} color={color} />{title}</span>
+    {items.map((t, i) => <span key={i} style={{ fontSize: 13, color: T.ink, lineHeight: 1.5, paddingLeft: 19, position: "relative" }}><span style={{ position: "absolute", left: 6, top: 8, width: 5, height: 5, borderRadius: "50%", background: color }} />{t}</span>)}
+  </div>;
+}
+
+function ProjectTalkAnalysis({ analysis, onUseMilestones }) {
+  if (!analysis) return null;
+  const ai = String(analysis.by || "").startsWith("groq");
+  return <div data-testid="talk-analysis" data-readiness={analysis.readiness} style={{ borderRadius: T.radiusLg, background: T.surface, boxShadow: T.shadowCard, padding: "16px 16px", display: "flex", flexDirection: "column", gap: 14 }}>
+    <div style={{ display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap" }}>
+      <span style={{ display: "flex", alignItems: "center", gap: 7, fontSize: 14.5, fontWeight: 800, color: T.ink, flex: 1, minWidth: 0 }}><TalkSpark size={16} color={T.accent} />{ai ? "Hooman Intelligence's analysis" : "GLOOBAL's checklist analysis"}</span>
+      <TalkReadinessChip readiness={analysis.readiness} label={analysis.readinessLabel} />
+    </div>
+    <span style={{ fontSize: 13.5, color: T.ink, lineHeight: 1.55 }}>{analysis.summary}</span>
+    {analysis.understanding ? <span data-testid="talk-understood" style={{ fontSize: 12.5, fontWeight: 800, color: T.ink, marginTop: -4 }}>Understood {analysis.understood} of {analysis.of}{analysis.readinessWhy ? <span style={{ fontWeight: 500, color: T.inkSoft }}> · {analysis.readinessWhy}</span> : null}</span> : analysis.readinessWhy ? <span style={{ fontSize: 12.5, color: T.inkSoft, lineHeight: 1.5, marginTop: -6 }}>{analysis.readinessWhy}</span> : null}
+    {analysis.understanding ? <TalkChecklist items={analysis.understanding} withEvidence /> : null}
+    <TalkList icon={TalkWarn} color="#B91C1C" title="Doesn't fit" items={analysis.contradictions} />
+    <TalkList icon={TalkOk} color="#15803D" title="Strengths" items={analysis.strengths} />
+    {analysis.understanding ? null : <TalkList icon={TalkTodo} color="#B45309" title="Gaps" items={analysis.gaps} />}
+    <TalkList icon={TalkWarn} color="#B91C1C" title="Risks" items={analysis.risks} />
+    <TalkList icon={TalkAsk} color={T.accent} title="A reviewer may still ask" items={analysis.openQuestions} />
+    {analysis.milestones && analysis.milestones.length ? <div style={{ display: "flex", flexDirection: "column", gap: 7 }}>
+      <span style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 11, fontWeight: 800, letterSpacing: 0.4, textTransform: "uppercase", color: T.inkSoft }}><TalkSteps size={13} color={T.accent} />Suggested milestones</span>
+      {analysis.milestones.map((m, i) => <div key={i} style={{ display: "flex", alignItems: "center", gap: 10 }}>
+        <span style={{ width: 22, height: 22, borderRadius: "50%", background: T.accentSoft, color: T.accent, fontSize: 11, fontWeight: 900, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>{i + 1}</span>
+        <span style={{ flex: 1, minWidth: 0, fontSize: 13, color: T.ink, fontWeight: 600 }}>{m.label}</span>
+        <span style={{ fontSize: 13, fontWeight: 800, color: T.ink }}>{m.percent}%</span>
+      </div>)}
+      {onUseMilestones ? <button type="button" data-testid="desk-use-milestones" onClick={() => onUseMilestones(analysis.milestones)} style={{ ...projectButton(false), height: 38, marginTop: 2 }}>Use these milestones</button> : null}
+    </div> : null}
+    <span style={{ fontSize: 11, color: T.inkFaint, lineHeight: 1.45 }}>{ai ? "Written by an AI from the conversation; whether it's ready is decided by the nine above, not by the AI. It advises; people at GLOOBAL decide." : "From GLOOBAL's fixed questions and the plan. People at GLOOBAL decide."}</span>
+  </div>;
+}
+
+function TalkBubble({ m }) {
+  const mine = m.from === "applicant";
+  return <div data-testid="talk-message" data-from={m.from} style={{ display: "flex", justifyContent: mine ? "flex-end" : "flex-start" }}>
+    <span style={{ maxWidth: "82%", padding: "10px 13px", borderRadius: mine ? "18px 18px 6px 18px" : "18px 18px 18px 6px", background: mine ? T.gradButton : T.surface, color: mine ? "#fff" : T.ink, boxShadow: mine ? "none" : T.shadowCard, fontSize: 14, lineHeight: 1.5, whiteSpace: "pre-wrap", overflowWrap: "anywhere" }}>{m.text}</span>
+  </div>;
+}
+
+function ProjectTalkThread({ messages }) {
+  return <div data-testid="talk-thread" style={{ display: "flex", flexDirection: "column", gap: 8 }}>{(messages || []).map((m, i) => <TalkBubble key={i} m={m} />)}</div>;
+}
+
+function ProjectTalkScreen({ project, onClose, onApplied }) {
+  const [info, setInfo] = useState112(null);
+  const [talk, setTalk] = useState112(null);
+  const [text, setText] = useState112("");
+  const [busy, setBusy] = useState112("");
+  const [error, setError] = useState112("");
+  const [showOpen, setShowOpen] = useState112(false);
+  const scroller = useRef112(null);
+  const started = useRef112(false);
+  const answer = (r) => { if (r && r.talk) setTalk(r.talk); return r; };
+
+  const begin = async () => {
+    setBusy("start"); setError("");
+    const r = await GloobalApi.projectTalkStart(project.id);
+    setBusy("");
+    if (r.ok) answer(r); else setError(r.message);
+  };
+  useEffect112(() => {
+    let live = true;
+    (async () => {
+      const r = await GloobalApi.projectTalk(project.id);
+      if (!live) return;
+      if (!r.ok) { setError(r.message); setInfo({}); return; }
+      setInfo(r);
+      if (r.talk && r.talk.state !== "left") setTalk(r.talk);
+      // Opening it starts the conversation when there is none to pick up.
+      if ((!r.talk || r.talk.state === "left") && r.canStart && !started.current) { started.current = true; begin(); }
+    })();
+    return () => { live = false; };
+  }, [project.id]);
+  useEffect112(() => {
+    const el = scroller.current;
+    if (el) el.scrollTop = el.scrollHeight;
+  }, [talk && talk.messages && talk.messages.length, talk && talk.state, busy]);
+
+  const send = async () => {
+    const said = text.trim();
+    if (!said || busy) return;
+    setBusy("say"); setError("");
+    setTalk((t) => (t ? { ...t, messages: [...t.messages, { from: "applicant", text: said, at: new Date().toISOString() }] } : t));
+    setText("");
+    const r = await GloobalApi.projectTalkSay(project.id, said);
+    setBusy("");
+    if (r.ok) answer(r);
+    else {
+      setError(r.message);
+      setText(said);
+      setTalk((t) => (t ? { ...t, messages: t.messages.slice(0, -1) } : t));
+    }
+  };
+  const apply = async (anyway) => {
+    if (busy) return;
+    setBusy(anyway ? "anyway" : "apply"); setError("");
+    const r = await GloobalApi.projectTalkApply(project.id, anyway);
+    setBusy("");
+    if (r.ok) { answer(r); onApplied?.(r); return; }
+    setError(r.message);
+    if (r.requirements) setInfo((i) => ({ ...(i || {}), requirements: r.requirements }));
+  };
+  const again = async () => { started.current = true; setTalk(null); await begin(); };
+  const finishNow = async () => {
+    if (busy) return;
+    setBusy("finish"); setError("");
+    const r = await GloobalApi.projectTalkFinish(project.id);
+    setBusy("");
+    if (r.ok) answer(r); else setError(r.message);
+  };
+
+  const mode = info && info.mode;
+  const talking = talk && talk.state === "talking";
+  const done = talk && talk.state === "done";
+  const applied = talk && talk.state === "applied";
+  const readiness = talk && talk.analysis && talk.analysis.readiness;
+  const missing = ((info && info.requirements) || []).filter((r) => !r.ok);
+  return <div data-testid="project-talk" style={{ position: "fixed", inset: 0, zIndex: 380, background: T.bg, display: "flex", flexDirection: "column", overflow: "hidden", fontFamily: T.fontBody }}>
+    <div style={{ display: "flex", alignItems: "center", gap: 12, padding: "calc(16px + env(safe-area-inset-top, 0px)) 18px 12px", flexShrink: 0, borderBottom: `1px solid ${T.line}`, background: T.surface }}>
+      <NavBackButton onClick={onClose} />
+      <span style={{ flex: 1, minWidth: 0 }}>
+        <span style={{ display: "block", fontSize: 16.5, fontWeight: 800, color: T.ink, fontFamily: T.fontDisplay }}>Talk it through</span>
+        <span style={{ display: "block", fontSize: 12, color: T.inkSoft, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{`with Hooman Intelligence · ${project.title}`}</span>
+      </span>
+      <span style={{ width: 38, height: 38, borderRadius: 12, background: T.accentSoft, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}><TalkSpark size={18} color={T.accent} /></span>
+    </div>
+    {talking ? <div style={{ flexShrink: 0, padding: "10px 16px 0", background: T.bg }}><TalkProgress items={talk.understanding} open={showOpen} onToggle={() => setShowOpen((v) => !v)} /></div> : null}
+    <div ref={scroller} style={{ flex: 1, minHeight: 0, overflowY: "auto", WebkitOverflowScrolling: "touch", padding: "14px 16px 18px", display: "flex", flexDirection: "column", gap: 10 }}>
+      <div style={{ display: "flex", gap: 9, alignItems: "flex-start", padding: "10px 12px", borderRadius: 14, background: T.surfaceAlt }}>
+        <TalkShield size={15} color={T.inkSoft} style={{ flexShrink: 0, marginTop: 2 }} />
+        <span data-testid="talk-privacy" style={{ fontSize: 12, color: T.inkSoft, lineHeight: 1.5 }}>{mode === "groq"
+          ? "Hooman Intelligence is an AI. Your answers go to it and to GLOOBAL's reviewers — not your documents, photos or account. Don't type ID numbers, bank details or passwords."
+          : "GLOOBAL's questions, answered here, go to GLOOBAL's reviewers with your project. Don't type ID numbers, bank details or passwords."} It advises; people at GLOOBAL decide.</span>
+      </div>
+      {talk ? <ProjectTalkThread messages={talk.messages} /> : null}
+      {busy === "start" || busy === "say" || busy === "finish" ? <div data-testid="talk-typing" style={{ display: "flex" }}><span style={{ padding: "10px 14px", borderRadius: "18px 18px 18px 6px", background: T.surface, boxShadow: T.shadowCard, color: T.inkFaint, fontSize: 14, letterSpacing: 2 }}>•••</span></div> : null}
+      {(done || applied) && talk.analysis ? <ProjectTalkAnalysis analysis={talk.analysis} /> : null}
+      {done && missing.length ? <div data-testid="talk-missing" style={{ borderRadius: T.radiusLg, background: "#FEF3C7", padding: "12px 14px", display: "flex", flexDirection: "column", gap: 6 }}>
+        <span style={{ fontSize: 13, fontWeight: 800, color: "#92400E" }}>Before it can be sent</span>
+        {missing.map((m) => <span key={m.key} style={{ fontSize: 12.5, color: "#92400E", lineHeight: 1.45 }}>• {m.label} — {m.hint}</span>)}
+      </div> : null}
+      {applied ? <div data-testid="talk-applied" style={{ borderRadius: T.radiusLg, background: "#DCFCE7", padding: "12px 14px", fontSize: 13, fontWeight: 700, color: "#166534", lineHeight: 1.5 }}>Sent to GLOOBAL{talk.appliedAnyway ? " (anyway)" : ""}. A reviewer reads the project, this conversation and the analysis.</div> : null}
+      {error ? <div role="alert" data-testid="talk-error" style={{ fontSize: 12.5, fontWeight: 700, color: T.negative, lineHeight: 1.45 }}>{error}</div> : null}
+    </div>
+    {talking ? <div style={{ flexShrink: 0, padding: "10px 12px calc(12px + env(safe-area-inset-bottom, 0px))", borderTop: `1px solid ${T.line}`, background: T.surface, display: "flex", flexDirection: "column", gap: 6 }}>
+      <div style={{ display: "flex", alignItems: "flex-end", gap: 8 }}>
+        <textarea data-testid="talk-input" value={text} onChange={(e) => setText(e.target.value.slice(0, 1500))} rows={Math.min(5, Math.max(1, text.split("\n").length))} placeholder="Your answer" style={{ flex: 1, boxSizing: "border-box", border: `1px solid ${T.line}`, borderRadius: 18, padding: "10px 14px", fontSize: 14.5, color: T.ink, background: T.bg, fontFamily: "inherit", resize: "none", outline: "none", lineHeight: 1.45 }} />
+        <button type="button" data-testid="talk-send" aria-label="Send" onClick={send} disabled={!text.trim() || Boolean(busy)} style={{ width: 44, height: 44, borderRadius: "50%", border: "none", background: text.trim() && !busy ? T.gradButton : T.surfaceAlt, display: "flex", alignItems: "center", justifyContent: "center", cursor: text.trim() && !busy ? "pointer" : "default", flexShrink: 0 }}><TalkSend size={18} color={text.trim() && !busy ? "#fff" : T.inkFaint} /></button>
+      </div>
+      <div style={{ display: "flex", alignItems: "center", gap: 8, paddingLeft: 6 }}>
+        <span style={{ flex: 1, fontSize: 11, color: T.inkFaint, lineHeight: 1.4 }}>Take your time — you can leave and carry on later. "I don't know yet" is a fine answer.</span>
+        {talk.canFinish ? <button type="button" data-testid="talk-finish" onClick={finishNow} disabled={Boolean(busy)} style={{ border: "none", background: "transparent", color: T.accent, fontSize: 12, fontWeight: 800, cursor: "pointer", padding: "2px 0", whiteSpace: "nowrap" }}>Finish now</button> : null}
+      </div>
+    </div> : null}
+    {done ? <div style={{ flexShrink: 0, padding: "12px 16px calc(14px + env(safe-area-inset-bottom, 0px))", borderTop: `1px solid ${T.line}`, background: T.surface, display: "flex", flexDirection: "column", gap: 8 }}>
+      {readiness === "ready"
+        ? <><span style={{ fontSize: 13, fontWeight: 700, color: T.ink, textAlign: "center" }}>Shall I send it to GLOOBAL for review?</span>
+          <div style={{ display: "flex", gap: 10 }}>
+            <button type="button" onClick={onClose} style={{ ...projectButton(false), flex: 1 }}>Not yet</button>
+            <button type="button" data-testid="talk-apply" onClick={() => apply(false)} disabled={Boolean(busy)} style={{ ...projectButton(true, Boolean(busy)), flex: 2 }}>{busy === "apply" ? "Sending…" : "Yes, send it"}</button>
+          </div></>
+        : <><div style={{ display: "flex", gap: 10 }}>
+            <button type="button" onClick={onClose} style={{ ...projectButton(false), flex: 1 }}>Improve it</button>
+            {info && info.canStart !== false ? <button type="button" data-testid="talk-again" onClick={again} disabled={Boolean(busy)} style={{ ...projectButton(true, Boolean(busy)), flex: 1 }}>Talk again</button> : null}
+          </div>
+          <button type="button" data-testid="talk-apply-anyway" onClick={() => apply(true)} disabled={Boolean(busy)} style={{ border: "none", background: "transparent", color: T.inkSoft, fontSize: 12.5, fontWeight: 700, textDecoration: "underline", cursor: "pointer", padding: "2px 0" }}>{busy === "anyway" ? "Sending…" : "Send it to GLOOBAL anyway"}</button></>}
+    </div> : null}
+  </div>;
 }
 
 
@@ -66680,7 +68279,7 @@ var COVERAGE_LIT = ["#A78BFA", "#5EEAD4", "#FCA5A5", "#FDE68A", "#93C5FD", "#F9A
 var COVERAGE_CATEGORY_LABEL = {
   people: "People", food: "Food & Chai", grocery: "Grocery", sweets: "Sweets & Bakery", fashion: "Fashion", beauty: "Beauty & Salon",
   health: "Health & Pharmacy", electronics: "Electronics", repair: "Repair", home: "Home services", education: "Education",
-  travel: "Travel", art: "Art & Craft", events: "Events", farm: "Farm & Fresh", work: "Daily work & Help", creator: "Creators & Freelance", community: "Community & Giving", other: "Other"
+  travel: "Travel", art: "Art & Craft", events: "Events", building: "Building materials", farm: "Farm & Fresh", work: "Daily work & Help", creator: "Creators & Freelance", community: "Community & Giving", other: "Other"
 };
 var COVERAGE_PALETTE = ["#5B34E6", "#8B5CF6", "#0E7490", "#14B8A6", "#C4B5FD", "#F59E0B"];
 
@@ -71671,6 +73270,12 @@ var SHOW_PHONE_HERO_CIRCLE = false;
 // Two grounds, because it appears on both a white permission page and on
 // top of live video, and a control that is legible on one is invisible on
 // the other.
+// The amount the other phone asked for by sound, in both names like every
+// other figure (the display lens): the payee's money, read by this viewer.
+function ScanAskedFigure({ amount, currency, own = null, size }) {
+  const lens = useGeuLens();
+  return <GeuFigure amount={amount} currency={currency} lens={lens} own={own || currency} size={size} />;
+}
 function ScanSendButton({ onClick, overVideo = false, label = "Send" }) {
   return <button
     onClick={onClick}
@@ -76725,7 +78330,7 @@ function GloobalId() {
     </span>
   </div> : null}{scanAskedAmount && <div data-testid="scan-asked-amount" style={{ display: "inline-flex", alignItems: "baseline", gap: 6, background: "rgba(255,255,255,0.18)", borderRadius: 16, padding: "10px 18px", marginBottom: 18, color: scanDetailsShown ? scanBackdropFor(scanPayee.gloobalId).from : "#fff" }}>
     <span style={{ fontSize: 12.5, fontWeight: 700, opacity: 0.85 }}>Asking for</span>
-    <span style={{ fontFamily: T.fontDisplay, fontSize: 26, fontWeight: 800, letterSpacing: -0.5 }}>{fmtMoney(Number(scanAskedAmount), COUNTRY_CURRENCY[String(scanPayee.countryIso || dialCountry.iso || "").toUpperCase()] || "INR")}</span>
+    <span style={{ fontFamily: T.fontDisplay, fontSize: 26, fontWeight: 800, letterSpacing: -0.5 }}><ScanAskedFigure amount={Number(scanAskedAmount)} currency={COUNTRY_CURRENCY[String(scanPayee.countryIso || dialCountry.iso || "").toUpperCase()] || "INR"} own={COUNTRY_CURRENCY[String(dialCountry.iso || "").toUpperCase()] || null} size={26} /></span>
   </div>}</>;
   })()}<button
     onClick={handleSendToScanned}
@@ -77822,23 +79427,44 @@ function HellooWordmark({ suffix = "", size }) {
   return <span aria-label={`Helloo${suffix}`} style={{ textTransform: "uppercase", fontWeight: 800, fontFamily: T.fontWordmark, whiteSpace: "nowrap", fontSize: size }}>Hell{dot(c1)}{dot(c2)}{suffix}</span>;
 }
 
-// The app mark (16 Nov): a G that is also a speech bubble, with the two
-// dots of HELL●● inside it. One drawing, two treatments:
-//   app  — white mark on Helloo's purple, pale dots (the app icon)
-//   ink  — purple mark on white, the dots in colour
+// The app mark: "Bubble G Clean" (25 Nov, founder's pick from the design
+// canvas). The same G that is also a speech bubble, now blue, with a green
+// phone inside it: Helloo is for talking, and talking with your people is
+// free. One drawing, two treatments:
+//   app  — white G and a green phone on a blue tile (the app icon)
+//   ink  — blue G and a green phone on white
 // The older variant names still resolve, so callers need not change.
+var HELLOO_BLUE = ["#3B82F6", "#1D4ED8"];
+// Lucide's "phone" outline (ISC licence, the icon set the app already uses), filled.
+var HELLOO_PHONE_PATH = "M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z";
 var HELLOO_MARK_VARIANTS = {
-  app: { tile: "url(#hlMarkGrad)", ink: "#fff", dots: ["#7CF5C4", "#FFB3CD"] },
-  ink: { tile: "#F7F6FB", ink: "#5B3DF5", dots: ["#10B981", "#F0447C"] }
+  app: { tile: "url(#hlMarkGrad)", g: "#fff", phone: "#4ADE80" },
+  ink: { tile: "#F7F6FB", g: "url(#hlMarkInk)", phone: "#10B981" }
 };
 HELLOO_MARK_VARIANTS.dots = HELLOO_MARK_VARIANTS.app;
 HELLOO_MARK_VARIANTS.purple = HELLOO_MARK_VARIANTS.app;
 HELLOO_MARK_VARIANTS.navy = HELLOO_MARK_VARIANTS.ink;
 var HELLOO_MARK_DEFAULT = "app";
 
+// The G itself, drawn in a 200 box: the ring with its bar, the bubble's
+// tail, the phone. `ink` colours the G; `phone` the phone.
+function hellooBubbleGParts(ink, phone) {
+  return <><path d="M143.8 56.2 A62 62 0 1 0 162 100 H136" fill="none" stroke={ink} strokeWidth="30" strokeLinecap="round" strokeLinejoin="round" /><path d="M47 132 L26 184 L84 160 Z" fill={ink} stroke={ink} strokeWidth="8" strokeLinejoin="round" /><g transform="translate(94 98) scale(2) translate(-12 -12)"><path d={HELLOO_PHONE_PATH} fill={phone} /></g></>;
+}
+function hellooBlueStops() {
+  return [<stop key="a" offset="0" stopColor={HELLOO_BLUE[0]} />, <stop key="b" offset="1" stopColor={HELLOO_BLUE[1]} />];
+}
+
 function HellooMark({ size = 64, variant = HELLOO_MARK_DEFAULT }) {
   const v = HELLOO_MARK_VARIANTS[variant] || HELLOO_MARK_VARIANTS.app;
-  return <svg width={size} height={size} viewBox="0 0 100 100" aria-label="Helloo" role="img" style={{ display: "block", flexShrink: 0, filter: "drop-shadow(0 10px 24px rgba(27,24,56,0.22))" }}><defs><linearGradient id="hlMarkGrad" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stopColor="#4F46E5" /><stop offset="0.6" stopColor="#7C3AED" /><stop offset="1" stopColor="#C026D3" /></linearGradient></defs><rect width="100" height="100" rx="22" fill={v.tile} /><g transform="translate(10 8) scale(0.4)"><path d="M143.8 56.2 A62 62 0 1 0 162 100 H150" fill="none" stroke={v.ink} strokeWidth="30" strokeLinecap="round" strokeLinejoin="round" /><path d="M47 132 L26 184 L84 160 Z" fill={v.ink} stroke={v.ink} strokeWidth="8" strokeLinejoin="round" /><circle cx="84" cy="100" r="13" fill={v.dots[0]} /><circle cx="116" cy="100" r="13" fill={v.dots[1]} /></g></svg>;
+  return <svg width={size} height={size} viewBox="0 0 100 100" aria-label="Helloo" role="img" style={{ display: "block", flexShrink: 0, filter: "drop-shadow(0 10px 24px rgba(29,78,216,0.24))" }}><defs><linearGradient id="hlMarkGrad" x1="0" y1="0" x2="1" y2="1">{hellooBlueStops()}</linearGradient><linearGradient id="hlMarkInk" x1="0" y1="0" x2="1" y2="1">{hellooBlueStops()}</linearGradient></defs><rect width="100" height="100" rx="22" fill={v.tile} /><g transform="translate(8 6) scale(0.42)">{hellooBubbleGParts(v.g, v.phone)}</g></svg>;
+}
+
+// The G with no tile: the fixed end the splash's line hangs from.
+// tone "color" — the blue G (on a light page); "white" — on a dark page.
+function HellooBubbleG({ size = 72, tone = "color" }) {
+  const white = tone === "white";
+  return <svg width={size} height={size} viewBox="0 0 200 200" aria-label="Helloo" role="img" style={{ display: "block", flexShrink: 0 }}>{white ? null : <defs><linearGradient id="hlBubbleGBlue" x1="0" y1="0" x2="1" y2="1">{hellooBlueStops()}</linearGradient></defs>}{hellooBubbleGParts(white ? "#FFFFFF" : "url(#hlBubbleGBlue)", white ? "#34D399" : "#10B981")}</svg>;
 }
 
 // A person on Helloo. The GLOOBAL ID is the identity; the name, flag and
@@ -78456,15 +80082,17 @@ function HellooVerifiedName({ person, size = 15 }) {
 function hellooPrefersDark() {
   try { return typeof window !== "undefined" && window.matchMedia && window.matchMedia("(prefers-color-scheme: dark)").matches; } catch (e) { return false; }
 }
-// The splash (17 Nov, founder's pick after several rounds): two tickets
-// held together. Green behind, "People you know · Free · 0 CEL"; pink in
-// front, "Strangers · They pay · +3 CEL" — the price of reaching you, read
-// at a glance. The HELLOO name stands above the mark; a globe sits in the
-// top-right corner; "by GLOOBAL" is centred at the foot. The globe sits at the left of the name's
-// line (17 Nov). A tap goes on at once. Someone already
-// signed in sees only the name and mark on the way to their chats.
-var HELLOO_SPLASH_MS = 2600;
-// The money sign beside CEL on the tickets: 1 CEL is 1 unit of your own
+// The splash (25 Nov, founder's pick "A3" from the design canvas): Bubble G
+// hangs at the top, a short line drops from it to a dot, and the dot swings
+// across and WRITES what Helloo costs, one side at a time, the other side
+// hidden:
+//   right → left  People you know · Free.      Maa, Papa, Arav · 0 CEL
+//   left → right  Strangers & creators · They pay.   unknown, creator,
+//                 brand, each +3 · "+3 CEL | ₹, to reach you, paid to you"
+// It plays once and goes on; a tap goes on at once. Someone already signed
+// in sees only the name and mark on the way to their chats.
+var HELLOO_SPLASH_MS = 3800;
+// The money sign beside CEL on the splash: 1 CEL is 1 unit of your own
 // money, so the stub reads "CEL | ₹" the way GLOOBAL's home card does.
 // Whose money: the account on this phone if there is one, else the region
 // the phone's own language setting names ("en-IN" → India). With neither,
@@ -78479,24 +80107,130 @@ function hellooSplashMoneySign() {
     return code && typeof CURRENCY_SYMBOL === "object" ? CURRENCY_SYMBOL[code] || code : "";
   } catch (e) { return ""; }
 }
-var HELLOO_SPLASH_LINE = "Number private · Pay in the chat · Every country";
-function HellooSplashTicket({ bg, page, label, big, sub, stub, stubSub, rot = 0, style, delay = 0, z = 1 }) {
-  const notch = (pos) => <span style={{ position: "absolute", right: 82, [pos]: -10, width: 20, height: 20, borderRadius: "50%", background: page }} />;
-  return <div style={Object.assign({ position: "absolute", display: "flex", background: bg, color: "#fff", borderRadius: 22, boxShadow: `0 18px 36px ${bg}55, 0 2px 6px rgba(23,19,43,0.08)`, transform: `rotate(${rot}deg)`, animation: `hlTicketIn 0.55s ${delay}s cubic-bezier(.2,.9,.3,1.15) both`, zIndex: z, "--r": `${rot}deg` }, style || {})}><div style={{ flex: 1, minWidth: 0, padding: "16px 16px 17px 18px" }}><div style={{ fontSize: 11.5, fontWeight: 800, letterSpacing: 1.2, textTransform: "uppercase", opacity: 0.85 }}>{label}</div><div style={{ marginTop: 4, fontSize: "clamp(30px, 9.4vw, 40px)", fontWeight: 900, fontFamily: T.fontDisplay, letterSpacing: -1.1, lineHeight: 1 }}>{big}</div><div style={{ marginTop: 6, fontSize: 13, fontWeight: 700, opacity: 0.92, lineHeight: 1.3 }}>{sub}</div></div><div style={{ width: 92, flexShrink: 0, borderLeft: "2px dashed rgba(255,255,255,0.5)", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: 3 }}><div style={{ fontSize: 26, fontWeight: 900, fontFamily: T.fontDisplay, letterSpacing: -0.5, lineHeight: 1 }}>{stub}</div><div style={{ fontSize: 10.5, fontWeight: 800, opacity: 0.88, letterSpacing: 0.8 }}>{stubSub}</div></div>{notch("top")}{notch("bottom")}</div>;
+// One moment of the swing, `t` seconds in. Drawn in a 390 × 844 box that is
+// scaled to the phone, so every figure below is in that box's pixels.
+//   0 – 1.25 s   swing right → left, writing "Free."
+//   1.25 – 1.85  rest on the free side
+//   1.85 – 3.1   swing left → right, writing "They pay."; "Free." fades
+//   3.1 –        rest on the paid side until the app goes on
+// With reduced motion the dot jumps from side to side instead of swinging.
+var HELLOO_SWING = { write: 1.25, rest: 0.6, amp: 46, line: 238, mid: 195 };
+function hellooSwingPose(t, still) {
+  const S = HELLOO_SWING;
+  const clamp = (v) => Math.min(1, Math.max(0, v));
+  const ease = (v) => (still ? (v > 0 ? 1 : 0) : 0.5 - 0.5 * Math.cos(Math.PI * clamp(v)));
+  const writingFree = t < S.write + S.rest;
+  const since = writingFree ? t : t - S.write - S.rest;
+  const q = ease(since / S.write);
+  const th = (writingFree ? 1 : -1) * (S.amp * Math.PI / 180) * Math.cos(Math.PI * q);
+  const bx = S.mid + S.line * Math.sin(th);
+  const arrive = clamp((q - 0.55) / 0.3);
+  const fade = clamp(1 - since / 0.15);
+  const toPink = writingFree ? 0 : clamp(since / 0.12);
+  const g = [52, 211, 153], p = [240, 68, 124];
+  const c = g.map((v, i) => Math.round(v + (p[i] - v) * toPink));
+  return {
+    rot: -th * 180 / Math.PI,
+    freeCut: writingFree ? bx : 0,
+    freeOp: writingFree ? 1 : fade,
+    paidCut: writingFree ? 390 : 390 - bx,
+    paidOp: writingFree ? 0 : 1,
+    freeTag: writingFree ? arrive : fade,
+    paidTag: writingFree ? 0 : arrive,
+    dot: `rgb(${c[0]}, ${c[1]}, ${c[2]})`,
+  };
 }
+
+// A face for the splash: a person on a tinted disc.
+function hellooSplashFace(fill, tint) {
+  return <svg width="64" height="64" viewBox="0 0 64 64" aria-hidden="true"><circle cx="32" cy="32" r="32" fill={tint} /><circle cx="32" cy="25" r="10" fill={fill} /><path d="M13 52 C15 42 23 37 32 37 C41 37 49 42 51 52 Z" fill={fill} /></svg>;
+}
+// Who pays: someone unknown, a creator's shop, a brand's megaphone, each +3.
+function hellooSplashPayer(kind, pink, page) {
+  const stroke = { fill: "none", stroke: pink, strokeWidth: 2.5, strokeLinejoin: "round", strokeLinecap: "round" };
+  const art = kind === "unknown"
+    ? <><circle cx="32" cy="25" r="10" fill={pink} /><path d="M13 52 C15 42 23 37 32 37 C41 37 49 42 51 52 Z" fill={pink} /><text x="32" y="30" textAnchor="middle" fontSize="13" fontWeight="700" fill={page} fontFamily="Inter, sans-serif">?</text></>
+    : kind === "creator"
+      ? <><path d="M17 24 L47 24 L44 31 L20 31 Z" {...stroke} /><path d="M20 31 L20 47 L44 47 L44 31" {...stroke} /><path d="M29 47 L29 39 L35 39 L35 47" {...stroke} /></>
+      : <><path d="M17 29 L17 37 L23 37 L37 44 L37 22 L23 29 Z" {...stroke} /><path d="M42 28 C45 30 45 36 42 38" {...stroke} /><path d="M23 37 L25 45 L29 45 L28 39" {...stroke} /></>;
+  return <span style={{ position: "relative", width: 64, height: 64, display: "block" }}><svg width="64" height="64" viewBox="0 0 64 64" aria-hidden="true"><circle cx="32" cy="32" r="32" fill="rgba(240,68,124,0.18)" />{art}</svg><span style={{ position: "absolute", right: -6, top: -6, width: 26, height: 26, borderRadius: "50%", background: pink, color: page, fontFamily: T.fontDisplay, fontWeight: 700, fontSize: 11, lineHeight: "26px", textAlign: "center" }}>+3</span></span>;
+}
+
+function HellooSplashSwing({ dark, onSkip }) {
+  const ink = dark ? "#F1EEFF" : T.ink; const soft = dark ? "#B3ADCC" : T.inkSoft;
+  const page = dark ? "#0F0D1F" : HT.wash;
+  const green = dark ? "#34D399" : "#0FA372"; const pink = dark ? "#F0447C" : "#D6336C";
+  const money = hellooSplashMoneySign();
+  const cel = money ? `+3 CEL | ${money}` : "+3 CEL";
+  const [scale, setScale] = useStateH2(1);
+  const line = useRefH14(null), dot = useRefH14(null), free = useRefH14(null), paid = useRefH14(null), freeTag = useRefH14(null), paidTag = useRefH14(null);
+  const first = hellooSwingPose(0, false);
+  useEffectH2(() => {
+    const fit = () => setScale(Math.min(window.innerWidth / 390, window.innerHeight / 844));
+    fit();
+    window.addEventListener("resize", fit);
+    let still = false;
+    try { still = window.matchMedia("(prefers-reduced-motion: reduce)").matches; } catch (e) { still = false; }
+    const t0 = performance.now();
+    let raf = 0;
+    const step = (now) => {
+      const t = (now - t0) / 1000;
+      const p = hellooSwingPose(t, still);
+      if (line.current) line.current.style.transform = `rotate(${p.rot.toFixed(2)}deg)`;
+      if (dot.current) { dot.current.style.background = p.dot; dot.current.style.boxShadow = `0 0 28px ${p.dot}`; }
+      if (free.current) { free.current.style.clipPath = `inset(0px 0px 0px ${p.freeCut.toFixed(1)}px)`; free.current.style.opacity = p.freeOp.toFixed(2); }
+      if (paid.current) { paid.current.style.clipPath = `inset(0px ${p.paidCut.toFixed(1)}px 0px 0px)`; paid.current.style.opacity = p.paidOp.toFixed(2); }
+      if (freeTag.current) freeTag.current.style.opacity = p.freeTag.toFixed(2);
+      if (paidTag.current) paidTag.current.style.opacity = p.paidTag.toFixed(2);
+      if (t * 1000 < HELLOO_SPLASH_MS) raf = requestAnimationFrame(step);
+    };
+    raf = requestAnimationFrame(step);
+    return () => { cancelAnimationFrame(raf); window.removeEventListener("resize", fit); };
+  }, []);
+  const phrase = { margin: 0, fontWeight: 600, fontSize: 20, lineHeight: "28px", color: soft };
+  const big = { margin: "4px 0 0", fontFamily: T.fontDisplay, fontWeight: 700, fontSize: 66, lineHeight: "76px", letterSpacing: -2 };
+  const layer = { position: "absolute", left: 0, top: 330, width: 390, height: 240, display: "flex", flexDirection: "column", alignItems: "center", textAlign: "center" };
+  const row = { display: "flex", justifyContent: "center", gap: 18, marginTop: 26 };
+  const who = (art, name) => <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 6 }}>{art}<span style={{ fontWeight: 600, fontSize: 12, lineHeight: "16px", color: soft }}>{name}</span></div>;
+  const tag = { position: "absolute", left: 0, top: 600, width: 390, textAlign: "center" };
+  return <HellooScreen onClick={onSkip} style={{ alignItems: "center", justifyContent: "center", background: page, color: ink, cursor: "pointer" }}>
+    <div data-testid="helloo-splash-swing" style={{ position: "relative", width: 390, height: 844, flexShrink: 0, transform: `scale(${scale})`, transformOrigin: "center center" }}>
+      <div ref={free} data-testid="helloo-splash-free" style={{ ...layer, clipPath: `inset(0px 0px 0px ${first.freeCut}px)`, opacity: first.freeOp }}>
+        <p style={phrase}>People you know</p>
+        <p style={{ ...big, color: green }}>Free.</p>
+        <div style={row}>{who(hellooSplashFace("#3B82F6", "rgba(37,99,235,0.22)"), "Maa")}{who(hellooSplashFace("#F97316", "rgba(234,88,12,0.22)"), "Papa")}{who(hellooSplashFace("#10B981", "rgba(5,150,105,0.24)"), "Arav")}</div>
+      </div>
+      <div ref={paid} data-testid="helloo-splash-paid" style={{ ...layer, clipPath: `inset(0px ${first.paidCut}px 0px 0px)`, opacity: first.paidOp }}>
+        <p style={phrase}>Strangers &amp; creators</p>
+        <p style={{ ...big, color: pink }}>They pay.</p>
+        <div style={row}>{who(hellooSplashPayer("unknown", pink, page), "Unknown")}{who(hellooSplashPayer("creator", pink, page), "Creator")}{who(hellooSplashPayer("brand", pink, page), "Brand")}</div>
+      </div>
+      <div style={{ position: "absolute", left: 159, top: 96, width: 72, height: 72 }}><HellooBubbleG size={72} tone={dark ? "white" : "color"} /></div>
+      <div ref={line} aria-hidden="true" style={{ position: "absolute", left: 194, top: 160, width: 2, height: HELLOO_SWING.line, background: dark ? "rgba(241,238,255,0.55)" : "rgba(26,21,48,0.45)", transformOrigin: "1px 0px", transform: `rotate(${first.rot}deg)` }}>
+        <div ref={dot} style={{ position: "absolute", left: -13, bottom: -14, width: 28, height: 28, borderRadius: "50%", background: first.dot, boxShadow: `0 0 28px ${first.dot}` }} />
+      </div>
+      <div aria-hidden="true" style={{ position: "absolute", left: 189, top: 154, width: 12, height: 12, boxSizing: "border-box", borderRadius: "50%", border: `2px solid ${ink}`, background: page }} />
+      <div ref={freeTag} style={{ ...tag, opacity: first.freeTag }}>
+        <p style={{ margin: 0, fontFamily: T.fontDisplay, fontWeight: 700, fontSize: 20, lineHeight: "26px", color: green }}>0 CEL</p>
+        <p style={{ margin: "2px 0 0", fontWeight: 500, fontSize: 13, lineHeight: "18px", color: soft }}>Calls and messages, every country</p>
+      </div>
+      <div ref={paidTag} data-testid="helloo-splash-price" style={{ ...tag, opacity: first.paidTag }}>
+        <p style={{ margin: 0, fontFamily: T.fontDisplay, fontWeight: 700, fontSize: 20, lineHeight: "26px", color: pink }}>{cel}</p>
+        <p style={{ margin: "2px 0 0", fontWeight: 500, fontSize: 13, lineHeight: "18px", color: soft }}>To reach you. Paid to you.</p>
+      </div>
+      <div style={{ position: "absolute", left: 0, top: 690, width: 390, display: "flex", flexDirection: "column", alignItems: "center", gap: 10 }}>
+        <span style={{ fontSize: 34, letterSpacing: 1, color: ink }}><HellooWordmark /></span>
+        <div data-testid="helloo-splash-foot" style={{ fontSize: 12, color: soft, display: "flex", alignItems: "center", gap: 6 }}>by <GloobalWordmark /></div>
+      </div>
+    </div>
+  </HellooScreen>;
+}
+
 function HellooSplash({ dark = hellooPrefersDark(), intro = false, onSkip }) {
   const ink = dark ? "#F1EEFF" : T.ink; const soft = dark ? "#B3ADCC" : T.inkSoft;
   const page = dark ? "#0F0D1F" : HT.wash;
-  const money = intro ? hellooSplashMoneySign() : "";
-  const brand = (markSize, nameSize) => <div style={{ display: "flex", flexDirection: "column", alignItems: "center" }}><div style={{ fontSize: nameSize, letterSpacing: -0.5, color: ink }}><HellooWordmark /></div><div style={{ marginTop: 14 }}><HellooMark size={markSize} /></div></div>;
-  if (!intro) return <HellooScreen style={{ alignItems: "center", justifyContent: "center", background: page, color: ink }}>{brand(104, 34)}<div style={{ marginTop: 14, fontSize: 12, color: soft, display: "flex", alignItems: "center", gap: 6 }}>by <GloobalWordmark /></div></HellooScreen>;
-  return <HellooScreen onClick={onSkip} style={{ alignItems: "center", background: page, color: ink, padding: "calc(18px + env(safe-area-inset-top, 0px)) 22px calc(18px + env(safe-area-inset-bottom, 0px))", cursor: "pointer" }}>
-    <div style={{ position: "relative", width: "100%", display: "flex", alignItems: "center", justifyContent: "center" }}><span aria-label="Every country" style={{ position: "absolute", left: 0, display: "flex" }}><HlGlobe size={26} color={T.accent} /></span><span style={{ fontSize: 28, letterSpacing: -0.4, color: ink }}><HellooWordmark /></span></div>
-    <div data-testid="helloo-splash-tickets" style={{ flex: 1, width: "100%", display: "flex", alignItems: "center", justifyContent: "center" }}><div style={{ position: "relative", width: "100%", height: 270 }}><HellooSplashTicket bg="#10B981" page={page} label="People you know" big="Free" sub="calls and chats, every country" stub="0" stubSub={money ? `CEL | ${money}` : "CEL"} rot={-5} delay={0.1} z={1} style={{ left: 0, right: 16, top: 0 }} /><HellooSplashTicket bg="#F0447C" page={page} label="Strangers" big="They pay" sub="your price to reach you, or they ask" stub="+3" stubSub={money ? `CEL | ${money}` : "CEL"} rot={3} delay={0.55} z={2} style={{ left: 16, right: 0, top: 128 }} /></div></div>
-    <div data-testid="helloo-splash-points" style={{ fontSize: 12.5, fontWeight: 700, color: soft, textAlign: "center" }}>{HELLOO_SPLASH_LINE}</div>
-    <div data-testid="helloo-splash-foot" style={{ marginTop: 14, fontSize: 12, color: soft, display: "flex", alignItems: "center", gap: 6 }}>by <GloobalWordmark /></div>
-    <style>{"@keyframes hlTicketIn{from{transform:translateY(24px) rotate(0deg);opacity:0}to{transform:rotate(var(--r));opacity:1}}@media (prefers-reduced-motion: reduce){[data-testid=helloo-splash-tickets] *{animation:none!important}}"}</style>
-  </HellooScreen>;
+  if (intro) return <HellooSplashSwing dark={dark} onSkip={onSkip} />;
+  return <HellooScreen style={{ alignItems: "center", justifyContent: "center", background: page, color: ink }}><div style={{ display: "flex", flexDirection: "column", alignItems: "center" }}><div style={{ fontSize: 34, letterSpacing: -0.5, color: ink }}><HellooWordmark /></div><div style={{ marginTop: 14 }}><HellooMark size={104} /></div></div><div style={{ marginTop: 14, fontSize: 12, color: soft, display: "flex", alignItems: "center", gap: 6 }}>by <GloobalWordmark /></div></HellooScreen>;
 }
 
 // GLOOBAL's name on a coloured button: the two Os as white discs, so the
