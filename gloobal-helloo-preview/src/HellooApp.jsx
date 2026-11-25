@@ -227,6 +227,8 @@ import { useState as useState52, useMemo as useMemo14, useEffect as useEffect87 
 import { ChevronRight as ChevronRight7, ChevronLeft as ChevronLeft5, Camera as Camera4, Copy as PdCopyIcon, Phone as PdPhoneIcon, CalendarDays as PdCalendarIcon, Store as PdStoreIcon, Sparkles as PdScoreIcon, Globe2 as PdGlobeIcon, ArrowLeftRight as PdPaymentsIcon, Share2 as PdShareIcon, QrCode as PdQrIcon, RefreshCw as PdUpdateIcon, Eye as PdEyeIcon, EyeOff as PdEyeOffIcon } from "lucide-react";
 import { useState as useState97, useEffect as useEffect94, useRef as useRef56 } from "react";
 import { Camera as Camera7, Smile as LiveSmile, Laugh as LiveLaugh, RotateCw as LiveTilt, Lock as Lock9, Check as Check13, ArrowLeft as ArrowLeft9, ArrowRight as LiveArrowRight, ArrowUp as LiveArrowUp, ArrowDown as LiveArrowDown, Loader as Loader9 } from "lucide-react";
+import { useState as useState114, useEffect as useEffect114, useRef as useRef113 } from "react";
+import { Smartphone as EntryPhoneIcon, ChevronDown as EntryChevronIcon, Delete as EntryDeleteIcon, Check as EntryCheckIcon } from "lucide-react";
 import { useState as useState91, useEffect as useEffect88, useRef as useRef50, useMemo as useMemo22 } from "react";
 import { X as PsCloseIcon, ReceiptText as PsReceiptIcon, Plane as PsPlane, PlaneTakeoff as PsPlaneTakeoff, TrainFront as PsTrain, Bus as PsBus, Ship as PsShip, Car as PsCar, CableCar as PsCableCar, Globe as PsGlobe, MountainSnow as PsMountain, TreePalm as PsPalm, Landmark as PsLandmark } from "lucide-react";
 import { useState as useState72, useEffect as useEffect68, useRef as useRef41 } from "react";
@@ -41335,6 +41337,398 @@ async function withPaymentFaceCheck(symbolId, send) {
 }
 
 
+// frontend/features/entry/entrySteps.jsx
+//
+// THE WAY IN, TYPED (25 Nov). The screens where a person types something
+// to make or open a GLOOBAL ID: the mobile number, the code sent to it,
+// the 12-symbol ID, and who invited them. They look like Helloo's Find
+// someone: a big centred title, a round switch between mobile number and
+// GLOOBAL ID, the country as a round flag you tap, the number as people
+// say it with a blinking caret, round keys, and one button at the bottom.
+//
+// ONE SET, TWO APPS. GLOOBAL draws these for its own registration and
+// login (App.jsx), and Helloo, which is built on top of this bundle,
+// draws the very same ones: for its sign-in, for Find someone, and for
+// GloobalJoinFlow below, the whole GLOOBAL registration inside Helloo for
+// people who don't have an ID yet. So the two apps cannot drift apart, and
+// an account made in Helloo is made exactly the way GLOOBAL makes one
+// (gloobalCreateAccount, also used by App.jsx).
+//
+// The PIN step stays the one PIN screen (components/inputs/pinPanel.jsx),
+// and the name + live photo step stays ProfileSetupScreen.
+
+// The fixed code the prototype server accepts (PROTOTYPE_OTP, server/.env).
+// Filled in for the person until real SMS codes arrive; the code step still
+// shows it and still sends it to be checked.
+var GLOOBAL_PROTOTYPE_OTP = "123456";
+
+// ── THE PIECES ────────────────────────────────────────────────────────────
+
+// The number as people say it: 98765 43210 in India, otherwise in threes
+// with the last group never a lone digit (987 654 3210).
+function gloobalSpacedPhone(digits, dialCode) {
+  const d = String(digits || "").replace(/\D/g, "");
+  if (dialCode === "+91") return d.replace(/^(\d{5})(?=\d)/, "$1 ");
+  const groups = []; let i = 0;
+  while (d.length - i > 4) { groups.push(d.slice(i, i + 3)); i += 3; }
+  groups.push(d.slice(i));
+  return groups.join(" ");
+}
+
+// How many digits a mobile number has in that country, without its code:
+// the same rule registration has always checked (mobileDigitRange).
+function gloobalMobileRange(country) {
+  const iso = country && country.iso;
+  const r = iso && typeof mobileDigitRange === "function" ? mobileDigitRange(iso) : DEFAULT_MOBILE_DIGIT_RANGE;
+  return [r[0], r[1]];
+}
+
+// The round dial as an icon: eight keys around a centre, like the pad.
+function GloobalDialIcon({ size = 24, color = "#fff" }) {
+  const r = size / 2, k = size * 0.11, ring = size * 0.33;
+  const dots = Array.from({ length: 8 }, (_, i) => { const a = (i / 8) * Math.PI * 2 - Math.PI / 2; return <circle key={i} cx={r + Math.cos(a) * ring} cy={r + Math.sin(a) * ring} r={k} fill={color} />; });
+  return <svg width={size} height={size} viewBox={`0 0 ${size} ${size}`} aria-hidden="true">{dots}<circle cx={r} cy={r} r={k * 1.35} fill={color} /></svg>;
+}
+
+// Mobile number or GLOOBAL ID: a round switch, two icons.
+function GloobalEntryModes({ mode, onMode, label = "Find by", testid = "gloobal-entry-mode", card = T.surface }) {
+  return <div role="tablist" aria-label={label} style={{ display: "flex", gap: 4, padding: 4, borderRadius: 999, background: T.surfaceAlt, flexShrink: 0, marginTop: 14 }}>{[["mobile", EntryPhoneIcon, "Mobile number"], ["id", GloobalDialIcon, "GLOOBAL ID"]].map(([k, Icon, name]) => <button key={k} type="button" role="tab" onClick={() => onMode && onMode(k)} aria-pressed={mode === k} aria-selected={mode === k} aria-label={name} title={name} data-testid={`${testid}-${k}`} className="v2-tap" style={{ width: 64, height: 44, borderRadius: 999, border: "none", background: mode === k ? card : "transparent", boxShadow: mode === k ? T.shadowCard : "none", display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer", padding: 0, transition: "background 0.2s ease" }}><Icon size={22} color={mode === k ? T.accent : T.inkSoft} /></button>)}</div>;
+}
+
+// The country as a round flag (tap to change), then the number with a caret.
+function GloobalPhoneLine({ digits = "", dialCode = "+91", country = null, onPick, color = T.ink, testid = "gloobal-phone-line", countryTestid = "gloobal-phone-country", card = T.surface }) {
+  const flag = (country && country.flag) || "";
+  const d = String(digits || "");
+  return <div data-testid={testid} aria-label={`${dialCode} ${d || "no number yet"}`} style={{ width: "100%", display: "flex", alignItems: "center", justifyContent: "center", gap: 10, padding: "6px 0", minHeight: 56, flexShrink: 0 }}><style>{"@keyframes gloobalEntryCaret{0%{opacity:1}50%{opacity:0}}"}</style><button type="button" onClick={() => onPick && onPick()} data-testid={countryTestid} aria-label={`Country: ${(country && country.name) || dialCode} ${dialCode}. Change`} title={`${(country && country.name) || ""} ${dialCode}`} className="v2-tap" style={{ position: "relative", display: "inline-flex", flexShrink: 0, border: "none", background: "none", padding: 0, cursor: onPick ? "pointer" : "default", borderRadius: "50%" }}>{flag ? <span style={{ display: "inline-flex", borderRadius: "50%", boxShadow: "0 1px 4px rgba(0,0,0,0.15)" }}><FlagEmoji flag={flag} size={38} shape="circle" /></span> : <span style={{ fontSize: 15, fontWeight: 800, color: T.inkSoft }}>{dialCode}</span>}{onPick ? <span aria-hidden="true" style={{ position: "absolute", right: -3, bottom: -3, width: 17, height: 17, borderRadius: "50%", background: card, boxShadow: "0 1px 3px rgba(0,0,0,0.2)", display: "flex", alignItems: "center", justifyContent: "center" }}><EntryChevronIcon size={11} color={T.ink} strokeWidth={3} /></span> : null}</button><span data-testid={`${testid}-number`} style={{ minWidth: 0, display: "inline-flex", alignItems: "center", fontSize: d.length > 11 ? "min(26px, 6.6vw)" : "min(32px, 7.6vw)", fontWeight: 800, letterSpacing: 0.5, color, fontFamily: T.fontDisplay, whiteSpace: "nowrap", overflow: "hidden" }}>{d ? gloobalSpacedPhone(d, dialCode) : <span style={{ color: T.inkFaint, fontWeight: 700, letterSpacing: 0, fontSize: 18 }}>Mobile number</span>}<span aria-hidden="true" style={{ width: 2, height: 28, marginLeft: 3, borderRadius: 1, background: T.accent, animation: "gloobalEntryCaret 1s steps(2) infinite", flexShrink: 0 }} /></span></div>;
+}
+
+// Round keys like the phone's own dialler.
+function GloobalNumberKeys({ digits = "", onDigits, max = 13, testid = "gloobal-number-keys", disabled = false }) {
+  const d = String(digits || "");
+  const key = (k) => <button key={k} type="button" disabled={disabled} onClick={() => onDigits && onDigits(k === "⌫" ? d.slice(0, -1) : (d + k).slice(0, max))} aria-label={k === "⌫" ? "Delete" : `Digit ${k}`} className="v2-tap" style={{ justifySelf: "center", width: "min(64px, 8vh)", height: "min(64px, 8vh)", borderRadius: "50%", border: "none", background: k === "⌫" ? "transparent" : T.surfaceAlt, boxShadow: "none", fontSize: 26, fontWeight: 700, color: T.ink, cursor: disabled ? "default" : "pointer", fontFamily: T.fontDisplay, display: "flex", alignItems: "center", justifyContent: "center", padding: 0, opacity: disabled && k !== "⌫" ? 0.55 : 1 }}>{k === "⌫" ? <EntryDeleteIcon size={24} color={T.inkSoft} /> : k}</button>;
+  return <div data-testid={testid} style={{ flexShrink: 0, width: "100%", maxWidth: 300, display: "grid", gridTemplateColumns: "repeat(3, 1fr)", rowGap: "min(10px, 1.3vh)" }}>{["1", "2", "3", "4", "5", "6", "7", "8", "9"].map(key)}<span />{key("0")}{key("⌫")}</div>;
+}
+
+// Places for what is being typed: twelve in three fours (an ID, the way it
+// is read out) or six in two threes (a code). Filled places hold their
+// symbol, the next waits with a soft ring, the rest are quiet. Always
+// there, so nothing jumps when the first one lands.
+function GloobalSlotsBox({ value = "", length = 12, done = false, bad = false, testid = "gloobal-slots", label, card = T.surface }) {
+  const tone = bad ? T.negative : done ? T.positive : T.accent;
+  const soft = bad ? `${T.negative}14` : done ? T.positiveSoft : T.accentSoft;
+  const chars = Array.from(String(value || ""));
+  const group = length === 12 ? 4 : 3;
+  const slot = (i) => {
+    const ch = chars[i]; const next = i === chars.length;
+    return <span key={i} data-filled={ch ? "1" : undefined} style={{ flex: 1, minWidth: 0, maxWidth: length === 12 ? undefined : 46, aspectRatio: "1 / 1", borderRadius: "30%", display: "flex", alignItems: "center", justifyContent: "center", background: ch ? soft : next ? card : T.surfaceSunk, boxShadow: next ? `inset 0 0 0 2px ${tone}` : ch ? `inset 0 0 0 1px ${tone}33` : "none", color: tone, fontSize: length === 12 ? 16 : 22, fontWeight: 800, fontFamily: T.fontDisplay, lineHeight: 1, transition: "background 0.15s ease, box-shadow 0.15s ease" }}>{ch || (next ? <span style={{ width: 2, height: 13, borderRadius: 1, background: tone, animation: "gloobalEntryCaret 1s steps(2) infinite" }} /> : <span style={{ width: 5, height: 5, borderRadius: "50%", background: T.line }} />)}</span>;
+  };
+  const groups = [];
+  for (let g = 0; g < length; g += group) groups.push(g);
+  return <div data-testid={testid} aria-label={label || `${chars.length} of ${length}`} style={{ width: "100%", display: "flex", justifyContent: "center", gap: length === 12 ? 10 : 18, padding: "12px 10px", borderRadius: 20, background: card, boxShadow: T.shadowCard, boxSizing: "border-box", flexShrink: 0 }}><style>{"@keyframes gloobalEntryCaret{0%{opacity:1}50%{opacity:0}}"}</style>{groups.map((g) => <span key={g} style={{ flex: length === 12 ? 1 : "0 1 auto", minWidth: 0, display: "flex", gap: length === 12 ? 3 : 8, width: length === 12 ? undefined : 156 }}>{Array.from({ length: Math.min(group, length - g) }, (_, k) => slot(g + k))}</span>)}</div>;
+}
+
+// A keyboard works too (a laptop, or a phone with one): digits, delete, Enter.
+function useGloobalTypedDigits({ active = true, digits = "", max = 13, onDigits, onEnter }) {
+  const latest = useRef113({ digits, max, onDigits, onEnter });
+  latest.current = { digits, max, onDigits, onEnter };
+  useEffect114(() => {
+    if (!active) return undefined;
+    const onKey = (e) => {
+      const t = e.target && e.target.tagName;
+      if (t === "INPUT" || t === "TEXTAREA" || e.metaKey || e.ctrlKey || e.altKey) return;
+      const { digits: d, max: m, onDigits: set, onEnter: go } = latest.current;
+      if (/^\d$/.test(e.key)) { if (set) { e.preventDefault(); set((String(d || "") + e.key).slice(0, m)); } }
+      else if (e.key === "Backspace") { if (set) { e.preventDefault(); set(String(d || "").slice(0, -1)); } }
+      else if (e.key === "Enter" && go) { e.preventDefault(); go(); }
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [active]);
+}
+
+// The one button at the bottom.
+function GloobalEntryButton({ children, onClick, disabled = false, label, testid }) {
+  return <button type="button" onClick={disabled ? undefined : onClick} disabled={disabled} aria-label={label} data-testid={testid} className="v2-tap gentry-btn" style={{ width: "100%", minHeight: 54, borderRadius: 999, border: "none", background: disabled ? (T.gradButtonDisabled || T.surfaceSunk) : (T.gradButton || T.accent), color: disabled ? T.inkFaint : "#fff", fontSize: 16, fontWeight: 800, fontFamily: T.fontBody, cursor: disabled ? "default" : "pointer", boxShadow: disabled ? "none" : T.shadowRaised, display: "flex", alignItems: "center", justifyContent: "center", gap: 8, padding: "0 18px" }}>{children}</button>;
+}
+function GloobalEntryLink({ children, onClick, testid, label }) {
+  return <button type="button" onClick={onClick} data-testid={testid} aria-label={label} className="v2-tap" style={{ border: "none", background: "none", padding: "2px 2px", color: T.accent, fontWeight: 800, fontSize: "inherit", fontFamily: "inherit", cursor: "pointer" }}>{children}</button>;
+}
+
+// What is happening, in one line under the field.
+function GloobalEntryHint({ tone = "soft", children, testid = "gloobal-entry-hint" }) {
+  const color = tone === "ok" ? T.positive : tone === "bad" ? T.negative : T.inkFaint;
+  return <div data-testid={testid} role={tone === "bad" ? "alert" : undefined} style={{ minHeight: 24, maxWidth: 330, display: "flex", alignItems: "center", justifyContent: "center", gap: 6, fontSize: 12.5, fontWeight: 800, lineHeight: 1.35, color, textAlign: "center", flexShrink: 0 }}>{tone === "ok" && children ? <EntryCheckIcon size={15} color={color} strokeWidth={3} /> : null}{children}</div>;
+}
+
+// The page: mark, title and what it's for at the top; the switch; the
+// field a third of the way between the top and the keys; the keys; the
+// button. Back top-left, help top-right.
+function GloobalEntryScreen({ testid, mark = <span style={{ fontSize: 22, fontWeight: 800, letterSpacing: 0.5, color: T.ink, fontFamily: T.fontDisplay }}><GloobalWordmark suffix=" ID" withSymbols /></span>, title, subtitle, onBack, help = null, modes = null, field, hint = null, note = null, pad, button, footer = null, background = T.bg }) {
+  return <div data-testid={testid} className="gentry" style={{ position: "absolute", inset: 0, zIndex: 30, display: "flex", flexDirection: "column", alignItems: "center", gap: 8, background, color: T.ink, fontFamily: T.fontBody, padding: "calc(12px + env(safe-area-inset-top, 0px)) 16px calc(14px + env(safe-area-inset-bottom, 0px))", boxSizing: "border-box", overflowX: "hidden", overflowY: "auto" }}>
+    {/* A short phone (under ~720 px tall): the mark steps aside and the
+        gaps close, so the keys and the button still fit without scrolling. */}
+    <style>{"@media (max-height:720px){.gentry .gentry-mark{display:none!important}.gentry{gap:5px!important}.gentry .gentry-btn{min-height:48px!important}.gentry .gentry-foot{margin-top:6px!important}}"}</style>
+    {onBack ? <NavBackButton onClick={onBack} style={{ position: "absolute", top: "calc(14px + env(safe-area-inset-top, 0px))", left: "calc(14px + env(safe-area-inset-left, 0px))", zIndex: 2 }} /> : null}
+    {help ? <span style={{ position: "absolute", top: 0, right: 0, zIndex: 2 }}>{help}</span> : null}
+    <div style={{ width: "100%", flexShrink: 0, padding: "8px 44px 0", boxSizing: "border-box", textAlign: "center", display: "flex", flexDirection: "column", alignItems: "center" }}>
+      {mark ? <span data-testid="gloobal-entry-mark" className="gentry-mark" style={{ display: "inline-flex", marginBottom: 10 }}>{mark}</span> : null}
+      <div data-testid="gloobal-entry-title" style={{ fontSize: 23, fontWeight: 900, fontFamily: T.fontDisplay, color: T.ink, letterSpacing: -0.4, lineHeight: 1.15 }}>{title}</div>
+      {subtitle ? <div data-testid="gloobal-entry-subtitle" style={{ fontSize: 13, fontWeight: 700, color: T.inkSoft, marginTop: 5, lineHeight: 1.4 }}>{subtitle}</div> : null}
+    </div>
+    {modes}
+    <div style={{ flex: 1, minHeight: 6 }} />
+    {field}
+    {hint}
+    {note ? <div style={{ width: "100%", display: "flex", flexDirection: "column", alignItems: "center", gap: 6, flexShrink: 0 }}>{note}</div> : null}
+    <div style={{ flex: 2.2, minHeight: 6 }} />
+    {pad}
+    <div style={{ width: "100%", maxWidth: 420, marginTop: 12, flexShrink: 0, boxSizing: "border-box", padding: "0 4px" }}>{button}{footer ? <div className="gentry-foot" style={{ textAlign: "center", fontSize: 12.5, color: T.inkSoft, marginTop: 10, lineHeight: 1.5 }}>{footer}</div> : null}</div>
+  </div>;
+}
+
+// ── THE STEPS ─────────────────────────────────────────────────────────────
+
+// The mobile number: the first step of making an ID, and one way to log in.
+function GloobalPhoneStep({ purpose = "create", mark, title, subtitle, background, Button = GloobalEntryButton, country, onPickCountry, digits = "", onDigits, onSubmit, busy = false, waking = false, error = "", taken = false, onLoginInstead, modes = null, onBack, footer = null, notice = null, testid = "gloobal-phone-step", lineTestid = "gloobal-phone-line", countryTestid = "gloobal-phone-country", card }) {
+  const d = String(digits || "").replace(/\D/g, "");
+  const dialCode = (country && country.dialCode) || "+91";
+  const [least, most] = gloobalMobileRange(country);
+  const complete = d.length >= least && d.length <= most;
+  const login = purpose === "login";
+  const go = () => { if (complete && !busy && onSubmit) onSubmit(); };
+  useGloobalTypedDigits({ active: !busy, digits: d, max: most, onDigits, onEnter: go });
+  const hint = taken ? <GloobalEntryHint tone="bad">This number already has a GLOOBAL ID</GloobalEntryHint>
+    : error ? <GloobalEntryHint tone="bad">{error}</GloobalEntryHint>
+    : waking ? <GloobalEntryHint>Waking the server · up to a minute the first time today</GloobalEntryHint>
+    : busy ? <GloobalEntryHint>{login ? "Checking…" : "Sending the code…"}</GloobalEntryHint>
+    : complete ? <GloobalEntryHint tone="ok">{login ? "Next, your PIN" : "Next, a code to this number"}</GloobalEntryHint>
+    : <GloobalEntryHint>{d.length ? (least === most ? `${least - d.length} more` : "Keep going") : ""}</GloobalEntryHint>;
+  return <GloobalEntryScreen testid={testid} mark={mark} background={background} onBack={onBack}
+    title={title || (login ? "Log in" : "Create your ID")}
+    subtitle={subtitle || (login ? "With your mobile number · then your PIN" : "Your mobile number · we send it a code")}
+    modes={modes}
+    field={<GloobalPhoneLine digits={d} dialCode={dialCode} country={country} onPick={onPickCountry} color={taken || error ? T.negative : complete ? T.positive : T.ink} testid={lineTestid} countryTestid={countryTestid} card={card} />}
+    hint={hint}
+    note={taken && onLoginInstead ? <>{notice}<GloobalEntryLink onClick={onLoginInstead} testid="gloobal-login-instead">Log in instead →</GloobalEntryLink></> : notice}
+    pad={<GloobalNumberKeys digits={d} onDigits={onDigits} max={most} disabled={busy} />}
+    button={<Button onClick={go} disabled={!complete || busy || taken} label={login ? "Log in" : "Send code"} testid="gloobal-phone-go">{busy ? (login ? "Checking…" : "Sending…") : login ? "Log in" : "Continue"}</Button>}
+    footer={footer} />;
+}
+
+// The code sent to the number.
+function GloobalCodeStep({ to, value = "", length = 6, onChange, onSubmit, busy = false, error = "", onEditNumber, onResend, onBack, mark, title, subtitle, background, Button = GloobalEntryButton, testid = "gloobal-code-step", card }) {
+  const v = String(value || "").replace(/\D/g, "").slice(0, length);
+  const complete = v.length === length;
+  const go = () => { if (complete && !busy && onSubmit) onSubmit(); };
+  useGloobalTypedDigits({ active: !busy, digits: v, max: length, onDigits: onChange, onEnter: go });
+  const hint = error ? <GloobalEntryHint tone="bad">{error}</GloobalEntryHint>
+    : busy ? <GloobalEntryHint>Checking…</GloobalEntryHint>
+    : complete ? <GloobalEntryHint tone="ok">{`${length} digits`}</GloobalEntryHint>
+    : <GloobalEntryHint>{v.length ? `${length - v.length} more` : ""}</GloobalEntryHint>;
+  return <GloobalEntryScreen testid={testid} mark={mark} background={background} onBack={onBack}
+    title={title || "Enter the code"}
+    subtitle={subtitle || <>Sent to {to}{onEditNumber ? <> · <GloobalEntryLink onClick={onEditNumber} label="Edit phone number" testid="gloobal-code-edit">Edit number</GloobalEntryLink></> : null}</>}
+    field={<GloobalSlotsBox value={v} length={length} done={complete && !error} bad={Boolean(error)} testid="gloobal-code-slots" label={`${v.length} of ${length} digits`} card={card} />}
+    hint={hint}
+    pad={<GloobalNumberKeys digits={v} onDigits={onChange} max={length} disabled={busy} testid="gloobal-code-keys" />}
+    button={<Button onClick={go} disabled={!complete || busy} label="Verify code" testid="gloobal-code-go">{busy ? "Checking…" : "Verify"}</Button>}
+    footer={onResend ? <>Didn't get it? <GloobalEntryLink onClick={onResend} testid="gloobal-code-resend">Resend code</GloobalEntryLink></> : null} />;
+}
+
+// Twelve symbols: choosing a new ID, logging in with one, or saying who
+// invited you.
+function GloobalSymbolStep({ purpose = "create", value = "", length = 12, onChange, onSubmit, busy = false, waking = false, error = "", found = false, preview = null, suggestion = null, onSkip, onBack, help = null, modes = null, footer = null, notice = null, mark, title, subtitle, background, Button = GloobalEntryButton, testid = "gloobal-symbol-step", card }) {
+  const chars = Array.from(String(value || ""));
+  const complete = chars.length === length;
+  const login = purpose === "login";
+  const referral = purpose === "referral";
+  const go = () => { if (complete && !busy && onSubmit) onSubmit(); };
+  // Enter sends; the symbols themselves come from the round pad.
+  useGloobalTypedDigits({ active: !busy, onEnter: go });
+  const bad = Boolean(error) || (referral && preview && preview.status === "none");
+  const hint = error ? <GloobalEntryHint tone="bad">{error}</GloobalEntryHint>
+    : waking ? <GloobalEntryHint>Waking the server · up to a minute the first time today</GloobalEntryHint>
+    : busy ? <GloobalEntryHint>{login ? "Checking…" : referral ? "Checking…" : "Checking it's free…"}</GloobalEntryHint>
+    : referral && complete && preview ? (preview.status === "checking" ? <GloobalEntryHint>Checking…</GloobalEntryHint> : preview.status === "found" ? <GloobalEntryHint tone="ok">{preview.name ? `${preview.name} invited you` : "Found on GLOOBAL"}</GloobalEntryHint> : preview.status === "none" ? <GloobalEntryHint tone="bad">No GLOOBAL account uses that ID</GloobalEntryHint> : <GloobalEntryHint>12 symbols</GloobalEntryHint>)
+    : login && found ? <GloobalEntryHint tone="ok">Account found · next, your PIN</GloobalEntryHint>
+    : complete ? <GloobalEntryHint tone="ok">{login ? "12 symbols · next, your PIN" : referral ? "12 symbols" : "12 symbols · next, who invited you"}</GloobalEntryHint>
+    : <GloobalEntryHint>{chars.length ? `${length - chars.length} more` : (purpose === "create" ? "Tap the symbols, or use the one suggested" : "")}</GloobalEntryHint>;
+  return <GloobalEntryScreen testid={testid} mark={mark} background={background} onBack={onBack} help={help}
+    title={title || (login ? "Log in" : referral ? "Who invited you?" : "Choose your ID")}
+    subtitle={subtitle || (login ? <>With your 12-symbol <GloobalWordmark suffix=" ID" /> · then your PIN</> : referral ? <>Their <GloobalWordmark suffix=" ID" /> · you can skip this</> : "12 symbols · where your money arrives")}
+    modes={modes}
+    field={<GloobalSlotsBox value={value} length={length} done={complete && !bad && (!login || found || !error)} bad={bad} testid="gloobal-symbol-slots" label={`${chars.length} of ${length} symbols`} card={card} />}
+    hint={hint}
+    note={suggestion || notice ? <>{notice}{suggestion}</> : null}
+    pad={<div style={{ flexShrink: 0, display: "flex", justifyContent: "center", width: "100%" }}><SymbolDialPad value={value} onChange={onChange} length={length} soundWhileTyping /></div>}
+    button={<Button onClick={go} disabled={!complete || busy || (referral && preview && preview.status === "none")} label={login ? "Log in" : "Continue"} testid="gloobal-symbol-go">{busy ? "Checking…" : login ? "Log in" : "Continue"}</Button>}
+    footer={referral && onSkip ? <GloobalEntryLink onClick={onSkip} testid="gloobal-referral-skip">Skip for now</GloobalEntryLink> : footer} />;
+}
+
+// ── MAKING THE ACCOUNT ────────────────────────────────────────────────────
+//
+// The one write that matters, after the PIN is chosen. GLOOBAL's own
+// registration (App.jsx handleSubmitPin) and Helloo's (GloobalJoinFlow)
+// both call this, so an account is made the same way wherever it starts:
+// register-symbol creates it (with the live face, so a face already on
+// another ID is refused before the account exists), pin/set stores the
+// PIN, the photo goes up through the live route, and the name is saved.
+async function gloobalCreateAccount({ fullName, mobileNumber, symbolId, countryIso, referredBy = "", pin, photo, live = null }) {
+  const name = String(fullName || "").trim();
+  const liveOk = Boolean(live && live.photo === photo);
+  const result = await GloobalApi.register({
+    fullName: name,
+    mobileNumber,
+    symbolId,
+    countryIso,
+    referredBy: referredBy || "",
+    face: liveOk ? { descriptor: live.descriptor, model: live.model } : undefined
+  });
+  const user = result.user;
+  const newSymbolId = (user && user.symbolId) || symbolId;
+  await GloobalApi.setPin(newSymbolId, pin);
+  persistLocalProfile(newSymbolId, name, photo);
+  if (liveOk) {
+    liveFaceSave(newSymbolId, live).then((outcome) => {
+      if (outcome && outcome.reason === "offline") pushOwnProfilePhoto(newSymbolId, photo);
+    });
+  } else {
+    pushOwnProfilePhoto(newSymbolId, photo);
+  }
+  let warning = "";
+  try {
+    await GloobalApi.updateProfile(newSymbolId, { fullName: name });
+  } catch (err) {
+    warning = "Your name couldn't be saved to your profile just now — we'll retry next time you sign in.";
+  }
+  gloobalSetBiometricSymbolId(newSymbolId);
+  if (result.referralWarning) warning = result.referralWarning;
+  return { user, symbolId: newSymbolId, warning };
+}
+
+// ── THE WHOLE REGISTRATION, FOR ANOTHER APP ───────────────────────────────
+//
+// Helloo shows this to somebody who opens it without a GLOOBAL ID, so they
+// make one right there: mobile number → code → choose the ID → who invited
+// you → name + live photo → PIN. The same screens, the same checks and
+// the same server calls as GLOOBAL's own registration. The fingerprint is
+// not set up here: a passkey belongs to the website it is made on, so one
+// made inside Helloo would not open GLOOBAL; GLOOBAL offers it the first
+// time the person opens it.
+//
+// onDone({ user, symbolId, mobileNumber, country, digits, pin, warning }) once the account
+// and its PIN exist; the host signs in with them. onLoginInstead(country,
+// digits) when the number already has an ID. useBackLayer, when given, is
+// the host's hook for the phone's Back button (Helloo: useHellooBackLayer).
+function GloobalJoinFlow({ initialCountry = null, initialDigits = "", mark, background, Button, card, onCancel, onDone, onLoginInstead, useBackLayer = null }) {
+  const startCountry = initialCountry || (typeof COUNTRY_BY_ISO === "object" && COUNTRY_BY_ISO.IN) || (typeof ALL_COUNTRIES === "object" ? ALL_COUNTRIES[0] : null);
+  const [step, setStep] = useState114("phone");
+  const [country, setCountry] = useState114(startCountry);
+  const [digits, setDigits] = useState114(String(initialDigits || "").replace(/\D/g, ""));
+  const [picking, setPicking] = useState114(false);
+  const [pickQ, setPickQ] = useState114("");
+  const [busy, setBusy] = useState114(false);
+  const [error, setError] = useState114("");
+  const [taken, setTaken] = useState114(false);
+  const [code, setCode] = useState114(GLOOBAL_PROTOTYPE_OTP);
+  const [symbolId, setSymbolId] = useState114("");
+  const [suggested] = useState114(() => genSuggestedId(12));
+  const [referral, setReferral] = useState114("");
+  const [preview, setPreview] = useState114(null);
+  const [photo, setPhoto] = useState114(G_LOGO_DATA_URI);
+  const [live, setLive] = useState114(null);
+  const [docType, setDocType] = useState114(null);
+  const [name, setName] = useState114("");
+  const [pin, setPin] = useState114("");
+  const [pinShown, setPinShown] = useState114(false);
+  const dialCode = (country && country.dialCode) || "+91";
+  const mobileNumber = `${dialCode}${digits}`;
+  const to = (next) => { setError(""); setStep(next); };
+  const back = () => {
+    if (picking) { setPicking(false); return; }
+    setError("");
+    if (step === "phone") { if (onCancel) onCancel(); return; }
+    setStep({ code: "phone", id: "code", referral: "id", profile: "referral", pin: "profile" }[step] || "phone");
+  };
+  if (useBackLayer) useBackLayer(true, back);
+  // Who invited you: their name as soon as all twelve are in.
+  useEffect114(() => {
+    if (step !== "referral" || Array.from(referral).length !== 12) { setPreview(null); return undefined; }
+    let alive = true;
+    setPreview({ status: "checking", name: "" });
+    GloobalApi.previewReferrer(mobileNumber, referral).then((r) => {
+      if (!alive) return;
+      if (!r) setPreview({ status: "unknown", name: "" });
+      else if (r.exists === false) setPreview({ status: "none", name: "" });
+      else setPreview({ status: "found", name: String(r.name || "").trim() });
+    }).catch(() => { if (alive) setPreview({ status: "unknown", name: "" }); });
+    return () => { alive = false; };
+  }, [step, referral]);
+  const run = async (fn) => {
+    if (busy) return;
+    setBusy(true);
+    setError("");
+    try { await fn(); } catch (err) { setError((err && err.message) || "Something went wrong. Try again."); } finally { setBusy(false); }
+  };
+  const sendCode = () => run(async () => {
+    setTaken(false);
+    try {
+      await GloobalApi.sendOtp(mobileNumber, "registration");
+      setCode(GLOOBAL_PROTOTYPE_OTP);
+      to("code");
+    } catch (err) {
+      if (err instanceof GloobalApiError && err.status === 409) { setTaken(true); return; }
+      throw err;
+    }
+  });
+  const checkCode = () => run(async () => { await GloobalApi.verifyOtp(mobileNumber, code, "registration"); to("id"); });
+  const checkId = () => run(async () => {
+    const { available } = await GloobalApi.checkSymbolAvailability(symbolId);
+    if (available === false) { setError("That GLOOBAL ID is already taken. Try another."); return; }
+    to("referral");
+  });
+  const checkReferral = () => run(async () => {
+    const exists = await GloobalApi.referralCodeExists(referral);
+    if (exists === false) { setError("No GLOOBAL account uses that referral ID. Check it, or skip this step."); return; }
+    to("profile");
+  });
+  const finishProfile = () => {
+    if (!docType || name.trim().length < 2 || photo === G_LOGO_DATA_URI) return;
+    to("pin");
+  };
+  const createIt = () => run(async () => {
+    if (pin.length !== 6) return;
+    try {
+      const made = await gloobalCreateAccount({ fullName: name, mobileNumber, symbolId, countryIso: country && country.iso, referredBy: referral, pin, photo, live });
+      if (onDone) await onDone({ user: made.user, symbolId: made.symbolId, mobileNumber, country, digits, pin, warning: made.warning });
+    } catch (err) {
+      setPin("");
+      throw err;
+    }
+  });
+  const common = { mark, background, card, ...(Button ? { Button } : {}) };
+  let screen = null;
+  if (step === "phone") {
+    screen = <GloobalPhoneStep {...common} purpose="create" testid="gloobal-join-phone" title={<>Get your <GloobalWordmark suffix=" ID" /></>} subtitle="Free · one ID for calls, chats and money" country={country} onPickCountry={() => setPicking(true)} digits={digits} onDigits={(v) => { setTaken(false); setError(""); setDigits(v); }} onSubmit={sendCode} busy={busy} error={error} taken={taken} onLoginInstead={onLoginInstead ? () => onLoginInstead(country, digits) : null} onBack={onCancel ? back : null} footer={onLoginInstead ? <>Already have one? <GloobalEntryLink onClick={() => onLoginInstead(country, digits)} testid="gloobal-join-login">Sign in</GloobalEntryLink></> : null} />;
+  } else if (step === "code") {
+    screen = <GloobalCodeStep {...common} testid="gloobal-join-code" to={`${dialCode} ${gloobalSpacedPhone(digits, dialCode)}`} value={code} onChange={(v) => { setError(""); setCode(v); }} onSubmit={checkCode} busy={busy} error={error} onEditNumber={() => to("phone")} onResend={() => run(async () => { await GloobalApi.sendOtp(mobileNumber, "registration"); setCode(GLOOBAL_PROTOTYPE_OTP); })} onBack={back} />;
+  } else if (step === "id") {
+    screen = <GloobalSymbolStep {...common} purpose="create" testid="gloobal-join-id" value={symbolId} onChange={(v) => { setError(""); setSymbolId(v); }} onSubmit={checkId} busy={busy} error={error} suggestion={<SuggestedIdRow id={suggested} onPick={(v) => { setError(""); setSymbolId(v); }} />} onBack={back} />;
+  } else if (step === "referral") {
+    screen = <GloobalSymbolStep {...common} purpose="referral" testid="gloobal-join-referral" value={referral} onChange={(v) => { setError(""); setReferral(v); }} onSubmit={checkReferral} busy={busy} error={error} preview={preview} onSkip={() => { setReferral(""); to("profile"); }} onBack={back} />;
+  } else if (step === "profile") {
+    screen = <ProfileSetupScreen onBack={back} onSubmit={finishProfile} photo={photo} onChangePhoto={setPhoto} onLiveResult={setLive} docType={docType} onSelectDocType={setDocType} name={name} onChangeName={setName} />;
+  } else if (step === "pin") {
+    screen = <PinScreen value={pin} length={6} onChange={(v) => { setError(""); setPin(v); }} onSubmit={createIt} onBack={back} revealed={pinShown} onToggleReveal={() => setPinShown((s) => !s)} busy={busy} />;
+  }
+  return <div data-testid="gloobal-join" data-step={step} style={{ position: "absolute", inset: 0, zIndex: 40, background: background || T.bg }}>
+    {screen}
+    {error && (step === "profile" || step === "pin") ? <div role="alert" data-testid="gloobal-join-error" onClick={() => setError("")} style={{ position: "fixed", left: "50%", transform: "translateX(-50%)", bottom: "calc(24px + env(safe-area-inset-bottom, 0px))", zIndex: 999, width: "calc(100% - 40px)", maxWidth: 340, padding: "12px 16px", borderRadius: 14, background: "#FEF2F2", border: "1px solid rgba(220,38,38,0.3)", boxShadow: "0 10px 30px rgba(0,0,0,0.14)", color: "#B91C1C", fontSize: 12.5, fontWeight: 600, lineHeight: 1.45, textAlign: "center", cursor: "pointer" }}>{error}</div> : null}
+    {picking ? <CountryPickerScreen topCountries={TOP_COUNTRIES} countries={ALL_COUNTRIES} search={pickQ} onSearch={setPickQ} selectedIso={country && country.iso} onSelect={(c) => { setPicking(false); setPickQ(""); setCountry(c); setTaken(false); setDigits((d) => d.slice(0, gloobalMobileRange(c)[1])); }} onClose={() => { setPicking(false); setPickQ(""); }} /> : null}
+  </div>;
+}
+
+
 // src/features/identity/passportStamps.jsx
 
 // ── A STAMP FOR EVERY PAYMENT THAT CROSSED A BORDER (0243) ──────────────
@@ -75047,7 +75441,7 @@ function GloobalId() {
   // OTP has passed: { id, status: "checking" | "found" | "none" | "unknown", name }.
   const [referrerPreview, setReferrerPreview] = useState19(null);
   const [pin, setPin] = useState19("");
-  const [otp, setOtp] = useState19("123456");
+  const [otp, setOtp] = useState19(GLOOBAL_PROTOTYPE_OTP);
   const [dialCountry, setDialCountry] = useState19(() => TOP_COUNTRIES.find((c) => c.iso === "IN") || TOP_COUNTRIES[0]);
   // dialCountry starts on India because registration has to start SOMEWHERE
   // before anyone has said where they are. For a signed-in account that is no
@@ -76804,84 +77198,27 @@ function GloobalId() {
     setAuthBusy(true);
     setAuthError(null);
     try {
-      const result = await GloobalApi.register({
-        // The real name, collected at the profile step just before this
-        // one. It used to be the phone number: fullName was set to
-        // fullMobileNumber because the name had not been asked for yet at
-        // this point in the flow, so every account created here was stored
-        // with its own mobile number as its display name.
-        fullName: documentedName.trim(),
+      // The account is made by the shared gloobalCreateAccount
+      // (features/entry/entrySteps.jsx), the same call Helloo's own
+      // registration makes: register-symbol with the real name, the country
+      // picked on the phone step and the live face (a face already on
+      // another ID is refused before the account exists), then pin/set,
+      // the photo through the live route, and the name.
+      const made = await gloobalCreateAccount({
+        fullName: documentedName,
         mobileNumber: fullMobileNumber,
         symbolId: secureId,
-        // The country picked on the phone-code step. POST /api/register-symbol
-        // has always read this out of the body and stored it, but nothing ever
-        // sent it — so the route's `undefined` fallback ran on every single
-        // registration and wrote 'IN'. Every account in the database is
-        // recorded as India-registered as a result, which is the root of the
-        // wrong receiver flag and currency on Send Money: an American payee
-        // resolved to countryIso 'IN' and was drawn with an Indian flag and ₹
-        // on the sender's screen, and the FX conversion used INR as the
-        // receiving currency. Sending it is what makes the stored country
-        // real; server/scripts/backfill-country-iso.mjs repairs the accounts
-        // written before this line existed.
         countryIso: dialCountry.iso,
         referredBy: referralCode || "",
-        face: liveRegResult && liveRegResult.photo === profilePhoto
-          ? { descriptor: liveRegResult.descriptor, model: liveRegResult.model }
-          : undefined
+        pin,
+        photo: profilePhoto,
+        live: liveRegResult
       });
-      setRegisteredUser(result.user);
+      setRegisteredUser(made.user);
       // Normally the same country that was just sent; read back from the
-      // response so the client agrees with whatever the server actually
-      // stored rather than with what it asked for.
-      applyAccountCountry(result.user);
-      const newSymbolId = result.user.symbolId || secureId;
-      await GloobalApi.setPin(newSymbolId, pin);
-      // The photo has no home on the backend (PUT /api/profile takes
-      // fullName and email only), so it is written locally against the ID
-      // that now exists. Done here rather than at the profile step because
-      // that step runs before the account does.
-      persistLocalProfile(newSymbolId, documentedName.trim(), profilePhoto);
-      // The token exists from the register call, so the photo chosen at the
-      // profile step can now become the account's server copy. Best-effort
-      // and not awaited: a registration never waits on, or fails over, a
-      // photo. Anything that does not land is retried at the next sign-in.
-      // A live photo is saved through the live route (it carries the face);
-      // only if GLOOBAL couldn't be reached does it fall back to the plain
-      // upload, which the next sign-in retries.
-      if (liveRegResult && liveRegResult.photo === profilePhoto) {
-        liveFaceSave(newSymbolId, liveRegResult).then((outcome) => {
-          if (outcome && outcome.reason === "offline") pushOwnProfilePhoto(newSymbolId, profilePhoto);
-        });
-      } else {
-        pushOwnProfilePhoto(newSymbolId, profilePhoto);
-      }
-      // This — not the register call above — is what actually sets the
-      // name. POST /api/register-symbol destructures `fullName` out of the
-      // body and then throws it away: it does
-      // `cleanFullName = cleanMobileNumber` and stores that, so every
-      // account it creates is named after its own phone number regardless
-      // of what was sent. (Confirmed against live data: resolving an
-      // existing account returns fullName "+2528685888888".) PUT
-      // /api/profile/:symbolId is the only route that honours a real name,
-      // so it is awaited rather than fired and forgotten — an earlier
-      // version let it fail silently, which meant the name quietly stayed
-      // as the phone number and nothing said so.
-      //
-      // It still must not fail the registration. The account and its PIN
-      // both exist by now; a name that did not reach the server is worth a
-      // warning and a retry, not throwing the whole thing away.
-      try {
-        await GloobalApi.updateProfile(newSymbolId, { fullName: documentedName.trim() });
-      } catch (err) {
-        setAuthError("Your name couldn't be saved to your profile just now — we'll retry next time you sign in.");
-      }
-      // The passkey has to be enrolled against an account that exists, so
-      // the gate is told who it is working for only now.
-      gloobalSetBiometricSymbolId(newSymbolId);
-      // A bad referral code never fails the registration, so this is the
-      // only place it can be reported.
-      if (result.referralWarning) setAuthError(result.referralWarning);
+      // server so the account's own record decides.
+      applyAccountCountry(made.user);
+      if (made.warning) setAuthError(made.warning);
       flipTo("biometric");
     } catch (err) {
       setAuthError(err.message);
@@ -77254,6 +77591,24 @@ function GloobalId() {
   };
   // Switches the same phone number straight into the login flow. The
   // number is kept — it is the one thing already known to be correct.
+  // Log in, from the first screen: the same as the old flip-to-log-in.
+  const openLoginFromStart = () => {
+    setAuthError(null);
+    setPhoneAlreadyRegistered(false);
+    setShowLoginFace(true);
+    setIsLoginAttempt(true);
+    setLoginEntryMode("id");
+    setLoginMobileBuffer("");
+    setLoginMobileCountry(null);
+    flipTo("secureId");
+  };
+  // Logging in: the round switch between mobile number and GLOOBAL ID, and
+  // the way back to making a new ID.
+  const loginModes = <GloobalEntryModes mode={loginEntryMode === "mobile" ? "mobile" : "id"} onMode={(m) => {
+    setAuthError(null);
+    setLoginEntryMode(m);
+  }} label="Log in with" testid="gloobal-login-mode" />;
+  const loginFooter = <>New here? <GloobalEntryLink onClick={goToRegistrationStart} testid="gloobal-open-register">Create your free <GloobalWordmark suffix=" ID" /></GloobalEntryLink></>;
   const handleSwitchToLogin = () => {
     setPhoneAlreadyRegistered(false);
     setAuthError(null);
@@ -77457,550 +77812,110 @@ function GloobalId() {
       pointerEvents: "none"
     }}
   /></button>}{
-    /* Back — sits in the same top-left corner regardless of stage,
-       separate from the flipping card itself so it never overlaps or
-       shifts the card's own corner controls (eye toggles, flip icons).
-       The Secure ID / Referral corner tab used to sit left-aligned here
-       too and could collide with this button on shorter screens; it's
-       now centered on the card instead, so the two can never overlap.
-       Covers the steps that had no way back: registration's Secure ID
-       (→ OTP), login's Secure ID (→ phone), and Referral (→ Secure ID). */
-  }{(stage === "secureId" || stage === "referral") && <NavBackButton onClick={stage === "referral" ? requestBackFromReferral : requestBackFromSecureId} style={{
-      position: "absolute",
-      top: "calc(18px + env(safe-area-inset-top, 0px))",
-      left: "calc(18px + env(safe-area-inset-left, 0px))",
-      zIndex: 25
-     }} />}{
-    /* Explain this screen — the mirror of the Back chevron above, in the
-       opposite corner, on the two screens that ask for something the
-       person has never seen before: twelve symbols off a pad with no
-       letters on it, and somebody else's twelve with no statement of what
-       handing it over does. Shown on Secure ID whether creating or
-       logging in — the symbol glossary is what makes an existing ID
-       readable too, not only a new one. Nothing else occupies this corner
-       at screen level: the card's own controls (eye toggles, the
-       flip-to-mobile button) live on the card, which starts ~74px lower. */
-  }{(stage === "secureId" || stage === "referral") && <HelpCornerButton
-    onClick={() => setHelpSheet(stage === "referral" ? "referral" : "symbols")}
-    label={stage === "referral" ? "How the referral network works" : "What the GLOOBAL ID symbols mean"}
+    /* The typing steps of registration and login (25 Nov): mobile number,
+       code, the 12-symbol ID, who invited you, and logging in by number or
+       by ID. They are the shared screens in features/entry/entrySteps.jsx,
+       the same ones Helloo draws for its sign-in and for making a GLOOBAL
+       ID inside Helloo, so the two apps look and work alike. Each covers
+       the whole screen; the help sheets they open stay here. */
+  }{stage === "phone" && <GloobalPhoneStep
+    purpose="create"
+    country={dialCountry}
+    onPickCountry={() => setShowPicker(true)}
+    digits={phoneNumber.replace(/\D/g, "")}
+    onDigits={(next) => {
+      setPhoneAlreadyRegistered(false);
+      setAuthError(null);
+      setPhoneNumber(next);
+    }}
+    onSubmit={handleVerify}
+    busy={verifying}
+    error={authError || ""}
+    taken={phoneAlreadyRegistered}
+    onLoginInstead={handleSwitchToLogin}
+    footer={<>Already have a <GloobalWordmark suffix=" ID" />? <GloobalEntryLink onClick={openLoginFromStart} label="Flip to log in" testid="gloobal-open-login">Log in</GloobalEntryLink><div style={{ marginTop: 8, fontSize: 9.5, fontWeight: 700, letterSpacing: 0.4, color: T.inkFaint, textTransform: "uppercase" }}>Cashless · Taxless · Borderless · Limitless</div></>}
+  />}{stage === "otp" && <GloobalCodeStep
+    to={`${dialCountry.dialCode || ""} ${gloobalSpacedPhone(phoneNumber, dialCountry.dialCode)}`}
+    value={otp}
+    length={OTP_LENGTH2}
+    onChange={(v) => {
+      setAuthError(null);
+      setOtp(v);
+    }}
+    onSubmit={handleSubmitOtp}
+    busy={otpVerifying}
+    error={authError || ""}
+    onEditNumber={() => flipTo("phone")}
+    onResend={() => setOtp("")}
+    onBack={() => flipTo("phone")}
+  />}{stage === "secureId" && !isLoginAttempt && <GloobalSymbolStep
+    purpose="create"
+    value={secureId}
+    length={SECURE_ID_LENGTH}
+    onChange={(v) => {
+      setAuthError(null);
+      setSecureId(v);
+    }}
+    onSubmit={handleSubmitSecureId}
+    busy={authBusy}
+    waking={authBusy && authSlow}
+    error={authError || ""}
+    suggestion={<SuggestedIdRow id={suggestedRegId} onPick={setSecureId} />}
+    onBack={requestBackFromSecureId}
+    help={<HelpCornerButton onClick={() => setHelpSheet("symbols")} label="What the GLOOBAL ID symbols mean" />}
+  />}{stage === "secureId" && isLoginAttempt && loginEntryMode === "mobile" && <GloobalPhoneStep
+    purpose="login"
+    country={effectiveLoginCountry}
+    onPickCountry={() => setShowLoginPicker(true)}
+    digits={loginMobileBuffer}
+    onDigits={(v) => {
+      setAuthError(null);
+      setLoginMobileBuffer(v);
+    }}
+    onSubmit={handleSubmitSecureId}
+    busy={authBusy}
+    error={authError || ""}
+    modes={loginModes}
+    onBack={requestBackFromSecureId}
+    footer={loginFooter}
+  />}{stage === "secureId" && isLoginAttempt && loginEntryMode !== "mobile" && <GloobalSymbolStep
+    purpose="login"
+    value={secureId}
+    length={SECURE_ID_LENGTH}
+    onChange={(v) => {
+      setAuthError(null);
+      setSecureId(v);
+    }}
+    onSubmit={handleSubmitSecureId}
+    busy={authBusy}
+    waking={authBusy && authSlow}
+    error={authError || ""}
+    found={loginIdResolved}
+    modes={loginModes}
+    onBack={requestBackFromSecureId}
+    help={<HelpCornerButton onClick={() => setHelpSheet("symbols")} label="What the GLOOBAL ID symbols mean" />}
+    footer={loginFooter}
+  />}{stage === "referral" && <GloobalSymbolStep
+    purpose="referral"
+    value={referralCode}
+    length={REFERRAL_LENGTH}
+    onChange={(v) => {
+      setAuthError(null);
+      setReferralCode(v);
+    }}
+    onSubmit={handleSubmitReferral}
+    busy={authBusy}
+    waking={authBusy && authSlow}
+    error={authError || ""}
+    preview={referrerPreview}
+    onSkip={() => flipTo("profile")}
+    onBack={requestBackFromReferral}
+    help={<HelpCornerButton onClick={() => setHelpSheet("referral")} label="How the referral network works" />}
   />}{
     /* Mounted only while their own stage is active, so leaving the stage
        unmounts the sheet and useBackClose's cleanup pops its history
-       entry — rather than leaving an open sheet, or a stranded back-stack
-       entry, behind on a screen it does not belong to. */
-  }{(stage === "secureId" || helpSheet === "symbols") && <SymbolIdHelpSheet open={helpSheet === "symbols"} onClose={() => setHelpSheet(null)} />}{stage === "referral" && <ReferralHelpSheet open={helpSheet === "referral"} onClose={() => setHelpSheet(null)} />}{
-    /* "Gloobal ID" wordmark — now shown on every early registration/
-       login screen: phone entry, Secure ID (creating a new one,
-       logging in with an existing one, or logging in by phone), and
-       referral — not just the very first phone screen. */
-  }{(stage === "phone" || stage === "secureId" || stage === "referral") && <div
-    style={{
-      position: "absolute",
-      top: "calc(22px + env(safe-area-inset-top, 0px))",
-      left: "50%",
-      transform: "translateX(-50%)",
-      zIndex: 20,
-      fontSize: 22,
-      fontWeight: 800,
-      letterSpacing: 0.5,
-      color: T.ink,
-      fontFamily: T.fontDisplay
-    }}
-  ><GloobalWordmark suffix=" ID" withSymbols /></div>}<div
-    style={{
-      position: "absolute",
-      top: "calc(74px + env(safe-area-inset-top, 0px))",
-      left: "50%",
-      bottom: "6%",
-      transform: "translateX(-50%)",
-      // The card is still exactly 92% / 340px wide: the extra 48px here is
-      // padding, not card. See the overflow note below for why it exists.
-      width: "calc(92% + 48px)",
-      maxWidth: 340 + 48,
-      padding: "0 24px",
-      boxSizing: "border-box",
-      zIndex: 20,
-      display: "flex",
-      flexDirection: "column",
-      justifyContent: "flex-end",
-      // No horizontal scrollbar, ever — this is where the dark line under
-      // the symbol/digit row came from.
-      //
-      // This was `overflowY: "auto"` with overflow-x left at its `visible`
-      // default, which CSS does not allow: when one axis is not `visible`,
-      // the other computes to `auto`. So the column was silently
-      // horizontally scrollable — and the cards inside deliberately hang
-      // controls outside their own box, the flip-to-login /
-      // flip-to-mobile button most of all at `right: -18`. Those 18px gave
-      // the column a horizontal scroll range, and Chrome paints a scroll
-      // range as a track: the dark line, on exactly the REGISTRATION and
-      // LOGIN cards (the two with that button) and not on OTP, whose
-      // controls all sit inside the card's width.
-      //
-      // Pinning overflow-x to hidden on its own would clip 18px off that
-      // button. The 24px of horizontal padding above is what makes that
-      // safe: the overhang now falls inside the column's own padding box
-      // rather than past its edge, so there is no horizontal overflow left
-      // to scroll and nothing gets cut. Vertical scrolling is kept —
-      // the dial pad genuinely does not fit on a short screen, and
-      // dropping it there would strand the card off the top.
-      overflowY: "auto",
-      overflowX: "hidden",
-      WebkitOverflowScrolling: "touch"
-    }}
-  ><div style={{ perspective: 800, position: "relative", flexShrink: 0, maxWidth: "100%" }}><div
-    style={{
-      position: "relative",
-      width: "100%",
-      display: "flex",
-      flexDirection: "column",
-      alignItems: "center",
-      transform: flipping ? "rotateY(90deg)" : "rotateY(0deg)",
-      transition: "transform 0.22s ease"
-    }}
-  >{
-    /* The Secure ID / Referral card itself — unmoved, unchanged:
-       same shadows, border radius, corner label, and counter as
-       before. Just the card; the dial and button now live below
-       it instead of inside it. */
-  }<div
-    style={{
-      position: "relative",
-      zIndex: 1,
-      width: "100%",
-      minHeight: stage === "phone" ? 96 : 100,
-      display: "flex",
-      flexDirection: "column",
-      alignItems: "center",
-      justifyContent: "center",
-      padding: "18px 14px",
-      borderRadius: T.radiusLg,
-      boxShadow: T.shadowFloat,
-      border: `1px solid ${T.line}`,
-      background: T.surface,
-      boxSizing: "border-box",
-      overflow: "visible"
-    }}
-  >{
-    /* Corner shine — soft, low-opacity colored glows at each
-       corner, clipped to their own inset wrapper so the
-       card's own overflow:visible (needed for the corner
-       label/counter) stays untouched. Center stays plain
-       white — this is decoration at the edges only. */
-  }<div style={{ position: "absolute", inset: 0, borderRadius: T.radiusLg, overflow: "hidden", pointerEvents: "none", zIndex: 0 }}><div style={{ position: "absolute", top: -30, left: -30, width: 100, height: 100, borderRadius: "50%", background: `radial-gradient(circle, ${POSITION_COLORS[0]}22, transparent 70%)` }} /><div style={{ position: "absolute", top: -30, right: -30, width: 100, height: 100, borderRadius: "50%", background: `radial-gradient(circle, ${POSITION_COLORS[2]}22, transparent 70%)` }} /><div style={{ position: "absolute", bottom: -30, left: -30, width: 100, height: 100, borderRadius: "50%", background: `radial-gradient(circle, ${POSITION_COLORS[3]}1c, transparent 70%)` }} /><div style={{ position: "absolute", bottom: -30, right: -30, width: 100, height: 100, borderRadius: "50%", background: `radial-gradient(circle, ${POSITION_COLORS[1]}1c, transparent 70%)` }} /></div>{stage === "phone" && <PhoneConnector
-    country={dialCountry}
-    phoneNumber={phoneNumber}
-    onOpenPicker={() => setShowPicker(true)}
-    onOpenDial={() => setPhoneDialOpen(true)}
-    dialOpen={phoneDialOpen}
-    onActivate={handleVerify}
-    verifying={verifying}
-    showLogin={showLoginFace}
-    onLoginTap={() => {
-      setIsLoginAttempt(true);
-      setLoginEntryMode("id");
-      setLoginMobileBuffer("");
-      setLoginMobileCountry(null);
-      flipTo("secureId");
-    }}
-  />}{
-    /* Number already has an account. Shown inside the card, under the
-       number it is about, rather than in the root error banner: this
-       is not a failure to retry, it is a fork in the flow, and the
-       way out of it is the tap directly below the message. */
-  }{stage === "phone" && phoneAlreadyRegistered && <div style={{ width: "100%", marginTop: 12, display: "flex", flexDirection: "column", alignItems: "center", gap: 6 }}><span role="alert" style={{ fontSize: 12, fontWeight: 700, color: T.negative, textAlign: "center", lineHeight: 1.4 }}>
-                  This number is already registered.
-                </span><button
-    onClick={handleSwitchToLogin}
-    className="v2-tap"
-    style={{
-      border: "none",
-      background: "none",
-      padding: "4px 6px",
-      color: T.accent,
-      fontSize: 12.5,
-      fontWeight: 800,
-      cursor: "pointer"
-    }}
-  >
-                  Log in instead →
-                </button></div>}{
-    /* Flip to log in — on the card's own boundary now, not on
-       the call button, same treatment as the Secure ID card's
-       flip icon. Keeps a slow, continuous spin on its own (not
-       tied to being tapped) so it reads as "this can be flipped"
-       at a glance instead of sitting there looking static. */
-  }{stage === "phone" && <button
-    onClick={() => {
-      setShowLoginFace(true);
-      setIsLoginAttempt(true);
-      setLoginEntryMode("id");
-      setLoginMobileBuffer("");
-      setLoginMobileCountry(null);
-      flipTo("secureId");
-    }}
-    aria-label="Flip to log in"
-    className="v2-tap"
-    style={{
-      position: "absolute",
-      top: -20,
-      right: -18,
-      width: 48,
-      height: 48,
-      borderRadius: "50%",
-      border: `1.5px solid ${T.line}`,
-      background: T.surface,
-      color: T.accent,
-      display: "flex",
-      alignItems: "center",
-      justifyContent: "center",
-      cursor: "pointer",
-      boxShadow: T.shadowRaised,
-      zIndex: 3
-    }}
-  ><RefreshCw6 size={22} style={{ animation: "iconAttention 2s linear infinite" }} /></button>}{stage === "phone" && <span
-    style={{
-      position: "absolute",
-      top: -11,
-      left: 16,
-      background: T.surface,
-      border: `1px solid ${T.line}`,
-      borderRadius: 7,
-      padding: "3px 9px",
-      fontSize: 10,
-      fontWeight: 800,
-      letterSpacing: 0.4,
-      textTransform: "uppercase",
-      color: T.accent,
-      boxShadow: T.shadowCard,
-      minWidth: 44,
-      textAlign: "center",
-      whiteSpace: "nowrap"
-    }}
-  ><CyclingBadge words={["Registration", <GloobalWordmark key="g" withSymbols />, "Id"]} intervalMs={2600} /></span>}{stage === "secureId" && <span
-    style={{
-      position: "absolute",
-      top: -11,
-      left: 16,
-      transform: "none",
-      background: T.surface,
-      border: `1px solid ${T.line}`,
-      borderRadius: 7,
-      padding: "3px 9px",
-      fontSize: 10,
-      fontWeight: 800,
-      letterSpacing: 0.4,
-      textTransform: "uppercase",
-      color: T.accent,
-      boxShadow: T.shadowCard,
-      minWidth: 44,
-      textAlign: "center",
-      whiteSpace: "nowrap"
-    }}
-  >{isLoginAttempt ? <CyclingBadge words={["Login", <GloobalWordmark key="g" withSymbols />, "Id"]} intervalMs={2600} /> : <CyclingBadge words={["Create", "Secure", <GloobalWordmark key="g" withSymbols />, "Id"]} intervalMs={2600} />}</span>}{stage === "referral" && <span
-    style={{
-      position: "absolute",
-      top: -11,
-      left: 16,
-      transform: "none",
-      background: T.surface,
-      border: `1px solid ${T.line}`,
-      borderRadius: 7,
-      padding: "3px 9px",
-      fontSize: 10,
-      fontWeight: 800,
-      letterSpacing: 0.4,
-      textTransform: "uppercase",
-      color: T.accent,
-      boxShadow: T.shadowCard,
-      whiteSpace: "nowrap"
-    }}
-  >
-                  Referral ID
-                </span>}{stage === "otp" && <span
-    style={{
-      position: "absolute",
-      top: -11,
-      left: 16,
-      background: T.surface,
-      border: `1px solid ${T.line}`,
-      borderRadius: 7,
-      padding: "3px 9px",
-      fontSize: 10,
-      fontWeight: 800,
-      letterSpacing: 0.4,
-      textTransform: "uppercase",
-      color: T.accent,
-      boxShadow: T.shadowCard
-    }}
-  >
-                  Verify OTP
-                </span>}{
-    /* Edit number — flips back to the phone step, same corner
-       spot the flip-to-login icon uses on that step. */
-  }{stage === "otp" && <button
-    onClick={() => flipTo("phone")}
-    aria-label="Edit phone number"
-    className="v2-tap"
-    style={{
-      position: "absolute",
-      top: -11,
-      right: 16,
-      background: "none",
-      border: "none",
-      color: T.accent2,
-      fontSize: 10.5,
-      fontWeight: 700,
-      cursor: "pointer",
-      padding: "3px 4px"
-    }}
-  >
-                  Edit number
-                </button>}{
-    /* Eye toggle: mask/reveal the code — same on both
-       registration and login, but only relevant in ID mode.
-       Shifted left of its usual spot on login so it doesn't
-       collide with the bigger flip-to-mobile icon in the
-       top-right corner. */
-  }{
-    /* Eye toggle for OTP — shifted left of "Edit number" so the
-       two controls don't collide in the same top-right corner. */
-  }{stage === "otp" && <button
-    onClick={() => setOtpRevealed((v) => !v)}
-    aria-label={otpRevealed ? "Hide OTP" : "Show OTP"}
-    className="v2-tap"
-    style={{
-      position: "absolute",
-      top: -11,
-      right: 90,
-      width: 24,
-      height: 24,
-      borderRadius: "50%",
-      border: `1px solid ${T.line}`,
-      background: T.surface,
-      display: "flex",
-      alignItems: "center",
-      justifyContent: "center",
-      cursor: "pointer",
-      boxShadow: T.shadowCard,
-      zIndex: 2
-    }}
-  ><MaskEyeIcon open={otpRevealed} color={T.inkSoft} /></button>}{stage === "secureId" && (!isLoginAttempt || loginEntryMode === "id") && <button
-    onClick={() => setSecureIdRevealed((v) => !v)}
-    aria-label={secureIdRevealed ? "Hide Secure ID" : "Show Secure ID"}
-    className="v2-tap"
-    style={{
-      position: "absolute",
-      top: -11,
-      right: isLoginAttempt ? 68 : 16,
-      width: 24,
-      height: 24,
-      borderRadius: "50%",
-      border: `1px solid ${T.line}`,
-      background: T.surface,
-      display: "flex",
-      alignItems: "center",
-      justifyContent: "center",
-      cursor: "pointer",
-      boxShadow: T.shadowCard,
-      zIndex: 2
-    }}
-  ><MaskEyeIcon open={secureIdRevealed} color={T.inkSoft} /></button>}{
-    /* Eye toggle for the mobile login number — same boundary
-       spot the Secure ID eye uses in ID mode (right: 68, clear
-       of the bigger flip-to-mobile icon in the corner). */
-  }{stage === "secureId" && isLoginAttempt && loginEntryMode === "mobile" && <button
-    onClick={() => setLoginMobileRevealed((v) => !v)}
-    aria-label={loginMobileRevealed ? "Hide mobile number" : "Show mobile number"}
-    className="v2-tap"
-    style={{
-      position: "absolute",
-      top: -11,
-      right: 68,
-      width: 24,
-      height: 24,
-      borderRadius: "50%",
-      border: `1px solid ${T.line}`,
-      background: T.surface,
-      display: "flex",
-      alignItems: "center",
-      justifyContent: "center",
-      cursor: "pointer",
-      boxShadow: T.shadowCard,
-      zIndex: 2
-    }}
-  ><MaskEyeIcon open={loginMobileRevealed} color={T.inkSoft} /></button>}{
-    /* Flip to mobile — login only. Fixed to the card's top-right
-       corner (not tied to the card's height, which changes
-       between ID and mobile content) so it's always in the same
-       reachable spot in both modes. Twice the size of the eye
-       toggle, and visibly rotates on tap. */
-  }{stage === "secureId" && isLoginAttempt && <button
-    onClick={() => setLoginEntryMode((m) => m === "id" ? "mobile" : "id")}
-    aria-label={`Switch to ${loginEntryMode === "id" ? "mobile number" : "Gloobal ID"}`}
-    className="v2-tap"
-    style={{
-      position: "absolute",
-      top: -20,
-      right: -18,
-      width: 48,
-      height: 48,
-      borderRadius: "50%",
-      border: `1.5px solid ${T.line}`,
-      background: T.surface,
-      color: T.accent,
-      display: "flex",
-      alignItems: "center",
-      justifyContent: "center",
-      cursor: "pointer",
-      boxShadow: T.shadowRaised,
-      zIndex: 3
-    }}
-  ><RefreshCw6
-    size={22}
-    style={{
-      transform: loginEntryMode === "mobile" ? "rotate(180deg)" : "rotate(0deg)",
-      transition: "transform 0.45s cubic-bezier(0.22, 1, 0.36, 1)"
-    }}
-  /></button>}{stage === "referral" && <button
-    onClick={() => setReferralRevealed((v) => !v)}
-    aria-label={referralRevealed ? "Hide Referral ID" : "Show Referral ID"}
-    className="v2-tap"
-    style={{
-      position: "absolute",
-      top: -11,
-      right: 16,
-      width: 24,
-      height: 24,
-      borderRadius: "50%",
-      border: `1px solid ${T.line}`,
-      background: T.surface,
-      display: "flex",
-      alignItems: "center",
-      justifyContent: "center",
-      cursor: "pointer",
-      boxShadow: T.shadowCard
-    }}
-  ><MaskEyeIcon open={referralRevealed} color={T.inkSoft} /></button>}{stage === "secureId" && (!isLoginAttempt || loginEntryMode === "id") && <SymbolChipRow length={SECURE_ID_LENGTH} value={secureId} masked={!secureIdRevealed} />}{stage === "secureId" && isLoginAttempt && loginEntryMode === "mobile" && <div style={{ position: "relative", display: "flex", alignItems: "center", width: "100%", gap: 10 }}><button
-    onClick={() => setShowLoginPicker(true)}
-    aria-label={`Country: ${effectiveLoginCountry.name}. Tap to change`}
-    style={{ flexShrink: 0, width: 46, height: 40, borderRadius: 13, border: `1px solid ${T.line}`, background: T.surface, display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer", padding: 0 }}
-  ><FlagEmoji flag={effectiveLoginCountry.flag} width={38} height={32} radius={6} dropShadow={`drop-shadow(0 4px 10px rgba(${T.accentDeepRgb},0.18))`} /></button>{
-    /* Masked by default, revealed with the eye toggle that
-       now sits on the card's boundary (top-right corner)
-       instead of inline here — same spot the Secure ID eye
-       uses in ID mode. */
-  }<div style={{ flex: 1, minWidth: 0, display: "flex", alignItems: "center", background: T.surfaceAlt, border: `1px solid ${T.line}`, borderRadius: T.radiusMd, padding: "9px 13px" }}><span style={{ flex: 1, minWidth: 0, fontSize: 14, fontWeight: 600, letterSpacing: loginMobileRevealed ? 0 : 2, color: loginMobileBuffer ? T.ink : T.inkFaint, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{loginMobileBuffer ? loginMobileRevealed ? loginMobileBuffer.replace(/(\d{3})(?=\d)/g, "$1 ") : loginMobileBuffer.replace(/\d/g, "\u2022").replace(/(.{3})(?=.)/g, "$1 ") : "Mobile number"}</span></div></div>}{stage === "referral" && <SymbolChipRow length={REFERRAL_LENGTH} value={referralCode} masked={!referralRevealed} />}{stage === "referral" && referrerPreview && referrerPreview.status !== "unknown" ? <div data-testid="referrer-preview" role="status" style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 6, marginTop: 10, fontSize: 13, fontWeight: 800, color: referrerPreview.status === "none" ? T.negative : referrerPreview.status === "found" ? T.ink : T.inkFaint }}>{referrerPreview.status === "found" ? <><span style={{ fontWeight: 600, color: T.inkSoft }}>Invited by</span><span style={{ maxWidth: 180, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{referrerPreview.name || "a GLOOBAL member"}</span><BadgeCheckReferrer size={16} color={T.positive} /></> : referrerPreview.status === "none" ? "No GLOOBAL account uses that ID" : "Checking…"}</div> : null}{stage === "otp" && <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 10, width: "100%" }}><span style={{ fontSize: 11.5, color: T.inkFaint, fontWeight: 600, textAlign: "center" }}>
-                    Enter the code sent to {dialCountry.dialCode} {phoneNumber}</span><SymbolChipRow length={OTP_LENGTH2} value={otp} masked={!otpRevealed} boxSize={34} justify="center" /></div>}</div>{
-    /* Symbol dial pad — same compact grid-button pattern as
-       PhoneDialPad, sized down so the card, dial, and button all
-       stay fully visible together on one screen. */
-  }{stage === "secureId" && (!isLoginAttempt || loginEntryMode === "id") && <div style={{ marginTop: 32, position: "relative", zIndex: 1, width: "100%" }}><SymbolDialPad value={secureId} onChange={setSecureId} length={SECURE_ID_LENGTH} /></div>}{
-    /* Two ready-made IDs — creation only, never shown while
-       logging in, since login needs the person's existing ID,
-       not a fresh suggestion.
-       (This comment has always said "Two"; the row actually
-       rendered one. It renders two now, so the two finally agree.
-       Someone meeting the symbol alphabet for the first time has no
-       basis on which to judge a single arbitrary string — a pair
-       side by side is a choice they can actually make. The Update
-       Gloobal ID screen still passes no count and still gets one:
-       replacing an ID you already have is a different, more
-       considered decision.) */
-  }{stage === "secureId" && !isLoginAttempt && <SuggestedIdRow id={suggestedRegId} onPick={setSecureId} />}{
-    /* Login only: proof the ID resolves to a real account, shown before
-       the PIN screen rather than after a sign-in that would have failed
-       for a reason the person could not see. */
-  }{stage === "secureId" && isLoginAttempt && loginEntryMode === "id" && loginIdResolved && <div style={{ width: "100%", display: "flex", justifyContent: "center", marginTop: 12 }}><span
-    style={{
-      display: "inline-flex",
-      alignItems: "center",
-      gap: 6,
-      padding: "6px 12px",
-      borderRadius: 999,
-      background: T.accentSoft,
-      border: `1px solid ${T.line}`,
-      color: T.positive,
-      fontSize: 11.5,
-      fontWeight: 800
-    }}
-  >
-                  ✓ Account found
-                </span></div>}{stage === "secureId" && isLoginAttempt && loginEntryMode === "mobile" && <div style={{ marginTop: 28, position: "relative", zIndex: 1, width: "100%" }}><PhoneDialPad
-    value={loginMobileBuffer}
-    onChange={setLoginMobileBuffer}
-    minLength={loginMinLen}
-    maxLength={loginMaxLen}
-    onSubmit={handleSubmitSecureId}
-  /></div>}{stage === "referral" && <div style={{ marginTop: 32, position: "relative", zIndex: 1, width: "100%" }}><SymbolDialPad value={referralCode} onChange={setReferralCode} length={REFERRAL_LENGTH} /></div>}{stage === "phone" && phoneDialOpen && <div style={{ marginTop: 28, position: "relative", zIndex: 1, width: "100%" }}><PhoneDialPad
-    value={phoneNumber}
-    onChange={(next) => {
-      // Editing the number retracts the "already registered" verdict —
-      // it was about the previous digits, not these.
-      setPhoneAlreadyRegistered(false);
-      setPhoneNumber(next);
-    }}
-    minLength={mobileDigitRange(dialCountry.iso)[0]}
-    maxLength={mobileDigitRange(dialCountry.iso)[1]}
-    onSubmit={handleVerify}
-  /></div>}{
-    /* OTP dial pad — the numeric code is 6 digits, entered with
-       the exact same dial pad as the mobile number step, not the
-       symbol dial used for the 12-character Secure/Referral ID. */
-  }{stage === "otp" && <div style={{ marginTop: 28, position: "relative", zIndex: 1, width: "100%" }}><PhoneDialPad value={otp} onChange={setOtp} minLength={OTP_LENGTH2} maxLength={OTP_LENGTH2} onSubmit={handleSubmitOtp} processing={otpVerifying} /></div>}{stage === "secureId" && !isLoginAttempt && <div style={{ marginTop: 20 }}><SubmitButton
-    onClick={handleSubmitSecureId}
-    disabled={secureId.length !== SECURE_ID_LENGTH || authBusy}
-    label={authBusy ? (authSlow ? "Waking the server…" : "Checking…") : "Submit"}
-  /></div>}{stage === "secureId" && isLoginAttempt && loginEntryMode === "id" && <div style={{ marginTop: 20, display: "flex", justifyContent: "center" }}><CircularInButton
-    onClick={handleSubmitSecureId}
-    disabled={secureId.length !== SECURE_ID_LENGTH || authBusy}
-    size={44}
-  /></div>}{stage === "referral" && <div style={{ marginTop: 20, display: "flex", flexDirection: "column", alignItems: "center" }}><SubmitButton
-    onClick={handleSubmitReferral}
-    disabled={referralCode.length !== REFERRAL_LENGTH || authBusy}
-    label={authBusy ? (authSlow ? "Waking the server…" : "Checking…") : void 0}
-  /><button
-    onClick={() => flipTo("profile")}
-    style={{
-      marginTop: 10,
-      border: "none",
-      background: "none",
-      color: T.accent2,
-      fontSize: 12,
-      fontWeight: 700,
-      cursor: "pointer",
-      padding: "6px 8px"
-    }}
-  >
-                  Skip for now
-                </button></div>}{stage === "otp" && <div style={{ marginTop: 20, display: "flex", flexDirection: "column", alignItems: "center" }}><button
-    onClick={() => setOtp("")}
-    style={{
-      border: "none",
-      background: "none",
-      color: T.accent2,
-      fontSize: 12,
-      fontWeight: 700,
-      cursor: "pointer",
-      padding: "6px 8px"
-    }}
-  >
-                  Resend code
-                </button></div>}</div></div></div>{stage === "phone" && !phoneDialOpen && <div style={{ position: "absolute", left: "50%", bottom: "3%", transform: "translateX(-50%)", zIndex: 20, width: "100%", padding: "0 16px", display: "flex", justifyContent: "center" }}><span
-    style={{
-      fontSize: 9.5,
-      fontWeight: 700,
-      letterSpacing: 0.4,
-      color: T.inkFaint,
-      textTransform: "uppercase",
-      whiteSpace: "nowrap",
-      overflow: "hidden",
-      textOverflow: "ellipsis",
-      maxWidth: "100%"
-    }}
-  >
-            Cashless · Taxless · Borderless · Limitless
-          </span></div>}{stage === "permissions" && <PermissionsGateScreen onContinue={handleContinueFromPermissionsGate} />}{stage === "pin" && <PinScreen
+       entry. */
+  }{(stage === "secureId" || helpSheet === "symbols") && <SymbolIdHelpSheet open={helpSheet === "symbols"} onClose={() => setHelpSheet(null)} />}{stage === "referral" && <ReferralHelpSheet open={helpSheet === "referral"} onClose={() => setHelpSheet(null)} />}{stage === "permissions" && <PermissionsGateScreen onContinue={handleContinueFromPermissionsGate} />}{stage === "pin" && <PinScreen
     value={pin}
     length={PIN_LENGTH}
     onChange={setPin}
@@ -78471,7 +78386,7 @@ function GloobalId() {
        own message is surfaced as-is ("PIN must be 4 to 6 digits",
        "Please verify OTP before registration", "Account locked"), since
        it is already more specific than anything generic here. */
-  }{authError && <div
+  }{authError && !["phone", "otp", "secureId", "referral"].includes(stage) && <div
     role="alert"
     onClick={() => setAuthError(null)}
     style={{
@@ -80262,55 +80177,51 @@ function GloobalLetHellooIn({ me, onAllow, onDeny }) {
   return <HellooScreen><HellooTop left={<NavBackButton onClick={onDeny} />} title={<GloobalWordmark />} right={<NavFlagBadge flag={me.flag} />} /><div style={{ flex: 1, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", padding: "0 28px", textAlign: "center" }}><div style={{ display: "flex", alignItems: "center", gap: 14 }}><GloobalLogo size={56} /><span style={{ width: 34, height: 2, background: T.line, position: "relative" }}><span style={{ position: "absolute", left: 11, top: -5, width: 12, height: 12, borderRadius: "50%", background: HT.free }} /></span><HellooMark size={56} /></div><div style={{ marginTop: 20, fontSize: 22, fontWeight: 800, fontFamily: T.fontDisplay, color: T.ink }}>Let <HellooWordmark /> in?</div><div style={{ marginTop: 10, fontSize: 13.5, color: T.inkSoft, lineHeight: 1.5 }}>Helloo will sign in as you and can see your name, photo, country and the people you have paid. It can't move money.</div><HellooCard style={{ marginTop: 22, width: "100%", padding: 14, display: "flex", alignItems: "center", gap: 12 }}><ProfileAvatar photo={me.photo} name={me.name} size={44} /><div style={{ textAlign: "left", minWidth: 0 }}><div style={{ fontSize: 14.5, fontWeight: 800, color: T.ink }}><HellooNameB p={me} label={me.name} /></div><div style={{ fontSize: 13, marginTop: 2 }}><ColoredGloobalId id={me.id} /></div></div></HellooCard></div><div style={{ padding: "0 20px calc(22px + env(safe-area-inset-bottom, 0px))", display: "flex", flexDirection: "column", gap: 10 }}><HellooPrimary onClick={onAllow} Icon={HlFinger}>Allow with fingerprint</HellooPrimary><HellooSecondary onClick={onDeny}>Not now</HellooSecondary></div></HellooScreen>;
 }
 
-// Signing in. Two ways to say who you are: the 12 symbols of the GLOOBAL
-// ID on Gloobal's own dial, or the mobile number the account was made
-// with. Whether the account exists is answered by the PIN step itself
-// (POST /api/login takes either), so nothing here claims to have found it.
+// Signing in. Two ways to say who you are: the mobile number the account
+// was made with, or the 12 symbols of the GLOOBAL ID. Whether the account
+// exists is answered by the PIN step itself (POST /api/login takes either),
+// so nothing here claims to have found it.
 //
-// Sign in looks like Find someone (founder, 25 Nov): the same big title,
-// the same round switch between mobile number and GLOOBAL ID, the round
-// flag you tap for the country, the same round keys, and Continue where
-// Find someone has Message, Call and Video. The number is typed without
-// the country code; the flag gives it (the app joins the two for
-// POST /api/login). The pieces are shared with Find someone
-// (screens/Calls.jsx), so the two cannot drift apart.
-function HellooIdScreen({ value, onChange, status, onBack, onNext, mode = "id", onMode, mobile = "", onMobile, country = null, onCountry, note = "" }) {
+// These are GLOOBAL's own login screens (features/entry/entrySteps.jsx,
+// 25 Nov): the same big title, round switch, round flag and round keys as
+// Find someone, with Helloo's mark on top. "Create your free GLOOBAL ID"
+// opens GLOOBAL's whole registration right here in Helloo (onJoin), so
+// nobody has to leave for another site to get an ID.
+function HellooIdScreen({ value, onChange, status, onBack, onNext, mode = "id", onMode, mobile = "", onMobile, country = null, onCountry, note = "", onJoin }) {
   const byMobile = mode === "mobile";
-  const digits = String(mobile).replace(/\D/g, "");
-  const dialCode = (country && country.dialCode) || "+91";
-  const [least, most] = hellooMobileRange(country);
-  const found = byMobile ? digits.length >= least : (status === "found" || status === "ready");
   const [picking, setPicking] = useStateH2(false);
   const [pickQ, setPickQ] = useStateH2("");
   useHellooBackLayer(picking, () => setPicking(false));
-  // A keyboard works too (a laptop, or a phone with one): digits, delete, Enter.
-  useEffectH2(() => {
-    if (!byMobile || picking) return undefined;
-    const onKey = (e) => {
-      const t = e.target && e.target.tagName;
-      if (t === "INPUT" || t === "TEXTAREA" || e.metaKey || e.ctrlKey || e.altKey) return;
-      if (/^\d$/.test(e.key)) { e.preventDefault(); onMobile && onMobile((digits + e.key).slice(0, most)); }
-      else if (e.key === "Backspace") { e.preventDefault(); onMobile && onMobile(digits.slice(0, -1)); }
-      else if (e.key === "Enter" && found) { e.preventDefault(); onNext && onNext(); }
-    };
-    window.addEventListener("keydown", onKey);
-    return () => window.removeEventListener("keydown", onKey);
-  }, [byMobile, picking, digits, most, found]);
-  const hint = byMobile
-    ? (found ? <><HlCheck size={15} />Next, your GLOOBAL PIN</> : digits.length ? (least === most ? `${least - digits.length} more` : "Keep going") : "")
-    : (found ? <><HlCheck size={15} />12 symbols · next, your GLOOBAL PIN</> : status === "none" ? "No account with this ID yet" : value.length ? `${12 - value.length} more` : "");
-  return <HellooScreen><div style={{ flex: 1, minHeight: 0, display: "flex", flexDirection: "column", alignItems: "center", gap: 8, padding: "calc(10px + env(safe-area-inset-top, 0px)) 16px calc(14px + env(safe-area-inset-bottom, 0px))", boxSizing: "border-box" }}>
-    {onBack ? <span style={{ position: "absolute", left: 10, top: "calc(10px + env(safe-area-inset-top, 0px))" }}><NavBackButton onClick={onBack} /></span> : null}
-    <div style={{ width: "100%", flexShrink: 0, padding: "10px 4px 0", textAlign: "center", display: "flex", flexDirection: "column", alignItems: "center" }}><span data-testid="helloo-signin-mark" style={{ display: "inline-flex", marginBottom: 12 }}><HellooMark size={44} /></span><div data-testid="helloo-signin-title" style={{ fontSize: 23, fontWeight: 900, fontFamily: T.fontDisplay, color: T.ink, letterSpacing: -0.4, lineHeight: 1.15 }}>Sign in</div><div style={{ fontSize: 13, fontWeight: 700, color: T.inkSoft, marginTop: 5, lineHeight: 1.35 }}>{byMobile ? "With your mobile number · then your PIN" : <>With your 12-symbol <GloobalWordmark suffix=" ID" /> · then your PIN</>}</div></div>
-    {onMode ? <HellooModePill mode={mode} onMode={onMode} label="Sign in with" testid="helloo-signin-mode" /> : null}
-    <div style={{ flex: 1, minHeight: 0 }} />
-    {byMobile ? <HellooPhoneLine digits={digits} dialCode={dialCode} country={country} onPick={onCountry && typeof CountryPickerScreen === "function" ? () => setPicking(true) : undefined} color={found ? HT.free : T.ink} testid="helloo-signin-mobile" countryTestid="helloo-signin-country" /> : <HellooDialBox value={value} done={found} bad={status === "none"} />}
-    <div data-testid="helloo-signin-hint" style={{ minHeight: 24, display: "flex", alignItems: "center", justifyContent: "center", gap: 6, fontSize: 12.5, fontWeight: 800, color: found ? HT.free : status === "none" ? T.negative : T.inkFaint, textAlign: "center" }}>{hint}</div>
-    {note ? <div role="status" data-testid="helloo-signed-out-note" style={{ width: "100%", fontSize: 12, lineHeight: 1.4, color: T.ink, background: "#FEF3C7", borderRadius: 12, padding: "8px 11px", boxSizing: "border-box" }}>{note}</div> : null}
-    <div style={{ flex: 2.2, minHeight: 0 }} />
-    {byMobile ? <HellooPhoneKeys digits={digits} onDigits={onMobile} max={most} testid="helloo-signin-numbers" /> : <div style={{ flexShrink: 0, display: "flex", justifyContent: "center", width: "100%" }}><SymbolDialPad value={value} onChange={onChange} length={12} soundWhileTyping /></div>}
-    <div style={{ width: "100%", marginTop: 14, flexShrink: 0, boxSizing: "border-box", padding: "0 4px" }}>{!byMobile && status === "none" ? <HellooSecondary Icon={HlSpark} onClick={() => window.open(HELLOO_GLOOBAL_SIGNUP, "_blank", "noopener")}>Create this ID on GLOOBAL</HellooSecondary> : <HellooPrimary disabled={!found} onClick={onNext}>Continue</HellooPrimary>}<div style={{ textAlign: "center", fontSize: 12.5, color: T.inkSoft, marginTop: 10 }}>New here? <a data-testid="helloo-create-id" href={HELLOO_GLOOBAL_SIGNUP} target="_blank" rel="noopener" style={{ color: T.accent, fontWeight: 800, textDecoration: "none" }}>Create your free <GloobalWordmark suffix=" ID" /></a></div></div>
-  </div>{picking ? <CountryPickerScreen topCountries={TOP_COUNTRIES} countries={ALL_COUNTRIES} search={pickQ} onSearch={setPickQ} selectedIso={country && country.iso} onSelect={(c) => { setPicking(false); setPickQ(""); if (onCountry) onCountry(c); }} onClose={() => { setPicking(false); setPickQ(""); }} /> : null}</HellooScreen>;
+  const card = HT.cardBg || T.surface;
+  const join = onJoin || (() => window.open(HELLOO_GLOOBAL_SIGNUP, "_blank", "noopener"));
+  const common = {
+    testid: "helloo-signin",
+    purpose: "login",
+    mark: <HellooMark size={44} />,
+    title: "Sign in",
+    background: HT.screenBg || T.bg,
+    card,
+    onBack,
+    modes: onMode ? <GloobalEntryModes mode={byMobile ? "mobile" : "id"} onMode={onMode} label="Sign in with" testid="helloo-signin-mode" card={card} /> : null,
+    notice: note ? <div role="status" data-testid="helloo-signed-out-note" style={{ width: "100%", maxWidth: 360, fontSize: 12, lineHeight: 1.4, color: "#1A1530", background: "#FEF3C7", borderRadius: 12, padding: "8px 11px", boxSizing: "border-box", textAlign: "center" }}>{note}</div> : null,
+    footer: <>New here? <GloobalEntryLink onClick={join} testid="helloo-create-id">Create your free <GloobalWordmark suffix=" ID" /></GloobalEntryLink></>,
+  };
+  return <HellooScreen>
+    {byMobile
+      ? <GloobalPhoneStep {...common} lineTestid="helloo-signin-mobile" countryTestid="helloo-signin-country" country={country} onPickCountry={onCountry && typeof CountryPickerScreen === "function" ? () => setPicking(true) : undefined} digits={mobile} onDigits={onMobile} onSubmit={onNext} />
+      : <GloobalSymbolStep {...common} value={value} onChange={onChange} onSubmit={onNext} found={status === "found"} error={status === "none" ? "No account with this ID yet" : ""} />}
+    {picking ? <CountryPickerScreen topCountries={TOP_COUNTRIES} countries={ALL_COUNTRIES} search={pickQ} onSearch={setPickQ} selectedIso={country && country.iso} onSelect={(c) => { setPicking(false); setPickQ(""); if (onCountry) onCountry(c); }} onClose={() => { setPicking(false); setPickQ(""); }} /> : null}
+  </HellooScreen>;
+}
+
+// Making a GLOOBAL ID inside Helloo: GLOOBAL's whole registration
+// (GloobalJoinFlow: number, code, ID, who invited you, name and live
+// photo, PIN), with Helloo's mark and colours. The account is made by the
+// same call GLOOBAL's own app makes; Helloo then signs in with it.
+function HellooJoin({ country, digits, onCancel, onLoginInstead, onDone }) {
+  return <HellooScreen>
+    <GloobalJoinFlow initialCountry={country} initialDigits={digits} mark={<HellooMark size={44} />} background={HT.screenBg || T.bg} card={HT.cardBg || T.surface} useBackLayer={useHellooBackLayer} onCancel={onCancel} onLoginInstead={onLoginInstead} onDone={onDone} />
+  </HellooScreen>;
 }
 
 // The PIN step is GLOOBAL's own sign-in screen (LoginAuthScreen) with its
@@ -80857,47 +80768,13 @@ function HellooCallsHome({ me, calls = [], onCallBack, onInfo, onOpenDial, onAdd
 // soft ring, the rest are quiet. Always there, so nothing jumps when the
 // first symbol lands.
 function HellooDialBox({ value = "", done = false, bad = false }) {
-  const tone = bad ? T.negative : done ? HT.free : T.accent;
-  const soft = bad ? `${T.negative}14` : done ? HT.freeSoft : T.accentSoft;
-  const slot = (i) => {
-    const ch = value[i]; const next = i === value.length;
-    return <span key={i} data-filled={ch ? "1" : undefined} style={{ flex: 1, minWidth: 0, aspectRatio: "1 / 1", borderRadius: "30%", display: "flex", alignItems: "center", justifyContent: "center", background: ch ? soft : next ? (HT.cardBg || T.surface) : T.surfaceSunk, boxShadow: next ? `inset 0 0 0 2px ${tone}` : ch ? `inset 0 0 0 1px ${tone}33` : "none", color: tone, fontSize: 16, fontWeight: 800, lineHeight: 1, transition: "background 0.15s ease, box-shadow 0.15s ease" }}>{ch || (next ? <span style={{ width: 2, height: 13, borderRadius: 1, background: tone, animation: "hellooCaret 1s steps(2) infinite" }} /> : <span style={{ width: 5, height: 5, borderRadius: "50%", background: T.line }} />)}</span>;
-  };
-  return <div data-testid="helloo-dial-box" aria-label={`${value.length} of 12 symbols dialled`} style={{ width: "100%", display: "flex", gap: 10, padding: "12px 10px", borderRadius: HT.radius ?? 20, background: HT.cardBg || T.surface, boxShadow: HT.cardShadow ?? T.shadowCard, border: HT.cardBorder || "none", boxSizing: "border-box" }}><style>{"@keyframes hellooCaret{0%{opacity:1}50%{opacity:0}}"}</style>{[0, 4, 8].map((g) => <span key={g} style={{ flex: 1, minWidth: 0, display: "flex", gap: 3 }}>{[0, 1, 2, 3].map((k) => slot(g + k))}</span>)}</div>;
+  return <GloobalSlotsBox value={value} length={12} done={done} bad={bad} testid="helloo-dial-box" label={`${Array.from(value).length} of 12 symbols dialled`} card={HT.cardBg || T.surface} />;
 }
 
-// ── A MOBILE NUMBER, TYPED THE HELLOO WAY ─────────────────────────────
-// One look wherever Helloo asks for a phone number (Find someone, and
-// Sign in since 25 Nov): a round switch between mobile number and
-// GLOOBAL ID, the country as a round flag you tap to change, the number
-// as people say it with a blinking caret, and round keys like the
-// phone's own dialler.
-function hellooSpacedPhone(digits, dialCode) {
-  // The number as people say it: 98765 43210 in India, otherwise in
-  // threes with the last group never a lone digit (987 654 3210).
-  if (dialCode === "+91") return digits.replace(/^(\d{5})(?=\d)/, "$1 ");
-  const groups = []; let i = 0;
-  while (digits.length - i > 4) { groups.push(digits.slice(i, i + 3)); i += 3; }
-  groups.push(digits.slice(i));
-  return groups.join(" ");
-}
-function hellooMobileRange(country) {
-  const r = country && typeof MOBILE_DIGIT_RANGE_BY_ISO === "object" ? MOBILE_DIGIT_RANGE_BY_ISO[country.iso] : null;
-  return r ? [r[0], r[1]] : [6, 13];
-}
-function HellooModePill({ mode, onMode, label = "Find by", testid = "helloo-dial-mode" }) {
-  return <div role="tablist" aria-label={label} style={{ display: "flex", gap: 4, padding: 4, borderRadius: 999, background: T.surfaceAlt, flexShrink: 0, marginTop: 14 }}>{[["mobile", HlMobile, "Mobile number"], ["id", HlDial, "GLOOBAL ID"]].map(([k, Icon, name]) => <button key={k} role="tab" onClick={() => onMode(k)} aria-pressed={mode === k} aria-selected={mode === k} aria-label={name} title={name} data-testid={`${testid}-${k}`} className="v2-tap" style={{ width: 64, height: 44, borderRadius: 999, border: "none", background: mode === k ? (HT.cardBg || T.surface) : "transparent", boxShadow: mode === k ? T.shadowCard : "none", display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer", padding: 0, transition: "background 0.2s ease" }}><Icon size={22} color={mode === k ? T.accent : T.inkSoft} /></button>)}</div>;
-}
-function HellooPhoneLine({ digits = "", dialCode = "+91", country = null, onPick, color = T.ink, testid = "helloo-dial-phone", countryTestid = "helloo-dial-country" }) {
-  // The country as its flag, in a circle (the code is only in the label).
-  const flag = (country && country.flag) || "";
-  return <div data-testid={testid} aria-label={`${dialCode} ${digits || "no number yet"}`} style={{ width: "100%", display: "flex", alignItems: "center", justifyContent: "center", gap: 10, padding: "6px 0", minHeight: 56, flexShrink: 0 }}><button type="button" onClick={() => onPick && onPick()} data-testid={countryTestid} aria-label={`Country: ${(country && country.name) || dialCode} ${dialCode}. Change`} title={`${(country && country.name) || ""} ${dialCode}`} className="v2-tap" style={{ position: "relative", display: "inline-flex", flexShrink: 0, border: "none", background: "none", padding: 0, cursor: onPick ? "pointer" : "default", borderRadius: "50%" }}>{flag ? <span style={{ display: "inline-flex", borderRadius: "50%", boxShadow: "0 1px 4px rgba(0,0,0,0.15)" }}><FlagEmoji flag={flag} size={38} shape="circle" /></span> : <span style={{ fontSize: 15, fontWeight: 800, color: T.inkSoft }}>{dialCode}</span>}{onPick ? <span aria-hidden="true" style={{ position: "absolute", right: -3, bottom: -3, width: 17, height: 17, borderRadius: "50%", background: HT.cardBg || T.surface, boxShadow: "0 1px 3px rgba(0,0,0,0.2)", display: "flex", alignItems: "center", justifyContent: "center" }}><HlChevron size={11} color={T.ink} style={{ transform: "rotate(90deg)" }} /></span> : null}</button><span style={{ minWidth: 0, display: "inline-flex", alignItems: "center", fontSize: digits.length > 11 ? "min(26px, 6.6vw)" : "min(32px, 7.6vw)", fontWeight: 800, letterSpacing: 0.5, color, fontFamily: T.fontDisplay, whiteSpace: "nowrap", overflow: "hidden" }}>{digits ? hellooSpacedPhone(digits, dialCode) : <span style={{ color: T.inkFaint, fontWeight: 700, letterSpacing: 0, fontSize: 18 }}>Mobile number</span>}<span aria-hidden="true" style={{ width: 2, height: 28, marginLeft: 3, borderRadius: 1, background: T.accent, animation: "hellooCaret 1s steps(2) infinite", flexShrink: 0 }} /><style>{"@keyframes hellooCaret{0%{opacity:1}50%{opacity:0}}"}</style></span></div>;
-}
-function HellooPhoneKeys({ digits = "", onDigits, max = 13, testid = "helloo-dial-numbers" }) {
-  const key = (k) => <button key={k} onClick={() => onDigits && onDigits(k === "⌫" ? digits.slice(0, -1) : (digits + k).slice(0, max))} aria-label={k === "⌫" ? "Delete" : `Number ${k}`} className="v2-tap" style={{ justifySelf: "center", width: 64, height: 64, borderRadius: "50%", border: "none", background: k === "⌫" ? "transparent" : T.surfaceAlt, boxShadow: "none", fontSize: 26, fontWeight: 700, color: T.ink, cursor: "pointer", fontFamily: T.fontDisplay, display: "flex", alignItems: "center", justifyContent: "center", padding: 0 }}>{k === "⌫" ? <HlDelete size={24} color={T.inkSoft} /> : k}</button>;
-  return <div data-testid={testid} style={{ flexShrink: 0, width: "100%", maxWidth: 300, display: "grid", gridTemplateColumns: "repeat(3, 1fr)", rowGap: 10 }}>{["1", "2", "3", "4", "5", "6", "7", "8", "9"].map(key)}<span />{key("0")}{key("⌫")}</div>;
-}
-
+// ── A MOBILE NUMBER, TYPED ─────────────────────────────────────────────
+// The switch, the round flag and number, the round keys and the ID places
+// are GLOOBAL's shared pieces (gloobal features/entry/entrySteps.jsx), the
+// same ones Helloo's sign-in and GLOOBAL's own registration and login use.
 function HellooDialSheet({ dial = "", onDial, match, status, onMessage, onCall, onVideo, onClose, title = "Dial a GLOOBAL ID", contacts = [], saved = false, saving = false, onSave, onUnsave, mode = "id", onMode, phone = "", onPhone, dialCode = "+91", dialCountry = null, onCountry }) {
   const byMobile = mode === "mobile";
   const digits = String(phone).replace(/\D/g, "");
@@ -80906,7 +80783,7 @@ function HellooDialSheet({ dial = "", onDial, match, status, onMessage, onCall, 
   const [picking, setPicking] = useStateH12(false);
   useHellooBackLayer(picking, () => setPicking(false));
   const [pickQ, setPickQ] = useStateH12("");
-  const maxDigits = hellooMobileRange(dialCountry)[1];
+  const maxDigits = gloobalMobileRange(dialCountry)[1];
   const people = contacts.filter((c) => c && c.gloobalId && !c.group).slice(0, 12);
   // People you already have whose GLOOBAL ID starts with what is dialled.
   const near = !byMobile && dial.length > 0 && dial.length < 12 ? contacts.filter((c) => c.gloobalId && c.gloobalId.startsWith(dial)).slice(0, 6) : [];
@@ -80916,10 +80793,10 @@ function HellooDialSheet({ dial = "", onDial, match, status, onMessage, onCall, 
   return <div role="dialog" aria-modal="true" aria-label={byMobile ? "Find by mobile number" : title} data-testid="helloo-dial-screen" style={{ position: "absolute", inset: 0, zIndex: 60, display: "flex", flexDirection: "column", background: HT.screenBg || T.bg, fontFamily: T.fontBody }}><div style={{ flex: 1, minHeight: 0, display: "flex", flexDirection: "column", alignItems: "center", gap: 8, padding: "calc(10px + env(safe-area-inset-top, 0px)) 16px calc(14px + env(safe-area-inset-bottom, 0px))", boxSizing: "border-box" }}>
     <div style={{ width: "100%", flexShrink: 0, padding: "10px 4px 0", textAlign: "center" }}><div data-testid="helloo-dial-mark" style={{ fontSize: 23, fontWeight: 900, fontFamily: T.fontDisplay, color: status === "none" ? T.negative : T.ink, letterSpacing: -0.4, lineHeight: 1.15 }}>{found ? <><span style={{ color: HT.free }}>{(match.handle || match.name || "").split(" ")[0]}</span> <HellooBadge tier={match.badge || 1} size={20} /> is on GLOOBAL</> : status === "none" ? "Not on GLOOBAL yet" : status === "looking" ? "Looking…" : "Find someone"}</div><div style={{ fontSize: 13, fontWeight: 700, color: T.inkSoft, marginTop: 5, lineHeight: 1.35 }}>{found ? "Message, call or video them now" : status === "none" ? (byMobile ? "Check the number, or invite them to GLOOBAL" : "Check the symbols and try again") : byMobile ? "By their mobile number · no need to save it" : "By their 12-symbol GLOOBAL ID"}</div></div>
     {/* The box and who it matches sit a third of the way down the room between the top and the pad. */}
-    {onMode ? <HellooModePill mode={mode} onMode={onMode} /> : null}
+    {onMode ? <GloobalEntryModes mode={mode} onMode={onMode} testid="helloo-dial-mode" card={HT.cardBg || T.surface} /> : null}
     <div style={{ flex: 1, minHeight: 0 }} />
     
-    {byMobile ? <HellooPhoneLine digits={digits} dialCode={dialCode} country={dialCountry} onPick={onCountry ? () => setPicking(true) : undefined} color={status === "none" ? T.negative : found ? HT.free : T.ink} /> : <HellooDialBox value={dial} done={Boolean(found)} bad={status === "none"} />}
+    {byMobile ? <GloobalPhoneLine testid="helloo-dial-phone" countryTestid="helloo-dial-country" card={HT.cardBg || T.surface} digits={digits} dialCode={dialCode} country={dialCountry} onPick={onCountry ? () => setPicking(true) : undefined} color={status === "none" ? T.negative : found ? HT.free : T.ink} /> : <HellooDialBox value={dial} done={Boolean(found)} bad={status === "none"} />}
     <div style={{ width: "100%", flex: "0 1 auto", minHeight: 62, maxHeight: "44%", overflowY: "auto", padding: "4px 4px 12px", margin: "0 -4px", boxSizing: "content-box" }}>{found
       ? <HellooCard style={{ display: "flex", alignItems: "center", gap: 12, padding: "10px 12px" }}><HellooAvatar person={match} size={44} /><span style={{ flex: 1, minWidth: 0 }}><HellooVerifiedName person={match} size={15.5} /><span style={{ display: "flex", alignItems: "center", gap: 5, fontSize: 12, color: T.inkSoft, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{match.country}{match.online && <span style={{ color: HT.free, fontWeight: 700 }}> · Online</span>}</span>{byMobile && match.gloobalId ? <span data-testid="helloo-dial-their-id" className="helloo-id-line" style={{ display: "block", marginTop: 3, fontSize: 12, letterSpacing: 0.4, fontWeight: 800, whiteSpace: "nowrap", overflow: "hidden" }}><style>{".helloo-id-line>span{flex-wrap:nowrap!important;gap:1px!important}"}</style>{typeof ColoredGloobalId === "function" ? <ColoredGloobalId id={match.gloobalId} /> : match.gloobalId}</span> : null}</span>{saved
           ? <button onClick={onUnsave} disabled={saving || !onUnsave} data-testid="helloo-dial-saved" aria-label="Saved. Tap to unsave" title="Tap to unsave" className="v2-tap" style={{ display: "inline-flex", alignItems: "center", gap: 4, fontSize: 12, fontWeight: 800, color: HT.free, background: HT.freeSoft, border: "none", borderRadius: 999, padding: "8px 11px", flexShrink: 0, cursor: onUnsave ? "pointer" : "default", fontFamily: T.fontBody, opacity: saving ? 0.6 : 1 }}><HlCheck size={13} color={HT.free} />Saved</button>
@@ -80928,7 +80805,7 @@ function HellooDialSheet({ dial = "", onDial, match, status, onMessage, onCall, 
       : false && people.length ? <div data-testid="helloo-dial-people"><div style={{ fontSize: 12, fontWeight: 800, color: T.inkSoft, letterSpacing: 0.3, textTransform: "uppercase", margin: "4px 4px 8px" }}>Your people</div><div style={{ display: "flex", gap: 14, overflowX: "auto", scrollbarWidth: "none", padding: "2px 4px 4px" }}>{people.map((c) => <button key={c.accountId || c.gloobalId} onClick={() => { if (byMobile && onMode) onMode("id"); onDial(c.gloobalId); }} data-testid="helloo-dial-person" className="v2-tap" style={{ flexShrink: 0, width: 62, border: "none", background: "none", padding: 0, cursor: "pointer", display: "flex", flexDirection: "column", alignItems: "center", gap: 5, fontFamily: T.fontBody }}><HellooAvatar person={c} size={52} /><span style={{ maxWidth: "100%", fontSize: 11.5, fontWeight: 700, color: T.ink, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{c.handle || (c.name || "").split(" ")[0]}</span></button>)}</div></div>
       : <div style={{ fontSize: 12.5, color: status === "none" ? T.negative : T.inkFaint, textAlign: "center", padding: "8px 0", fontWeight: 700 }}>{byMobile ? (status === "none" ? "" : status === "looking" ? "Checking…" : digits.length ? "Keep going" : "") : status === "none" ? "" : status === "looking" ? "Checking…" : dial.length ? `${12 - dial.length} more${contacts.length ? " · nobody saved starts like this" : ""}` : ""}</div>}</div>
     <div style={{ flex: 2.2, minHeight: 0 }} />
-    {byMobile ? <HellooPhoneKeys digits={digits} onDigits={onPhone} max={maxDigits} /> : <div style={{ flexShrink: 0, display: "flex", justifyContent: "center", width: "100%" }}><SymbolDialPad value={dial} onChange={onDial} length={12} soundWhileTyping /></div>}
+    {byMobile ? <GloobalNumberKeys digits={digits} onDigits={onPhone} max={maxDigits} testid="helloo-dial-numbers" /> : <div style={{ flexShrink: 0, display: "flex", justifyContent: "center", width: "100%" }}><SymbolDialPad value={dial} onChange={onDial} length={12} soundWhileTyping /></div>}
     <div data-testid="helloo-dial-actions" style={{ display: "flex", justifyContent: "center", alignItems: "center", gap: 30, width: "100%", marginTop: 14, flexShrink: 0 }}><HellooActionIcons size={60} gap={22} disabled={!found} items={[[HlChat, "Message", onMessage], [HlPhone, "Call", onCall], [HlVideo, "Video", onVideo]]} /></div>
   </div>{picking && typeof CountryPickerScreen === "function" ? <CountryPickerScreen topCountries={TOP_COUNTRIES} countries={ALL_COUNTRIES} search={pickQ} onSearch={setPickQ} selectedIso={dialCountry && dialCountry.iso} onSelect={(c) => { setPicking(false); setPickQ(""); if (onCountry) onCountry(c); }} onClose={() => { setPicking(false); setPickQ(""); }} /> : null}</div>;
 }
@@ -85428,15 +85305,18 @@ function HellooRoot() {
     return () => window.removeEventListener(GLOOBAL_SESSION_EXPIRED_EVENT, expired);
   }, [signOut]);
 
-  const submitPin = async (value) => {
-    if (pinInFlight.current || String(value || "").length !== HELLOO_PIN_LENGTH) return;
+  const submitPin = (value) => signInWith(signInAs, value);
+  // Signing in, with whatever says who: the PIN step's number or ID, or the
+  // ID somebody has just made in Helloo (GloobalJoinFlow). True when signed in.
+  const signInWith = async (identifier, value) => {
+    if (pinInFlight.current || String(value || "").length !== HELLOO_PIN_LENGTH) return false;
     pinInFlight.current = true;
     setPinBusy(true);
     // Render's free plan sleeps; after a few seconds say so instead of
     // looking frozen.
     const waking = setTimeout(() => setPinWaking(true), 5000);
     try {
-      const { user: signedIn } = await GloobalApi.login(signInAs, value);
+      const { user: signedIn } = await GloobalApi.login(identifier, value);
       // The token this sign-in just earned. Saving the session drops it when
       // the phone still holds an old session of a DIFFERENT account, which
       // left the person signed in with no token: every request refused.
@@ -85448,9 +85328,11 @@ function HellooRoot() {
       setPin("");
       hellooJustSignedIn.current = true;
       setStage("back");
+      return true;
     } catch (err) {
       setPin("");
       setToast((err && err.message) || "Could not sign in. Try again.");
+      return false;
     } finally {
       clearTimeout(waking);
       pinInFlight.current = false;
@@ -87058,9 +86940,23 @@ function HellooRoot() {
 
 
   if (stage === "splash" || stage === "splash-in") return shell(<HellooSplash intro={stage === "splash"} onSkip={stage === "splash" ? () => setStage("id") : undefined} />);
-  if (stage === "welcome") return shell(<HellooWelcome hasGloobal={false} note={outNote} onEnterId={() => { setOutNote(""); setStage("id"); }} />);
-  if (stage === "id") return shell(<HellooIdScreen value={idValue} onChange={setIdValue} mode={idMode} onMode={setIdMode} mobile={idMobile} onMobile={setIdMobile} country={idCountry} onCountry={(c) => { setIdCountry(c); setIdMobile((m) => m.slice(0, hellooMobileRange(c)[1])); }} status={idValue.length === 12 ? "ready" : ""} note={outNote} onNext={() => { setOutNote(""); setPin(""); setStage("pin"); }} />);
-  if (stage === "pin") return shell(<LoginAuthScreen who={idMode === "mobile" ? `${idDial} ${hellooSpacedPhone(idMobile, idDial)}` : <ColoredGloobalId id={idValue} />} forgotHref={HELLOO_GLOOBAL_SIGNUP} value={pin} length={HELLOO_PIN_LENGTH} onChange={setPin} onSubmit={() => submitPin(pin)} onBack={() => setStage("id")} revealed={pinShown} onToggleReveal={() => setPinShown((v) => !v)} waking={pinWaking} busy={pinBusy} />);
+  if (stage === "welcome") return shell(<HellooWelcome hasGloobal={false} note={outNote} onEnterId={() => { setOutNote(""); setStage("id"); }} onCreateId={() => { setOutNote(""); setStage("join"); }} />);
+  // No GLOOBAL ID yet: GLOOBAL's whole registration, here in Helloo. Once
+  // the account and its PIN exist, Helloo signs in with them; if that
+  // sign-in can't happen just now (a sleeping server), the number is left
+  // on the sign-in screen so the PIN is all that's left to type.
+  if (stage === "join") return shell(<HellooJoin country={idCountry} digits={idMode === "mobile" ? idMobile : ""} onCancel={() => setStage("id")} onLoginInstead={(c, d) => { if (c) setIdCountry(c); setIdMobile(d || ""); setIdMode("mobile"); setStage("id"); }} onDone={async ({ mobileNumber, country: madeIn, digits: madeDigits, pin: madePin }) => {
+    const ok = await signInWith(mobileNumber, madePin);
+    if (!ok) {
+      if (madeIn) setIdCountry(madeIn);
+      setIdMobile(madeDigits || "");
+      setIdMode("mobile");
+      setStage("id");
+      setToast("Your GLOOBAL ID is made. Sign in with your PIN.");
+    }
+  }} />);
+  if (stage === "id") return shell(<HellooIdScreen value={idValue} onChange={setIdValue} mode={idMode} onMode={setIdMode} mobile={idMobile} onMobile={setIdMobile} country={idCountry} onCountry={(c) => { setIdCountry(c); setIdMobile((m) => m.slice(0, gloobalMobileRange(c)[1])); }} status={idValue.length === 12 ? "ready" : ""} note={outNote} onNext={() => { setOutNote(""); setPin(""); setStage("pin"); }} onJoin={() => { setOutNote(""); setStage("join"); }} />);
+  if (stage === "pin") return shell(<LoginAuthScreen who={idMode === "mobile" ? `${idDial} ${gloobalSpacedPhone(idMobile, idDial)}` : <ColoredGloobalId id={idValue} />} forgotHref={HELLOO_GLOOBAL_SIGNUP} value={pin} length={HELLOO_PIN_LENGTH} onChange={setPin} onSubmit={() => submitPin(pin)} onBack={() => setStage("id")} revealed={pinShown} onToggleReveal={() => setPinShown((v) => !v)} waking={pinWaking} busy={pinBusy} />);
   if (stage === "back" && me) return shell(<HellooWelcomeBack me={me} onDone={() => setStage("app")} />);
   if (!me) return shell(<HellooSplash />);
 

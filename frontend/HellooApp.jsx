@@ -182,15 +182,18 @@ function HellooRoot() {
     return () => window.removeEventListener(GLOOBAL_SESSION_EXPIRED_EVENT, expired);
   }, [signOut]);
 
-  const submitPin = async (value) => {
-    if (pinInFlight.current || String(value || "").length !== HELLOO_PIN_LENGTH) return;
+  const submitPin = (value) => signInWith(signInAs, value);
+  // Signing in, with whatever says who: the PIN step's number or ID, or the
+  // ID somebody has just made in Helloo (GloobalJoinFlow). True when signed in.
+  const signInWith = async (identifier, value) => {
+    if (pinInFlight.current || String(value || "").length !== HELLOO_PIN_LENGTH) return false;
     pinInFlight.current = true;
     setPinBusy(true);
     // Render's free plan sleeps; after a few seconds say so instead of
     // looking frozen.
     const waking = setTimeout(() => setPinWaking(true), 5000);
     try {
-      const { user: signedIn } = await GloobalApi.login(signInAs, value);
+      const { user: signedIn } = await GloobalApi.login(identifier, value);
       // The token this sign-in just earned. Saving the session drops it when
       // the phone still holds an old session of a DIFFERENT account, which
       // left the person signed in with no token: every request refused.
@@ -202,9 +205,11 @@ function HellooRoot() {
       setPin("");
       hellooJustSignedIn.current = true;
       setStage("back");
+      return true;
     } catch (err) {
       setPin("");
       setToast((err && err.message) || "Could not sign in. Try again.");
+      return false;
     } finally {
       clearTimeout(waking);
       pinInFlight.current = false;
@@ -1812,9 +1817,23 @@ function HellooRoot() {
 
 
   if (stage === "splash" || stage === "splash-in") return shell(<HellooSplash intro={stage === "splash"} onSkip={stage === "splash" ? () => setStage("id") : undefined} />);
-  if (stage === "welcome") return shell(<HellooWelcome hasGloobal={false} note={outNote} onEnterId={() => { setOutNote(""); setStage("id"); }} />);
-  if (stage === "id") return shell(<HellooIdScreen value={idValue} onChange={setIdValue} mode={idMode} onMode={setIdMode} mobile={idMobile} onMobile={setIdMobile} country={idCountry} onCountry={(c) => { setIdCountry(c); setIdMobile((m) => m.slice(0, hellooMobileRange(c)[1])); }} status={idValue.length === 12 ? "ready" : ""} note={outNote} onNext={() => { setOutNote(""); setPin(""); setStage("pin"); }} />);
-  if (stage === "pin") return shell(<LoginAuthScreen who={idMode === "mobile" ? `${idDial} ${hellooSpacedPhone(idMobile, idDial)}` : <ColoredGloobalId id={idValue} />} forgotHref={HELLOO_GLOOBAL_SIGNUP} value={pin} length={HELLOO_PIN_LENGTH} onChange={setPin} onSubmit={() => submitPin(pin)} onBack={() => setStage("id")} revealed={pinShown} onToggleReveal={() => setPinShown((v) => !v)} waking={pinWaking} busy={pinBusy} />);
+  if (stage === "welcome") return shell(<HellooWelcome hasGloobal={false} note={outNote} onEnterId={() => { setOutNote(""); setStage("id"); }} onCreateId={() => { setOutNote(""); setStage("join"); }} />);
+  // No GLOOBAL ID yet: GLOOBAL's whole registration, here in Helloo. Once
+  // the account and its PIN exist, Helloo signs in with them; if that
+  // sign-in can't happen just now (a sleeping server), the number is left
+  // on the sign-in screen so the PIN is all that's left to type.
+  if (stage === "join") return shell(<HellooJoin country={idCountry} digits={idMode === "mobile" ? idMobile : ""} onCancel={() => setStage("id")} onLoginInstead={(c, d) => { if (c) setIdCountry(c); setIdMobile(d || ""); setIdMode("mobile"); setStage("id"); }} onDone={async ({ mobileNumber, country: madeIn, digits: madeDigits, pin: madePin }) => {
+    const ok = await signInWith(mobileNumber, madePin);
+    if (!ok) {
+      if (madeIn) setIdCountry(madeIn);
+      setIdMobile(madeDigits || "");
+      setIdMode("mobile");
+      setStage("id");
+      setToast("Your GLOOBAL ID is made. Sign in with your PIN.");
+    }
+  }} />);
+  if (stage === "id") return shell(<HellooIdScreen value={idValue} onChange={setIdValue} mode={idMode} onMode={setIdMode} mobile={idMobile} onMobile={setIdMobile} country={idCountry} onCountry={(c) => { setIdCountry(c); setIdMobile((m) => m.slice(0, gloobalMobileRange(c)[1])); }} status={idValue.length === 12 ? "ready" : ""} note={outNote} onNext={() => { setOutNote(""); setPin(""); setStage("pin"); }} onJoin={() => { setOutNote(""); setStage("join"); }} />);
+  if (stage === "pin") return shell(<LoginAuthScreen who={idMode === "mobile" ? `${idDial} ${gloobalSpacedPhone(idMobile, idDial)}` : <ColoredGloobalId id={idValue} />} forgotHref={HELLOO_GLOOBAL_SIGNUP} value={pin} length={HELLOO_PIN_LENGTH} onChange={setPin} onSubmit={() => submitPin(pin)} onBack={() => setStage("id")} revealed={pinShown} onToggleReveal={() => setPinShown((v) => !v)} waking={pinWaking} busy={pinBusy} />);
   if (stage === "back" && me) return shell(<HellooWelcomeBack me={me} onDone={() => setStage("app")} />);
   if (!me) return shell(<HellooSplash />);
 
