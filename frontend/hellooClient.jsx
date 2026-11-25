@@ -100,7 +100,20 @@ var hellooApi = {
   startCall: (to, video, face, paid) => hellooHttp.post("/api/helloo/calls", Object.assign({ to, video: Boolean(video) }, face ? { face } : {}, paid || {})),
   calls: () => hellooHttp.get("/api/helloo/calls"),
   activeCall: () => hellooHttp.get("/api/helloo/calls/active"),
-  callAction: (id, action) => hellooHttp.post(`/api/helloo/calls/${encodeURIComponent(id)}/${action}`, {})
+  callAction: (id, action) => hellooHttp.post(`/api/helloo/calls/${encodeURIComponent(id)}/${action}`, {}),
+  // Groups and announcement groups (server lib/hellooGroups.js). People
+  // who know you are added; anyone else is invited.
+  groupCreate: (kind, name, people, about) => hellooHttp.post("/api/helloo/groups", { kind, name, people: people || [], about: about || "" }),
+  group: (chatId) => hellooHttp.get(`/api/helloo/groups/${encodeURIComponent(chatId)}`),
+  groupEdit: (chatId, fields) => hellooHttp.put(`/api/helloo/groups/${encodeURIComponent(chatId)}`, fields),
+  groupAdd: (chatId, people) => hellooHttp.post(`/api/helloo/groups/${encodeURIComponent(chatId)}/people`, { people }),
+  groupRemove: (chatId, accountId) => hellooHttp.post(`/api/helloo/groups/${encodeURIComponent(chatId)}/remove`, { accountId }),
+  groupAdmin: (chatId, accountId, admin) => hellooHttp.post(`/api/helloo/groups/${encodeURIComponent(chatId)}/admin`, { accountId, admin: Boolean(admin) }),
+  groupLeave: (chatId) => hellooHttp.post(`/api/helloo/groups/${encodeURIComponent(chatId)}/leave`, {}),
+  groupInvites: () => hellooHttp.get("/api/helloo/groups/invites"),
+  groupJoin: (chatId) => hellooHttp.post(`/api/helloo/groups/${encodeURIComponent(chatId)}/join`, {}),
+  groupDecline: (chatId) => hellooHttp.post(`/api/helloo/groups/${encodeURIComponent(chatId)}/decline`, {}),
+  groupUninvite: (chatId, accountId) => hellooHttp.post(`/api/helloo/groups/${encodeURIComponent(chatId)}/uninvite`, { accountId })
 };
 
 // "Last seen today at 14:05" / "yesterday at 21:10" / "12 Oct".
@@ -243,8 +256,16 @@ function hellooPersonFrom(card, photos) {
       ? `${paid.direction === "sent" ? "You paid" : "Paid you"} ${hellooMoneyText(paid.amount, paid.currency)} · ${hellooShortDate(paid.at)}`
       : card.chatted ? "Chatted on Helloo" : "",
     // The same, in parts, for rows that draw it rather than say it.
-    lastPay: paid ? { out: paid.direction === "sent", amountText: hellooMoneyText(paid.amount, paid.currency), when: hellooShortDate(paid.at) } : null
+    lastPay: paid ? { out: paid.direction === "sent", amountText: hellooMoneyText(paid.amount, paid.currency), when: hellooShortDate(paid.at) } : null,
+    // A group stands where a person would: its name, how many are in it.
+    ...(card.group ? { group: true, groupKind: card.kind || "group", members: Number(card.members) || 0, flag: "", iso: "", country: hellooGroupLine(card.kind, card.members) } : {})
   };
+}
+
+// Under a group's name: "Group · 5 members", "Announcements · 120 members".
+function hellooGroupLine(kind, members) {
+  const n = Number(members) || 0;
+  return `${kind === "announce" ? "Announcements" : "Group"} · ${n} ${n === 1 ? "member" : "members"}`;
 }
 
 // The signed-in account → the "me" object the screens draw.
@@ -282,6 +303,8 @@ function hellooDayLabel(d) {
 function hellooBubbleFrom(m, meAccountId, theyReadAt, voiceState, names) {
   const mine = m.from === meAccountId || m.from === "me";
   const at = new Date(m.at || Date.now());
+  // A group's own line ("Asha added Ravi"): quiet, in the middle.
+  if (m.kind === "note") return { kind: "note", id: m.id, text: m.text || "", at, from: "them" };
   const base = {
     forwarded: Boolean(m.forwarded),
     id: m.id || m.clientId,
@@ -293,9 +316,12 @@ function hellooBubbleFrom(m, meAccountId, theyReadAt, voiceState, names) {
     seenAt: mine && m.id && theyReadAt && new Date(theyReadAt) >= at ? theyReadAt : null,
     pending: !m.id
   };
+  // In a group, each message says who wrote it.
+  const people = names && names.people;
+  if (!mine && people && people[m.from]) { base.senderName = people[m.from]; base.senderId = m.from; }
   if (m.replyTo) {
     const quotedMine = m.replyTo.from === meAccountId;
-    base.replyTo = { id: m.replyTo.id, who: quotedMine ? "You" : (names && names.them) || "Them", preview: m.replyTo.preview };
+    base.replyTo = { id: m.replyTo.id, who: quotedMine ? "You" : (people && people[m.replyTo.from]) || (names && names.them) || "Them", preview: m.replyTo.preview };
   }
   base.preview = hellooPreviewOf(m);
   base.source = m;
@@ -366,7 +392,7 @@ function hellooBubbleFrom(m, meAccountId, theyReadAt, voiceState, names) {
 }
 
 function hellooThreadBubbles(messages, meAccountId, theyReadAt, voiceFor, names) {
-  const out = [{ kind: "system", text: "Private to you two · same GLOOBAL account" }];
+  const out = [{ kind: "system", text: (names && names.intro) || "Private to you two · same GLOOBAL account" }];
   let lastDay = "";
   for (const m of messages) {
     const bubble = hellooBubbleFrom(m, meAccountId, theyReadAt, voiceFor ? voiceFor(m) : null, names);
@@ -384,13 +410,15 @@ function hellooThreadBubbles(messages, meAccountId, theyReadAt, voiceFor, names)
 // (it draws the last element of `messages`).
 function hellooChatRowFrom(chat, photos) {
   const person = hellooPersonFrom(chat.person, photos);
+  const isGroup = Boolean(chat.group);
   const last = chat.last
     ? {
         kind: "text",
-        text: chat.last.preview,
-        from: chat.last.from === chat.person.accountId ? "them" : "me",
+        // A group: "Asha: see you at 7" (its own lines as they are).
+        text: isGroup && chat.last.kind !== "note" && chat.last.fromName && chat.last.fromName !== "You" ? `${chat.last.fromName}: ${chat.last.preview}` : chat.last.preview,
+        from: isGroup ? (chat.last.fromName === "You" && chat.last.kind !== "note" ? "me" : "them") : chat.last.from === chat.person.accountId ? "them" : "me",
         at: new Date(chat.lastAt),
-        read: Boolean(chat.theyReadAt && new Date(chat.theyReadAt) >= new Date(chat.lastAt)),
+        read: Boolean(!isGroup && chat.theyReadAt && new Date(chat.theyReadAt) >= new Date(chat.lastAt)),
         // Their last message paid to reach you: the row says so.
         paidText: chat.last.paid && chat.last.paid.amount ? hellooMoneyText(chat.last.paid.amount, chat.last.paid.currency) : ""
       }
@@ -401,7 +429,7 @@ function hellooChatRowFrom(chat, photos) {
   // that must say who they really are (a payment, their profile).
   const savedName = typeof chat.savedName === "string" ? chat.savedName : "";
   if (person && savedName) { person.accountName = person.name; person.name = savedName; }
-  return { id: chat.id, person, unread: chat.unread || 0, muted: Boolean(chat.muted), pinned: Boolean(chat.pinned), savedName, private: Boolean(chat.private), offHome: Boolean(chat.offHome), theme: typeof chat.theme === "string" ? chat.theme : "", released: chat.released || null, releaseState: chat.releaseState || null, messages: last ? [last] : [], lastAt: chat.lastAt, theyReadAt: chat.theyReadAt };
+  return { id: chat.id, group: chat.group || null, person, unread: chat.unread || 0, muted: Boolean(chat.muted), pinned: Boolean(chat.pinned), savedName, private: Boolean(chat.private), offHome: Boolean(chat.offHome), theme: typeof chat.theme === "string" ? chat.theme : "", released: chat.released || null, releaseState: chat.releaseState || null, messages: last ? [last] : [], lastAt: chat.lastAt, theyReadAt: chat.theyReadAt };
 }
 
 // ── FINDING A CHAT ──────────────────────────────────────────────────────

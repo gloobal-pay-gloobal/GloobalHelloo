@@ -25,6 +25,7 @@ const HELLOO_MODULES = [
   "screens/Chats.jsx",
   "screens/Thread.jsx",
   "screens/Calls.jsx",
+  "screens/Groups.jsx",
   "screens/PadMe.jsx",
   "screens/Reach.jsx",
   "screens/Broadcast.jsx",
