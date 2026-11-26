@@ -722,6 +722,47 @@ function hellooPeer(iceServers, sendSignal, onRemoteStream, onState) {
   };
 }
 
+// ── The other camera ──────────────────────────────────────────────────
+// Front ⇄ back, the same way on every phone (26 Nov). Flip used to ask for
+// the second camera while the first was still on; many Android phones
+// cannot run two cameras at once, so it failed and nothing changed. Now:
+//   * the caller lets the camera in use go FIRST;
+//   * the other side is asked for exactly; a phone that does not say which
+//     way its cameras face gets the camera named for that side, else its
+//     next camera ("avoid": the one we had);
+//   * a camera still closing is given a moment and asked again.
+// If nothing opens it throws, and the caller opens the one it had again.
+var hellooCamWait = (ms) => new Promise((ok) => setTimeout(ok, ms));
+async function hellooOpenCamera(facing, size, avoidId) {
+  const md = navigator.mediaDevices;
+  const ask = async (video) => {
+    try { return await md.getUserMedia({ video, audio: false }); } catch (e) {
+      if (e && (e.name === "NotReadableError" || e.name === "AbortError" || e.name === "TrackStartError")) { await hellooCamWait(450); return md.getUserMedia({ video, audio: false }); }
+      throw e;
+    }
+  };
+  const idOf = (s) => { const t = s && s.getVideoTracks()[0]; return (t && t.getSettings && t.getSettings().deviceId) || ""; };
+  const base = Object.assign({}, size || {});
+  try {
+    const s = await ask(Object.assign({ facingMode: { exact: facing } }, base));
+    if (!avoidId || idOf(s) !== avoidId) return s;
+    s.getTracks().forEach((t) => t.stop());
+  } catch (e) { /* this phone does not say which way, or has no such camera */ }
+  let cams = [];
+  try { cams = (await md.enumerateDevices()).filter((d) => d.kind === "videoinput" && d.deviceId); } catch (e) { cams = []; }
+  const side = facing === "environment" ? /back|rear|environment|world/i : /front|user|face|selfie/i;
+  const others = cams.filter((d) => d.deviceId !== avoidId);
+  const at = cams.findIndex((d) => d.deviceId === avoidId);
+  const pick = others.find((d) => side.test(d.label || "")) || (at >= 0 && cams.length > 1 ? cams[(at + 1) % cams.length] : others[0]);
+  if (pick) { try { return await ask(Object.assign({ deviceId: { exact: pick.deviceId } }, base)); } catch (e) { /* last try below */ } }
+  return ask(Object.assign({ facingMode: facing }, base));
+}
+// Which way a camera track faces, when the phone says; else what we asked.
+function hellooFacingOf(track, asked) {
+  const f = track && track.getSettings ? track.getSettings().facingMode : "";
+  return f === "environment" || f === "user" ? f : asked;
+}
+
 async function hellooLocalMedia(video, facing) {
   const constraints = { audio: { echoCancellation: true, noiseSuppression: true }, video: video ? { facingMode: facing || "user", width: { ideal: 640 }, height: { ideal: 480 } } : false };
   return navigator.mediaDevices.getUserMedia(constraints);

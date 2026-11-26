@@ -1740,21 +1740,40 @@ function HellooRoot() {
     document.addEventListener("visibilitychange", onVis);
     return () => document.removeEventListener("visibilitychange", onVis);
   }, []);
+  // Flip (26 Nov): the camera in use is let go first, then the other one
+  // opened (hellooOpenCamera) and sent in its place — the sound never
+  // stops. If the other camera will not open, the one we had comes back.
+  const flipping = useRefH9(false);
   const flipCamera = async () => {
     const c = callRef.current; const peer = peerRef.current; const s = localRef.current;
-    if (!c || !peer || !s) return;
-    const facing = c.facing === "environment" ? "user" : "environment";
-    try {
-      const fresh = await hellooLocalMedia(true, facing);
-      const track = fresh.getVideoTracks()[0];
-      const sender = peer.pc.getSenders().find((x) => x.track && x.track.kind === "video");
-      if (sender) await sender.replaceTrack(track);
-      s.getVideoTracks().forEach((t) => { t.stop(); s.removeTrack(t); });
+    if (!c || !peer || !s || flipping.current) return;
+    flipping.current = true;
+    const was = c.facing === "environment" ? "environment" : "user";
+    const want = was === "environment" ? "user" : "environment";
+    const size = { width: { ideal: 640 }, height: { ideal: 480 } };
+    const sender = peer.pc.getSenders().find((x) => x.track && x.track.kind === "video");
+    const old = s.getVideoTracks()[0];
+    const oldId = old && old.getSettings ? old.getSettings().deviceId || "" : "";
+    // Off the call first, then stopped: a camera stopped while still being
+    // sent leaves the sending side stuck on its last picture.
+    if (sender) await sender.replaceTrack(null).catch(() => {});
+    if (old) { old.stop(); s.removeTrack(old); }
+    let fresh = null; let facing = want; let failed = false;
+    try { fresh = await hellooOpenCamera(want, size, oldId); } catch (e) {
+      failed = true;
+      try { fresh = await hellooOpenCamera(was, size, ""); facing = was; } catch (e2) { fresh = null; }
+    }
+    const track = fresh && fresh.getVideoTracks()[0];
+    if (track && callRef.current && callRef.current.id === c.id) {
+      track.enabled = !callRef.current.cameraOff;
+      facing = hellooFacingOf(track, facing);
+      if (sender) await sender.replaceTrack(track).catch(() => {});
       s.addTrack(track);
-      fresh.getAudioTracks().forEach((t) => t.stop());
-      if (localVideoRef.current) localVideoRef.current.srcObject = s;
-      setCall((x) => (x ? Object.assign({}, x, { facing }) : x));
-    } catch (e) { setToast("Could not switch camera"); }
+      if (localVideoRef.current) { localVideoRef.current.srcObject = null; localVideoRef.current.srcObject = s; localVideoRef.current.play && localVideoRef.current.play().catch(() => {}); }
+      setCall((x) => (x && x.id === c.id ? Object.assign({}, x, { facing }) : x));
+    } else if (track) { track.stop(); }
+    if (failed || !track) setToast(track ? "Couldn't open the other camera" : "The camera stopped · try Flip again");
+    flipping.current = false;
   };
   const onIncomingCall = (c) => {
     if (callRef.current) return; // already on a call: the server marks it missed/busy
@@ -2017,7 +2036,7 @@ function HellooRoot() {
   // is a call, so it is never re-made (and never cut off) by moving between
   // full and small.
   const callBar = call && me && callMin ? <button data-testid="helloo-call-bar" onClick={() => setCallMin(false)} className="v2-tap" style={{ position: "absolute", top: 0, left: 0, right: 0, height: "calc(48px + env(safe-area-inset-top, 0px))", paddingTop: "env(safe-area-inset-top, 0px)", boxSizing: "border-box", zIndex: 280, display: "flex", alignItems: "center", justifyContent: "center", gap: 8, border: "none", background: "#0B9E6B", color: "#fff", fontFamily: T.fontBody, fontSize: 13.5, fontWeight: 800, cursor: "pointer", whiteSpace: "nowrap", overflow: "hidden" }}><HlPhone size={15} color="#fff" /><span>{call.state === "live" ? (call.reconnecting ? "Reconnecting…" : hellooDuration(call.seconds)) : call.state === "ringing" ? (call.direction === "in" ? "Incoming call" : "Calling…") : "Connecting…"}</span><span style={{ opacity: 0.85, maxWidth: 140, overflow: "hidden", textOverflow: "ellipsis" }}>· {call.person.handle || hellooName(call.person)}</span><span style={{ opacity: 0.85 }}>· Back to call</span></button> : null;
-  const callLayer = call && me ? <div key="helloo-call" style={callMin ? { display: "none" } : { position: "absolute", inset: 0, zIndex: 200 }}><HellooCallScreen person={call.person} paid={Boolean(call.paid)} video={call.video} state={call.state} reached={Boolean(call.reached)} seconds={call.seconds} muted={call.muted} cameraOff={call.cameraOff} speaker={call.speaker} reconnecting={Boolean(call.reconnecting)} theirMuted={Boolean(call.theirMuted)} theirCameraOff={Boolean(call.theirCameraOff)} incoming={call.direction === "in"} paidCall={call.paid || null} me={me} onReply={call.direction === "in" && call.state === "ringing" ? replyToCall : undefined} onAccept={answerCall} onEnd={hangUp} onMute={toggleMute} onCamera={toggleCamera} onSpeaker={toggleSpeaker} onFlip={flipCamera} onMinimise={() => setCallMin(true)} onChat={() => { if (call.chatId) { setCallMin(true); setScreen(null); openChat(call.chatId); } }} onShop={hellooIsBusiness(call.person) && call.person.gloobalId ? () => { const shopPerson = call.person; setCallMin(true); setScreen(null); Promise.resolve(openChatWith(shopPerson.accountId)).then(() => openMenu(shopPerson)); } : undefined} localVideoRef={localVideoRef} remoteVideoRef={remoteVideoRef} remoteAudioRef={remoteAudioRef} /></div> : null;
+  const callLayer = call && me ? <div key="helloo-call" style={callMin ? { display: "none" } : { position: "absolute", inset: 0, zIndex: 200 }}><HellooCallScreen person={call.person} paid={Boolean(call.paid)} video={call.video} state={call.state} reached={Boolean(call.reached)} seconds={call.seconds} muted={call.muted} cameraOff={call.cameraOff} mirror={call.facing !== "environment"} speaker={call.speaker} reconnecting={Boolean(call.reconnecting)} theirMuted={Boolean(call.theirMuted)} theirCameraOff={Boolean(call.theirCameraOff)} incoming={call.direction === "in"} paidCall={call.paid || null} me={me} onReply={call.direction === "in" && call.state === "ringing" ? replyToCall : undefined} onAccept={answerCall} onEnd={hangUp} onMute={toggleMute} onCamera={toggleCamera} onSpeaker={toggleSpeaker} onFlip={flipCamera} onMinimise={() => setCallMin(true)} onChat={() => { if (call.chatId) { setCallMin(true); setScreen(null); openChat(call.chatId); } }} onShop={hellooIsBusiness(call.person) && call.person.gloobalId ? () => { const shopPerson = call.person; setCallMin(true); setScreen(null); Promise.resolve(openChatWith(shopPerson.accountId)).then(() => openMenu(shopPerson)); } : undefined} localVideoRef={localVideoRef} remoteVideoRef={remoteVideoRef} remoteAudioRef={remoteAudioRef} /></div> : null;
   if (locked && signedIn && me && !call) return shell(<HellooScreen><div data-testid="helloo-locked" style={{ flex: 1, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: 14, padding: "0 32px", textAlign: "center" }}><span style={{ fontSize: 30 }}><HellooWordmark /></span><span style={{ width: 72, height: 72, borderRadius: "50%", background: T.accentSoft, display: "flex", alignItems: "center", justifyContent: "center", marginTop: 8 }}><HlFinger size={34} color={T.accent} /></span><div style={{ fontSize: 18, fontWeight: 800, fontFamily: T.fontDisplay, color: T.ink }}>Locked</div><div style={{ fontSize: 13.5, color: T.inkSoft, lineHeight: 1.45 }}>{lockNote || "Your chats are locked after five minutes away. Open with your fingerprint, Face ID or GLOOBAL PIN."}</div><div style={{ width: "100%", maxWidth: 300, marginTop: 8, display: "flex", flexDirection: "column", gap: 10 }}><HellooPrimary Icon={HlFinger} onClick={unlock} disabled={unlocking}>{unlocking ? "Checking…" : "Unlock"}</HellooPrimary><HellooSecondary Icon={HlLogOut} onClick={() => { setLocked(false); signOut("Signed out"); }}>Sign out</HellooSecondary></div></div></HellooScreen>);
   if (call && me && !callMin) return shell(null);
 

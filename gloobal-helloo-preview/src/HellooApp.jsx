@@ -80703,7 +80703,7 @@ function HellooCallReplySheet({ me, person, onSend, onClose }) {
   </div></HellooSheet>;
 }
 
-function HellooCallScreen({ reached = false, paidCall = null, me = null, onReply, person, video = false, state = "ringing", seconds = 0, muted = false, speaker = false, cameraOff = false, reconnecting = false, theirMuted = false, theirCameraOff = false, onMute, onSpeaker, onCamera, onFlip, onEnd, onMinimise, onChat, onShop, meter = null, localVideoRef, remoteVideoRef, remoteAudioRef, incoming = false, onAccept, note = "", paid = false }) {
+function HellooCallScreen({ reached = false, paidCall = null, me = null, onReply, person, video = false, state = "ringing", seconds = 0, muted = false, speaker = false, cameraOff = false, mirror = true, reconnecting = false, theirMuted = false, theirCameraOff = false, onMute, onSpeaker, onCamera, onFlip, onEnd, onMinimise, onChat, onShop, meter = null, localVideoRef, remoteVideoRef, remoteAudioRef, incoming = false, onAccept, note = "", paid = false }) {
   const live = state === "live";
   const [replying, setReplying] = useStateH12(false);
   const showVideo = video && (live || state === "connecting");
@@ -80742,7 +80742,7 @@ function HellooCallScreen({ reached = false, paidCall = null, me = null, onReply
     <audio ref={remoteAudioRef} autoPlay data-testid="helloo-call-sound" />
     {showVideo && <span aria-hidden="true" style={{ position: "absolute", left: 0, right: 0, top: 0, height: 190, background: "linear-gradient(rgba(0,0,0,0.62), rgba(0,0,0,0))", zIndex: 1 }} />}
     {showVideo && <span aria-hidden="true" style={{ position: "absolute", left: 0, right: 0, bottom: 0, height: 210, background: "linear-gradient(rgba(0,0,0,0), rgba(0,0,0,0.55))", zIndex: 1 }} />}
-    {video && <video ref={localVideoRef} autoPlay playsInline muted data-testid="helloo-call-self" style={{ position: "absolute", right: 18, bottom: "calc(118px + env(safe-area-inset-bottom, 0px))", width: 104, height: 104, objectFit: "cover", borderRadius: "50%", background: "#111", border: "3px solid #fff", boxShadow: "0 10px 28px rgba(0,0,0,0.45)", transform: "scaleX(-1)", zIndex: 3, display: cameraOff || !showVideo ? "none" : "block" }} />}
+    {video && <video ref={localVideoRef} autoPlay playsInline muted data-testid="helloo-call-self" style={{ position: "absolute", right: 18, bottom: "calc(118px + env(safe-area-inset-bottom, 0px))", width: 104, height: 104, objectFit: "cover", borderRadius: "50%", background: "#111", border: "3px solid #fff", boxShadow: "0 10px 28px rgba(0,0,0,0.45)", transform: mirror ? "scaleX(-1)" : "none", zIndex: 3, display: cameraOff || !showVideo ? "none" : "block" }} />}
     <div style={{ position: "relative", zIndex: 2, display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12, padding: "calc(14px + env(safe-area-inset-top, 0px)) 18px 0 24px" }}><div data-testid="helloo-call-name" style={{ flex: 1, minWidth: 0, fontSize: showVideo ? 22 : 34, fontWeight: 800, fontFamily: T.fontDisplay, letterSpacing: showVideo ? -0.4 : -1, lineHeight: 1.08, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}><span style={{ display: "inline-flex", alignItems: "center", gap: 8, maxWidth: "100%", minWidth: 0 }}><span style={{ minWidth: 0, overflow: "hidden", textOverflow: "ellipsis" }}>{shop ? <CreatorHandleText handle={person.handle} icon={false} color={ink} /> : hellooName(person)}</span>{!person.group ? <HellooBadge tier={person.badge || 1} size={showVideo ? 20 : 26} /> : null}</span></div><button onClick={onMinimise} aria-label="Minimise" data-testid="helloo-call-flag" title={person.country ? `${person.country} · tap to make the call small` : "Make the call small"} className="v2-tap" style={{ position: "relative", width: 44, height: 44, flexShrink: 0, borderRadius: "50%", border: "none", padding: 0, background: showVideo ? "rgba(255,255,255,0.9)" : "#fff", display: "flex", alignItems: "center", justifyContent: "center", boxShadow: "0 2px 10px rgba(23,19,43,0.14)", cursor: "pointer" }}>{person.flag ? <FlagEmoji flag={person.flag} size={32} shape="circle" border="none" /> : <HlDown size={20} color={INK} />}{person.flag ? <span aria-hidden="true" style={{ position: "absolute", right: -3, bottom: -3, width: 20, height: 20, borderRadius: "50%", background: INK, border: "2px solid #fff", display: "flex", alignItems: "center", justifyContent: "center" }}><HlDown size={12} color="#fff" strokeWidth={3} /></span> : null}</button></div>
     <div style={{ position: "relative", zIndex: 2, padding: showVideo ? "4px 20px 0" : "6px 24px 0" }}><div style={{ display: "flex", alignItems: "center", gap: 7, fontSize: 13, color: soft, marginTop: 2, fontWeight: 600 }}>{shop ? "Shop" : null}</div><div data-testid="helloo-call-status" style={{ marginTop: showVideo ? 4 : 14, fontSize: live ? (showVideo ? 17 : 30) : 15, fontWeight: live ? 800 : 700, fontFamily: live ? T.fontDisplay : T.fontBody, letterSpacing: live ? -0.5 : 0, color: live ? (showVideo ? "#fff" : HT.free) : soft, fontVariantNumeric: "tabular-nums" }}>{status}</div>{theirMuted && live ? <div data-testid="helloo-call-their-muted" style={{ display: "inline-flex", alignItems: "center", gap: 6, marginTop: 8, padding: "5px 11px", borderRadius: 999, background: showVideo ? "rgba(255,255,255,0.18)" : "#fff", color: ink, fontSize: 12.5, fontWeight: 800, fontFamily: T.fontBody, boxShadow: showVideo ? "none" : "0 4px 14px rgba(60,40,140,0.10)" }}><HlMicOff size={14} color={ink} />{theirName} muted</div> : null}{paidPill}</div>
     <div style={{ position: "relative", zIndex: 2, flex: 1, minHeight: 0, display: "flex", alignItems: "center", justifyContent: "center" }}>{!showVideo && <span style={{ position: "relative", display: "inline-flex", animation: live ? "hlBreathe 2.8s ease-in-out infinite" : "none" }}>{state === "ringing" && ring(0)}{state === "ringing" && ring(0.7)}{state === "ringing" && ring(1.4)}{picture}</span>}<style>{"@keyframes hlCallRing{0%{transform:scale(1);opacity:.5}100%{transform:scale(1.55);opacity:0}}@keyframes hlBreathe{0%,100%{transform:scale(1)}50%{transform:scale(1.03)}}@media (prefers-reduced-motion: reduce){[data-testid=helloo-call-picture]{animation:none}}"}</style></div>
@@ -82880,6 +82880,33 @@ function SocialViewer({ post, photos, act, muted, onMuted, onBack, embedded = fa
 
 // ── Reels and Videos, one after another ─────────────────────────────────
 // Full screen, swipe up for the next. Reels ⇄ Videos at the top.
+// (26 Nov) A swipe moves one page (a reel, a video, a shared post), every
+// time. The browser alone needs a drag past half the screen or a fast
+// flick, and otherwise springs back to the same one — which felt like
+// Reels not scrolling. Here a clear swipe up or down (40 px, or a quick
+// 12) goes to the next or the one before. Across is left alone (it opens a
+// reel's full video, or turns a post's photos).
+function useSocialPager(box, count) {
+  const drag = useRefH40(null);
+  const onTouchStart = (e) => { const t = e.touches && e.touches[0]; const el = box.current; drag.current = t && el && e.touches.length === 1 ? { x: t.clientX, y: t.clientY, at: Date.now(), from: el.scrollTop } : null; };
+  const onTouchEnd = (e) => {
+    const d = drag.current; drag.current = null;
+    const t = e.changedTouches && e.changedTouches[0]; const el = box.current;
+    if (!d || !t || !el || !count) return;
+    const dy = t.clientY - d.y, dx = t.clientX - d.x;
+    if (Math.abs(dx) > Math.abs(dy) || Math.abs(dy) < 12) return;
+    const h = Math.max(1, el.clientHeight);
+    const from = Math.round(d.from / h);
+    const quick = Math.abs(dy) / Math.max(1, Date.now() - d.at) > 0.35;
+    let to = from;
+    if (dy < -40 || (dy < -12 && quick)) to = from + 1;
+    else if (dy > 40 || (dy > 12 && quick)) to = from - 1;
+    to = Math.max(0, Math.min(to, count - 1));
+    requestAnimationFrame(() => { try { el.scrollTo({ top: to * h, behavior: "smooth" }); } catch (er) { el.scrollTop = to * h; } });
+  };
+  return { onTouchStart, onTouchEnd };
+}
+
 function SocialReels({ format, onFormat, list, setList, photos, act, muted, onMuted, onBack, sharedNew = 0 }) {
   const box = useRefH40(null);
   const [at, setAt] = useStateH40(0);
@@ -82893,6 +82920,7 @@ function SocialReels({ format, onFormat, list, setList, photos, act, muted, onMu
   }, [format, list, setList]);
   useEffectH40(() => { if (!list || list.format !== format) { setAt(0); if (box.current) box.current.scrollTop = 0; load(false); } }, [format]);
   const posts = list && list.format === format ? list.posts : null;
+  const pager = useSocialPager(box, posts ? posts.length : 0);
   const onScroll = () => {
     const el = box.current; if (!el) return;
     const i = Math.round(el.scrollTop / Math.max(1, el.clientHeight));
@@ -82903,7 +82931,7 @@ function SocialReels({ format, onFormat, list, setList, photos, act, muted, onMu
   return <div data-testid="social-reels" style={{ position: "absolute", inset: 0, zIndex: 45, background: "#000", fontFamily: T.fontBody }}>
     {tabs}
     <button type="button" onClick={() => act.saved()} aria-label="Saved" title="Saved" data-testid="social-reels-saved" className="v2-tap" style={{ position: "absolute", top: "calc(8px + env(safe-area-inset-top, 0px))", right: 10, zIndex: 6, width: 44, height: 44, borderRadius: "50%", border: "none", background: "none", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", padding: 0 }}><SxSaved size={24} color="#fff" style={{ filter: "drop-shadow(0 1px 3px rgba(0,0,0,0.6))" }} />{sharedNew ? <span data-testid="social-shared-new" style={{ position: "absolute", top: 2, right: 0, minWidth: 18, height: 18, padding: "0 5px", boxSizing: "border-box", borderRadius: 9, background: "#EF4444", color: "#fff", fontSize: 11, fontWeight: 800, display: "flex", alignItems: "center", justifyContent: "center" }}>{sharedNew}</span> : null}</button>
-    <div ref={box} onScroll={onScroll} style={{ position: "absolute", inset: 0, overflowY: "auto", scrollSnapType: "y mandatory", scrollbarWidth: "none" }}>
+    <div ref={box} onScroll={onScroll} {...pager} data-testid="social-reels-scroll" style={{ position: "absolute", inset: 0, overflowY: "auto", scrollSnapType: "y mandatory", scrollbarWidth: "none", overscrollBehavior: "contain" }}>
       {posts === null ? <div style={{ height: "100%", display: "flex", alignItems: "center", justifyContent: "center", color: "#fff", opacity: 0.7, fontSize: 14 }}>{err || "Loading…"}</div>
         : posts.length === 0 ? <div style={{ height: "100%", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: 10, color: "#fff", padding: 30, textAlign: "center" }}>{format === "reel" ? <SxReels size={40} color="#fff" /> : <SxVideo size={40} color="#fff" />}<b style={{ fontSize: 17 }}>{format === "reel" ? "No reels yet" : "No videos yet"}</b><span style={{ fontSize: 13.5, opacity: 0.75 }}>{format === "reel" ? "Short videos people share show up here, one after another." : "Longer videos people share show up here."}</span></div>
           : posts.map((p, i) => <div key={p.id} data-testid="social-reels-page" style={{ position: "relative", height: "100%", scrollSnapAlign: "start", scrollSnapStop: "always" }}>{Math.abs(i - at) <= 1 ? <SocialViewer post={p} photos={photos} act={act} muted={muted} onMuted={onMuted} onBack={onBack} embedded /> : null}</div>)}
@@ -82988,6 +83016,7 @@ function SocialSharedShelf({ list, setList, photos, act, muted, onMuted, onBack,
     return () => { live = false; };
   }, []);
   const items = list ? list.items : null;
+  const pager = useSocialPager(box, items ? items.length : 0);
   const onScroll = () => { const el = box.current; if (!el) return; const i = Math.round(el.scrollTop / Math.max(1, el.clientHeight)); if (i !== at) setAt(i); };
   const drop = (it) => { setList((l) => (l ? Object.assign({}, l, { items: l.items.filter((x) => x.post.id !== it.post.id) }) : l)); socialApi.sharedDrop(it.post.id).then(() => onToast("Taken off your shelf")).catch(() => {}); };
   const chipOf = (it) => {
@@ -83004,7 +83033,7 @@ function SocialSharedShelf({ list, setList, photos, act, muted, onMuted, onBack,
   };
   return <div data-testid="social-shared" style={{ position: "absolute", inset: 0, zIndex: 48, background: "#000", fontFamily: T.fontBody }}>
     <div style={{ position: "absolute", top: "calc(18px + env(safe-area-inset-top, 0px))", left: 0, right: 0, zIndex: 5, textAlign: "center", pointerEvents: "none", color: "#fff", fontSize: 16, fontWeight: 900, fontFamily: T.fontDisplay, textShadow: "0 1px 4px rgba(0,0,0,0.6)" }}>Shared with me{items && items.length ? <span style={{ opacity: 0.7, fontWeight: 700 }}> · {Math.min(at + 1, items.length)}/{items.length}</span> : null}</div>
-    <div ref={box} onScroll={onScroll} style={{ position: "absolute", inset: 0, overflowY: "auto", scrollSnapType: "y mandatory", scrollbarWidth: "none" }}>
+    <div ref={box} onScroll={onScroll} {...pager} data-testid="social-shared-scroll" style={{ position: "absolute", inset: 0, overflowY: "auto", scrollSnapType: "y mandatory", scrollbarWidth: "none", overscrollBehavior: "contain" }}>
       {items === null ? <div style={{ height: "100%", display: "flex", alignItems: "center", justifyContent: "center", color: "#fff", opacity: 0.7, fontSize: 14 }}>{err || "Loading…"}</div>
         : items.length === 0 ? <div style={{ height: "100%", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: 10, color: "#fff", padding: 30, textAlign: "center" }}><SxSaved size={40} color="#fff" /><b style={{ fontSize: 17 }}>Nothing shared with you yet</b><span style={{ fontSize: 13.5, opacity: 0.75, lineHeight: 1.45 }}>When people you saved or follow share a reel, post or video with you, it waits here — not in your chats.</span><button type="button" onClick={onBack} className="v2-tap" style={{ marginTop: 8, border: "none", borderRadius: 999, padding: "10px 22px", background: "#fff", color: "#111", fontSize: 14, fontWeight: 800, cursor: "pointer", fontFamily: T.fontBody }}>Back</button></div>
           : items.map((it, i) => <div key={it.post.id} data-testid="social-shared-page" style={{ position: "relative", height: "100%", scrollSnapAlign: "start", scrollSnapStop: "always" }}>{Math.abs(i - at) <= 1 ? <SocialViewer post={it.post} photos={photos} act={act} muted={muted} onMuted={onMuted} onBack={onBack} embedded chip={chipOf(it)} /> : null}</div>)}
@@ -83883,54 +83912,112 @@ function HellooSnapCamera({ person, onClose, onSend, onToast }) {
   const [caption, setCaption] = useStateH45("");
   const [sending, setSending] = useStateH45(false);
   const video = useRefH45(null);
-  const stream = useRefH45(null);
+  // (26 Nov) The camera and the microphone are kept apart: Flip changes
+  // only the camera (the one in use let go first — see hellooOpenCamera),
+  // so the microphone, and a clip being recorded, carry on.
+  const stream = useRefH45(null); // the camera
+  const mic = useRefH45(null);
+  const camId = useRefH45("");
+  const [actual, setActual] = useStateH45("environment"); // which way it really faces
+  const actualRef = useRefH45("environment");
+  const [switching, setSwitching] = useStateH45(false);
   const rec = useRefH45(null);
   const hold = useRefH45(null);
   const tick = useRefH45(null);
   const started = useRefH45(0);
   const pick = useRefH45(null);
-  const stop = () => { if (stream.current) { stream.current.getTracks().forEach((t) => t.stop()); stream.current = null; } };
+  const drawStop = useRefH45(null);
+  const lastTap = useRefH45(0);
+  const stopCam = () => { if (stream.current) { stream.current.getTracks().forEach((t) => t.stop()); stream.current = null; } };
+  const stopMic = () => { if (mic.current) { mic.current.getTracks().forEach((t) => t.stop()); mic.current = null; } };
+  const stop = () => { stopCam(); stopMic(); };
+  const can = typeof navigator !== "undefined" && navigator.mediaDevices && navigator.mediaDevices.getUserMedia;
+  // The microphone: once while the camera is open, for clips.
+  useEffectH45(() => {
+    if (shot || !can) return undefined;
+    let gone = false;
+    navigator.mediaDevices.getUserMedia({ audio: true, video: false }).then((s) => { if (gone) s.getTracks().forEach((t) => t.stop()); else mic.current = s; }).catch(() => { /* clips without sound */ });
+    return () => { gone = true; stopMic(); };
+  }, [shot]);
+  // The camera: again on every Flip.
   useEffectH45(() => {
     if (shot) return undefined;
     let gone = false;
     setReady(false); setBlocked("");
-    const want = (audio) => navigator.mediaDevices.getUserMedia({ video: { facingMode: facing, width: { ideal: 1280 }, height: { ideal: 720 } }, audio });
-    if (typeof navigator === "undefined" || !navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) { setBlocked("This phone's browser can't open the camera here. Pick from your gallery."); return undefined; }
-    want(true).catch(() => want(false)).then((s) => {
+    if (!can) { setBlocked("This phone's browser can't open the camera here. Pick from your gallery."); return undefined; }
+    const avoid = camId.current;
+    hellooOpenCamera(facing, { width: { ideal: 1280 }, height: { ideal: 720 } }, avoid).catch(() => (avoid ? hellooOpenCamera(facing === "user" ? "environment" : "user", { width: { ideal: 1280 }, height: { ideal: 720 } }, "") : Promise.reject(new Error("no camera")))).then((s) => {
       if (gone) { s.getTracks().forEach((t) => t.stop()); return; }
       stream.current = s;
+      const t = s.getVideoTracks()[0];
+      camId.current = (t && t.getSettings && t.getSettings().deviceId) || "";
+      const way = hellooFacingOf(t, facing); actualRef.current = way; setActual(way);
       const v = video.current; if (v) { v.srcObject = s; v.play().catch(() => {}); }
-      setReady(true);
-    }).catch(() => { if (!gone) setBlocked("Allow the camera for Helloo, or pick from your gallery."); });
-    return () => { gone = true; stop(); };
+      setReady(true); setSwitching(false);
+    }).catch(() => { if (!gone) { setSwitching(false); setBlocked("Allow the camera for Helloo, or pick from your gallery."); } });
+    return () => { gone = true; stopCam(); };
   }, [facing, shot]);
-  useEffectH45(() => () => { clearInterval(tick.current); clearTimeout(hold.current); stop(); }, []);
+  useEffectH45(() => () => { clearInterval(tick.current); clearTimeout(hold.current); if (drawStop.current) drawStop.current(); stop(); }, []);
+  const flip = () => {
+    if (switching) return;
+    // A clip being recorded straight from the camera cannot change camera.
+    if (rec.current && rec.current.state === "recording" && !drawStop.current) { onToast("Flip before you start the clip"); return; }
+    setTorch(false); setSwitching(true);
+    setFacing((f) => (f === "user" ? "environment" : "user"));
+  };
   const toggleTorch = () => { const track = stream.current && stream.current.getVideoTracks()[0]; if (!track) return; const on = !torch; track.applyConstraints({ advanced: [{ torch: on }] }).then(() => setTorch(on)).catch(() => onToast("No flash on this camera")); };
   const takePhoto = () => {
     const v = video.current; if (!v || !v.videoWidth) return;
     const c = document.createElement("canvas"); c.width = v.videoWidth; c.height = v.videoHeight;
     const ctx = c.getContext("2d");
-    if (facing === "user") { ctx.translate(c.width, 0); ctx.scale(-1, 1); }
+    if (actualRef.current === "user") { ctx.translate(c.width, 0); ctx.scale(-1, 1); }
     ctx.drawImage(v, 0, 0);
     c.toBlob((blob) => { if (blob) setShot({ kind: "photo", blob, url: URL.createObjectURL(blob), width: c.width, height: c.height, seconds: 0 }); }, "image/jpeg", 0.9);
   };
   const startClip = () => {
-    if (!stream.current || typeof MediaRecorder === "undefined") { onToast("This phone can't record a clip here"); return; }
+    const v = video.current;
+    if (!stream.current || !v || !v.videoWidth || typeof MediaRecorder === "undefined") { onToast("This phone can't record a clip here"); return; }
     const type = ["video/mp4", "video/webm;codecs=vp8,opus", "video/webm"].find((t) => MediaRecorder.isTypeSupported(t)) || "";
     const chunks = [];
+    // The clip is drawn from the screen's picture onto a canvas and recorded
+    // from there, so Flip in the middle of a clip just carries on with the
+    // other camera. A phone without that records the camera itself.
+    const W = v.videoWidth, H = v.videoHeight;
+    const canvas = document.createElement("canvas");
+    let source = null;
+    if (canvas.captureStream) {
+      canvas.width = W; canvas.height = H;
+      const ctx = canvas.getContext("2d");
+      let raf = 0; let on = true;
+      const draw = () => {
+        if (!on) return;
+        const vv = video.current;
+        if (vv && vv.readyState >= 2 && vv.videoWidth) {
+          const k = Math.max(W / vv.videoWidth, H / vv.videoHeight); const dw = vv.videoWidth * k, dh = vv.videoHeight * k;
+          ctx.drawImage(vv, (W - dw) / 2, (H - dh) / 2, dw, dh);
+        }
+        raf = requestAnimationFrame(draw);
+      };
+      draw();
+      const picture = canvas.captureStream(30);
+      drawStop.current = () => { on = false; cancelAnimationFrame(raf); picture.getTracks().forEach((t) => t.stop()); drawStop.current = null; };
+      source = new MediaStream([...picture.getVideoTracks(), ...(mic.current ? mic.current.getAudioTracks() : [])]);
+    } else {
+      source = new MediaStream([...stream.current.getVideoTracks(), ...(mic.current ? mic.current.getAudioTracks() : [])]);
+    }
     let r;
-    try { r = new MediaRecorder(stream.current, Object.assign({ videoBitsPerSecond: 1600000, audioBitsPerSecond: 64000 }, type ? { mimeType: type } : {})); } catch (e) { onToast("This phone can't record a clip here"); return; }
+    try { r = new MediaRecorder(source, Object.assign({ videoBitsPerSecond: 1600000, audioBitsPerSecond: 64000 }, type ? { mimeType: type } : {})); } catch (e) { if (drawStop.current) drawStop.current(); onToast("This phone can't record a clip here"); return; }
     r.ondataavailable = (e) => { if (e.data && e.data.size) chunks.push(e.data); };
     r.onstop = () => {
       clearInterval(tick.current);
+      if (drawStop.current) drawStop.current();
       const seconds = Math.min(HELLOO_SNAP_MAX_SECONDS, Math.max(1, (Date.now() - started.current) / 1000));
       const blob = new Blob(chunks, { type: (r.mimeType || type || "video/webm").split(";")[0] });
-      const v = video.current;
       setRecording(0);
       if (blob.size > HELLOO_SNAP_MAX_BYTES) { onToast("That clip came out too big. Try a shorter one."); return; }
-      setShot({ kind: "video", blob, url: URL.createObjectURL(blob), width: (v && v.videoWidth) || 0, height: (v && v.videoHeight) || 0, seconds });
+      setShot({ kind: "video", blob, url: URL.createObjectURL(blob), width: W, height: H, seconds });
     };
-    rec.current = r; started.current = Date.now(); r.start(); setRecording(1);
+    rec.current = r; started.current = Date.now(); r.start(250); setRecording(1);
     tick.current = setInterval(() => { const s = Math.floor((Date.now() - started.current) / 1000); setRecording(Math.max(1, s)); if (s >= HELLOO_SNAP_MAX_SECONDS && rec.current && rec.current.state === "recording") rec.current.stop(); }, 250);
   };
   const down = () => { if (!ready) return; hold.current = setTimeout(() => { hold.current = null; startClip(); }, 350); };
@@ -83966,11 +84053,11 @@ function HellooSnapCamera({ person, onClose, onSend, onToast }) {
   </div>;
 
   return <div data-testid="helloo-snap-camera" style={{ position: "absolute", inset: 0, zIndex: 120, background: "#000", overflow: "hidden", fontFamily: T.fontBody }}>{fileInput}
-    <video ref={video} muted playsInline style={{ width: "100%", height: "100%", objectFit: "cover", transform: facing === "user" ? "scaleX(-1)" : "none" }} />
+    <video ref={video} muted playsInline data-testid="helloo-snap-preview" onClick={() => { const t = Date.now(); if (t - lastTap.current < 320) { lastTap.current = 0; flip(); } else lastTap.current = t; }} style={{ width: "100%", height: "100%", objectFit: "cover", transform: actual === "user" ? "scaleX(-1)" : "none" }} />
     <div style={{ position: "absolute", inset: 0, background: "linear-gradient(180deg, rgba(0,0,0,0.45), transparent 20%, transparent 62%, rgba(0,0,0,0.75))", pointerEvents: "none" }} />
     <div style={{ position: "absolute", left: 14, right: 14, top: "calc(14px + env(safe-area-inset-top, 0px))", display: "flex", alignItems: "center", justifyContent: "space-between" }}>{round(HlX, "Close", onClose)}<span style={{ display: "flex", alignItems: "center", gap: 8, height: 36, padding: "0 12px 0 5px", borderRadius: 999, background: recording ? "#DC2626" : "rgba(0,0,0,0.42)", color: "#fff", fontSize: 13, fontWeight: 800, maxWidth: "60%" }}>{recording ? <span style={{ padding: "0 6px", fontVariantNumeric: "tabular-nums" }}>● {hellooClipTime(recording)} / 0:30</span> : <><HellooAvatar person={person} size={26} flag={false} /><span style={{ whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>To {name}</span></>}</span>{round(SnFlash, "Flash", toggleTorch, torch)}</div>
     {blocked ? <div style={{ position: "absolute", left: 24, right: 24, top: "38%", textAlign: "center", color: "#fff" }}><div style={{ fontSize: 15, fontWeight: 800, lineHeight: 1.4 }}>{blocked}</div><button onClick={() => pick.current && pick.current.click()} className="v2-tap" style={{ marginTop: 16, height: 46, padding: "0 20px", borderRadius: 999, border: "none", background: "#fff", color: "#111", fontSize: 14, fontWeight: 800, cursor: "pointer", fontFamily: T.fontBody }}>Pick from gallery</button></div> : null}
-    <div style={{ position: "absolute", left: 0, right: 0, bottom: "calc(30px + env(safe-area-inset-bottom, 0px))", display: "flex", flexDirection: "column", alignItems: "center", gap: 16 }}><span style={{ fontSize: 12.5, fontWeight: 700, color: "#fff", opacity: 0.9 }}>{recording ? "Let go to finish" : "Tap for a photo · hold for a clip, up to 30 sec"}</span><div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 44, width: "100%" }}><button onClick={() => pick.current && pick.current.click()} aria-label="Pick from gallery" className="v2-tap" style={{ width: 50, height: 50, borderRadius: 16, border: "none", background: "rgba(255,255,255,0.2)", display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer" }}><SnGallery size={22} color="#fff" /></button><button onPointerDown={down} onPointerUp={up} onPointerCancel={up} onContextMenu={(e) => e.preventDefault()} aria-label="Tap for a photo, hold for a clip" data-testid="helloo-snap-shutter" disabled={!ready} style={{ width: 84, height: 84, borderRadius: "50%", border: `5px solid ${recording ? "#DC2626" : "#fff"}`, background: "none", display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer", padding: 0, touchAction: "none", opacity: ready ? 1 : 0.5 }}><span style={{ width: recording ? 34 : 66, height: recording ? 34 : 66, borderRadius: recording ? 10 : "50%", background: recording ? "#DC2626" : "#fff", transition: "all 0.15s ease" }} /></button><button onClick={() => { setTorch(false); setFacing((f) => (f === "user" ? "environment" : "user")); }} aria-label="Turn the camera round" className="v2-tap" style={{ width: 50, height: 50, borderRadius: "50%", border: "none", background: "rgba(255,255,255,0.2)", display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer" }}><SnFlip size={22} color="#fff" /></button></div></div>
+    <div style={{ position: "absolute", left: 0, right: 0, bottom: "calc(30px + env(safe-area-inset-bottom, 0px))", display: "flex", flexDirection: "column", alignItems: "center", gap: 16 }}><span style={{ fontSize: 12.5, fontWeight: 700, color: "#fff", opacity: 0.9 }}>{recording ? "Let go to finish · tap ⟲ to flip" : "Tap for a photo · hold for a clip, up to 30 sec"}</span><div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 44, width: "100%" }}><button onClick={() => pick.current && pick.current.click()} aria-label="Pick from gallery" className="v2-tap" style={{ width: 50, height: 50, borderRadius: 16, border: "none", background: "rgba(255,255,255,0.2)", display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer" }}><SnGallery size={22} color="#fff" /></button><button onPointerDown={down} onPointerUp={up} onPointerCancel={up} onContextMenu={(e) => e.preventDefault()} aria-label="Tap for a photo, hold for a clip" data-testid="helloo-snap-shutter" disabled={!ready && !recording} style={{ width: 84, height: 84, borderRadius: "50%", border: `5px solid ${recording ? "#DC2626" : "#fff"}`, background: "none", display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer", padding: 0, touchAction: "none", opacity: ready || recording ? 1 : 0.5 }}><span style={{ width: recording ? 34 : 66, height: recording ? 34 : 66, borderRadius: recording ? 10 : "50%", background: recording ? "#DC2626" : "#fff", transition: "all 0.15s ease" }} /></button><button onClick={flip} aria-label="Turn the camera round" data-testid="helloo-snap-flip" className="v2-tap" style={{ width: 50, height: 50, borderRadius: "50%", border: "none", background: "rgba(255,255,255,0.2)", display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer", opacity: switching ? 0.5 : 1 }}><SnFlip size={22} color="#fff" style={{ transition: "transform 0.3s", transform: switching ? "rotate(180deg)" : "none" }} /></button></div></div>
   </div>;
 }
 
@@ -85302,6 +85389,47 @@ function hellooPeer(iceServers, sendSignal, onRemoteStream, onState) {
     },
     close() { try { pc.getSenders().forEach((s) => s.track && s.track.stop()); } catch (e) { /* closed */ } try { pc.close(); } catch (e) { /* closed */ } }
   };
+}
+
+// ── The other camera ──────────────────────────────────────────────────
+// Front ⇄ back, the same way on every phone (26 Nov). Flip used to ask for
+// the second camera while the first was still on; many Android phones
+// cannot run two cameras at once, so it failed and nothing changed. Now:
+//   * the caller lets the camera in use go FIRST;
+//   * the other side is asked for exactly; a phone that does not say which
+//     way its cameras face gets the camera named for that side, else its
+//     next camera ("avoid": the one we had);
+//   * a camera still closing is given a moment and asked again.
+// If nothing opens it throws, and the caller opens the one it had again.
+var hellooCamWait = (ms) => new Promise((ok) => setTimeout(ok, ms));
+async function hellooOpenCamera(facing, size, avoidId) {
+  const md = navigator.mediaDevices;
+  const ask = async (video) => {
+    try { return await md.getUserMedia({ video, audio: false }); } catch (e) {
+      if (e && (e.name === "NotReadableError" || e.name === "AbortError" || e.name === "TrackStartError")) { await hellooCamWait(450); return md.getUserMedia({ video, audio: false }); }
+      throw e;
+    }
+  };
+  const idOf = (s) => { const t = s && s.getVideoTracks()[0]; return (t && t.getSettings && t.getSettings().deviceId) || ""; };
+  const base = Object.assign({}, size || {});
+  try {
+    const s = await ask(Object.assign({ facingMode: { exact: facing } }, base));
+    if (!avoidId || idOf(s) !== avoidId) return s;
+    s.getTracks().forEach((t) => t.stop());
+  } catch (e) { /* this phone does not say which way, or has no such camera */ }
+  let cams = [];
+  try { cams = (await md.enumerateDevices()).filter((d) => d.kind === "videoinput" && d.deviceId); } catch (e) { cams = []; }
+  const side = facing === "environment" ? /back|rear|environment|world/i : /front|user|face|selfie/i;
+  const others = cams.filter((d) => d.deviceId !== avoidId);
+  const at = cams.findIndex((d) => d.deviceId === avoidId);
+  const pick = others.find((d) => side.test(d.label || "")) || (at >= 0 && cams.length > 1 ? cams[(at + 1) % cams.length] : others[0]);
+  if (pick) { try { return await ask(Object.assign({ deviceId: { exact: pick.deviceId } }, base)); } catch (e) { /* last try below */ } }
+  return ask(Object.assign({ facingMode: facing }, base));
+}
+// Which way a camera track faces, when the phone says; else what we asked.
+function hellooFacingOf(track, asked) {
+  const f = track && track.getSettings ? track.getSettings().facingMode : "";
+  return f === "environment" || f === "user" ? f : asked;
 }
 
 async function hellooLocalMedia(video, facing) {
@@ -87107,21 +87235,40 @@ function HellooRoot() {
     document.addEventListener("visibilitychange", onVis);
     return () => document.removeEventListener("visibilitychange", onVis);
   }, []);
+  // Flip (26 Nov): the camera in use is let go first, then the other one
+  // opened (hellooOpenCamera) and sent in its place — the sound never
+  // stops. If the other camera will not open, the one we had comes back.
+  const flipping = useRefH9(false);
   const flipCamera = async () => {
     const c = callRef.current; const peer = peerRef.current; const s = localRef.current;
-    if (!c || !peer || !s) return;
-    const facing = c.facing === "environment" ? "user" : "environment";
-    try {
-      const fresh = await hellooLocalMedia(true, facing);
-      const track = fresh.getVideoTracks()[0];
-      const sender = peer.pc.getSenders().find((x) => x.track && x.track.kind === "video");
-      if (sender) await sender.replaceTrack(track);
-      s.getVideoTracks().forEach((t) => { t.stop(); s.removeTrack(t); });
+    if (!c || !peer || !s || flipping.current) return;
+    flipping.current = true;
+    const was = c.facing === "environment" ? "environment" : "user";
+    const want = was === "environment" ? "user" : "environment";
+    const size = { width: { ideal: 640 }, height: { ideal: 480 } };
+    const sender = peer.pc.getSenders().find((x) => x.track && x.track.kind === "video");
+    const old = s.getVideoTracks()[0];
+    const oldId = old && old.getSettings ? old.getSettings().deviceId || "" : "";
+    // Off the call first, then stopped: a camera stopped while still being
+    // sent leaves the sending side stuck on its last picture.
+    if (sender) await sender.replaceTrack(null).catch(() => {});
+    if (old) { old.stop(); s.removeTrack(old); }
+    let fresh = null; let facing = want; let failed = false;
+    try { fresh = await hellooOpenCamera(want, size, oldId); } catch (e) {
+      failed = true;
+      try { fresh = await hellooOpenCamera(was, size, ""); facing = was; } catch (e2) { fresh = null; }
+    }
+    const track = fresh && fresh.getVideoTracks()[0];
+    if (track && callRef.current && callRef.current.id === c.id) {
+      track.enabled = !callRef.current.cameraOff;
+      facing = hellooFacingOf(track, facing);
+      if (sender) await sender.replaceTrack(track).catch(() => {});
       s.addTrack(track);
-      fresh.getAudioTracks().forEach((t) => t.stop());
-      if (localVideoRef.current) localVideoRef.current.srcObject = s;
-      setCall((x) => (x ? Object.assign({}, x, { facing }) : x));
-    } catch (e) { setToast("Could not switch camera"); }
+      if (localVideoRef.current) { localVideoRef.current.srcObject = null; localVideoRef.current.srcObject = s; localVideoRef.current.play && localVideoRef.current.play().catch(() => {}); }
+      setCall((x) => (x && x.id === c.id ? Object.assign({}, x, { facing }) : x));
+    } else if (track) { track.stop(); }
+    if (failed || !track) setToast(track ? "Couldn't open the other camera" : "The camera stopped · try Flip again");
+    flipping.current = false;
   };
   const onIncomingCall = (c) => {
     if (callRef.current) return; // already on a call: the server marks it missed/busy
@@ -87384,7 +87531,7 @@ function HellooRoot() {
   // is a call, so it is never re-made (and never cut off) by moving between
   // full and small.
   const callBar = call && me && callMin ? <button data-testid="helloo-call-bar" onClick={() => setCallMin(false)} className="v2-tap" style={{ position: "absolute", top: 0, left: 0, right: 0, height: "calc(48px + env(safe-area-inset-top, 0px))", paddingTop: "env(safe-area-inset-top, 0px)", boxSizing: "border-box", zIndex: 280, display: "flex", alignItems: "center", justifyContent: "center", gap: 8, border: "none", background: "#0B9E6B", color: "#fff", fontFamily: T.fontBody, fontSize: 13.5, fontWeight: 800, cursor: "pointer", whiteSpace: "nowrap", overflow: "hidden" }}><HlPhone size={15} color="#fff" /><span>{call.state === "live" ? (call.reconnecting ? "Reconnecting…" : hellooDuration(call.seconds)) : call.state === "ringing" ? (call.direction === "in" ? "Incoming call" : "Calling…") : "Connecting…"}</span><span style={{ opacity: 0.85, maxWidth: 140, overflow: "hidden", textOverflow: "ellipsis" }}>· {call.person.handle || hellooName(call.person)}</span><span style={{ opacity: 0.85 }}>· Back to call</span></button> : null;
-  const callLayer = call && me ? <div key="helloo-call" style={callMin ? { display: "none" } : { position: "absolute", inset: 0, zIndex: 200 }}><HellooCallScreen person={call.person} paid={Boolean(call.paid)} video={call.video} state={call.state} reached={Boolean(call.reached)} seconds={call.seconds} muted={call.muted} cameraOff={call.cameraOff} speaker={call.speaker} reconnecting={Boolean(call.reconnecting)} theirMuted={Boolean(call.theirMuted)} theirCameraOff={Boolean(call.theirCameraOff)} incoming={call.direction === "in"} paidCall={call.paid || null} me={me} onReply={call.direction === "in" && call.state === "ringing" ? replyToCall : undefined} onAccept={answerCall} onEnd={hangUp} onMute={toggleMute} onCamera={toggleCamera} onSpeaker={toggleSpeaker} onFlip={flipCamera} onMinimise={() => setCallMin(true)} onChat={() => { if (call.chatId) { setCallMin(true); setScreen(null); openChat(call.chatId); } }} onShop={hellooIsBusiness(call.person) && call.person.gloobalId ? () => { const shopPerson = call.person; setCallMin(true); setScreen(null); Promise.resolve(openChatWith(shopPerson.accountId)).then(() => openMenu(shopPerson)); } : undefined} localVideoRef={localVideoRef} remoteVideoRef={remoteVideoRef} remoteAudioRef={remoteAudioRef} /></div> : null;
+  const callLayer = call && me ? <div key="helloo-call" style={callMin ? { display: "none" } : { position: "absolute", inset: 0, zIndex: 200 }}><HellooCallScreen person={call.person} paid={Boolean(call.paid)} video={call.video} state={call.state} reached={Boolean(call.reached)} seconds={call.seconds} muted={call.muted} cameraOff={call.cameraOff} mirror={call.facing !== "environment"} speaker={call.speaker} reconnecting={Boolean(call.reconnecting)} theirMuted={Boolean(call.theirMuted)} theirCameraOff={Boolean(call.theirCameraOff)} incoming={call.direction === "in"} paidCall={call.paid || null} me={me} onReply={call.direction === "in" && call.state === "ringing" ? replyToCall : undefined} onAccept={answerCall} onEnd={hangUp} onMute={toggleMute} onCamera={toggleCamera} onSpeaker={toggleSpeaker} onFlip={flipCamera} onMinimise={() => setCallMin(true)} onChat={() => { if (call.chatId) { setCallMin(true); setScreen(null); openChat(call.chatId); } }} onShop={hellooIsBusiness(call.person) && call.person.gloobalId ? () => { const shopPerson = call.person; setCallMin(true); setScreen(null); Promise.resolve(openChatWith(shopPerson.accountId)).then(() => openMenu(shopPerson)); } : undefined} localVideoRef={localVideoRef} remoteVideoRef={remoteVideoRef} remoteAudioRef={remoteAudioRef} /></div> : null;
   if (locked && signedIn && me && !call) return shell(<HellooScreen><div data-testid="helloo-locked" style={{ flex: 1, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: 14, padding: "0 32px", textAlign: "center" }}><span style={{ fontSize: 30 }}><HellooWordmark /></span><span style={{ width: 72, height: 72, borderRadius: "50%", background: T.accentSoft, display: "flex", alignItems: "center", justifyContent: "center", marginTop: 8 }}><HlFinger size={34} color={T.accent} /></span><div style={{ fontSize: 18, fontWeight: 800, fontFamily: T.fontDisplay, color: T.ink }}>Locked</div><div style={{ fontSize: 13.5, color: T.inkSoft, lineHeight: 1.45 }}>{lockNote || "Your chats are locked after five minutes away. Open with your fingerprint, Face ID or GLOOBAL PIN."}</div><div style={{ width: "100%", maxWidth: 300, marginTop: 8, display: "flex", flexDirection: "column", gap: 10 }}><HellooPrimary Icon={HlFinger} onClick={unlock} disabled={unlocking}>{unlocking ? "Checking…" : "Unlock"}</HellooPrimary><HellooSecondary Icon={HlLogOut} onClick={() => { setLocked(false); signOut("Signed out"); }}>Sign out</HellooSecondary></div></div></HellooScreen>);
   if (call && me && !callMin) return shell(null);
 

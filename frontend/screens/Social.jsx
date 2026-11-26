@@ -1021,6 +1021,33 @@ function SocialViewer({ post, photos, act, muted, onMuted, onBack, embedded = fa
 
 // ── Reels and Videos, one after another ─────────────────────────────────
 // Full screen, swipe up for the next. Reels ⇄ Videos at the top.
+// (26 Nov) A swipe moves one page (a reel, a video, a shared post), every
+// time. The browser alone needs a drag past half the screen or a fast
+// flick, and otherwise springs back to the same one — which felt like
+// Reels not scrolling. Here a clear swipe up or down (40 px, or a quick
+// 12) goes to the next or the one before. Across is left alone (it opens a
+// reel's full video, or turns a post's photos).
+function useSocialPager(box, count) {
+  const drag = useRefH40(null);
+  const onTouchStart = (e) => { const t = e.touches && e.touches[0]; const el = box.current; drag.current = t && el && e.touches.length === 1 ? { x: t.clientX, y: t.clientY, at: Date.now(), from: el.scrollTop } : null; };
+  const onTouchEnd = (e) => {
+    const d = drag.current; drag.current = null;
+    const t = e.changedTouches && e.changedTouches[0]; const el = box.current;
+    if (!d || !t || !el || !count) return;
+    const dy = t.clientY - d.y, dx = t.clientX - d.x;
+    if (Math.abs(dx) > Math.abs(dy) || Math.abs(dy) < 12) return;
+    const h = Math.max(1, el.clientHeight);
+    const from = Math.round(d.from / h);
+    const quick = Math.abs(dy) / Math.max(1, Date.now() - d.at) > 0.35;
+    let to = from;
+    if (dy < -40 || (dy < -12 && quick)) to = from + 1;
+    else if (dy > 40 || (dy > 12 && quick)) to = from - 1;
+    to = Math.max(0, Math.min(to, count - 1));
+    requestAnimationFrame(() => { try { el.scrollTo({ top: to * h, behavior: "smooth" }); } catch (er) { el.scrollTop = to * h; } });
+  };
+  return { onTouchStart, onTouchEnd };
+}
+
 function SocialReels({ format, onFormat, list, setList, photos, act, muted, onMuted, onBack, sharedNew = 0 }) {
   const box = useRefH40(null);
   const [at, setAt] = useStateH40(0);
@@ -1034,6 +1061,7 @@ function SocialReels({ format, onFormat, list, setList, photos, act, muted, onMu
   }, [format, list, setList]);
   useEffectH40(() => { if (!list || list.format !== format) { setAt(0); if (box.current) box.current.scrollTop = 0; load(false); } }, [format]);
   const posts = list && list.format === format ? list.posts : null;
+  const pager = useSocialPager(box, posts ? posts.length : 0);
   const onScroll = () => {
     const el = box.current; if (!el) return;
     const i = Math.round(el.scrollTop / Math.max(1, el.clientHeight));
@@ -1044,7 +1072,7 @@ function SocialReels({ format, onFormat, list, setList, photos, act, muted, onMu
   return <div data-testid="social-reels" style={{ position: "absolute", inset: 0, zIndex: 45, background: "#000", fontFamily: T.fontBody }}>
     {tabs}
     <button type="button" onClick={() => act.saved()} aria-label="Saved" title="Saved" data-testid="social-reels-saved" className="v2-tap" style={{ position: "absolute", top: "calc(8px + env(safe-area-inset-top, 0px))", right: 10, zIndex: 6, width: 44, height: 44, borderRadius: "50%", border: "none", background: "none", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", padding: 0 }}><SxSaved size={24} color="#fff" style={{ filter: "drop-shadow(0 1px 3px rgba(0,0,0,0.6))" }} />{sharedNew ? <span data-testid="social-shared-new" style={{ position: "absolute", top: 2, right: 0, minWidth: 18, height: 18, padding: "0 5px", boxSizing: "border-box", borderRadius: 9, background: "#EF4444", color: "#fff", fontSize: 11, fontWeight: 800, display: "flex", alignItems: "center", justifyContent: "center" }}>{sharedNew}</span> : null}</button>
-    <div ref={box} onScroll={onScroll} style={{ position: "absolute", inset: 0, overflowY: "auto", scrollSnapType: "y mandatory", scrollbarWidth: "none" }}>
+    <div ref={box} onScroll={onScroll} {...pager} data-testid="social-reels-scroll" style={{ position: "absolute", inset: 0, overflowY: "auto", scrollSnapType: "y mandatory", scrollbarWidth: "none", overscrollBehavior: "contain" }}>
       {posts === null ? <div style={{ height: "100%", display: "flex", alignItems: "center", justifyContent: "center", color: "#fff", opacity: 0.7, fontSize: 14 }}>{err || "Loading…"}</div>
         : posts.length === 0 ? <div style={{ height: "100%", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: 10, color: "#fff", padding: 30, textAlign: "center" }}>{format === "reel" ? <SxReels size={40} color="#fff" /> : <SxVideo size={40} color="#fff" />}<b style={{ fontSize: 17 }}>{format === "reel" ? "No reels yet" : "No videos yet"}</b><span style={{ fontSize: 13.5, opacity: 0.75 }}>{format === "reel" ? "Short videos people share show up here, one after another." : "Longer videos people share show up here."}</span></div>
           : posts.map((p, i) => <div key={p.id} data-testid="social-reels-page" style={{ position: "relative", height: "100%", scrollSnapAlign: "start", scrollSnapStop: "always" }}>{Math.abs(i - at) <= 1 ? <SocialViewer post={p} photos={photos} act={act} muted={muted} onMuted={onMuted} onBack={onBack} embedded /> : null}</div>)}
@@ -1129,6 +1157,7 @@ function SocialSharedShelf({ list, setList, photos, act, muted, onMuted, onBack,
     return () => { live = false; };
   }, []);
   const items = list ? list.items : null;
+  const pager = useSocialPager(box, items ? items.length : 0);
   const onScroll = () => { const el = box.current; if (!el) return; const i = Math.round(el.scrollTop / Math.max(1, el.clientHeight)); if (i !== at) setAt(i); };
   const drop = (it) => { setList((l) => (l ? Object.assign({}, l, { items: l.items.filter((x) => x.post.id !== it.post.id) }) : l)); socialApi.sharedDrop(it.post.id).then(() => onToast("Taken off your shelf")).catch(() => {}); };
   const chipOf = (it) => {
@@ -1145,7 +1174,7 @@ function SocialSharedShelf({ list, setList, photos, act, muted, onMuted, onBack,
   };
   return <div data-testid="social-shared" style={{ position: "absolute", inset: 0, zIndex: 48, background: "#000", fontFamily: T.fontBody }}>
     <div style={{ position: "absolute", top: "calc(18px + env(safe-area-inset-top, 0px))", left: 0, right: 0, zIndex: 5, textAlign: "center", pointerEvents: "none", color: "#fff", fontSize: 16, fontWeight: 900, fontFamily: T.fontDisplay, textShadow: "0 1px 4px rgba(0,0,0,0.6)" }}>Shared with me{items && items.length ? <span style={{ opacity: 0.7, fontWeight: 700 }}> · {Math.min(at + 1, items.length)}/{items.length}</span> : null}</div>
-    <div ref={box} onScroll={onScroll} style={{ position: "absolute", inset: 0, overflowY: "auto", scrollSnapType: "y mandatory", scrollbarWidth: "none" }}>
+    <div ref={box} onScroll={onScroll} {...pager} data-testid="social-shared-scroll" style={{ position: "absolute", inset: 0, overflowY: "auto", scrollSnapType: "y mandatory", scrollbarWidth: "none", overscrollBehavior: "contain" }}>
       {items === null ? <div style={{ height: "100%", display: "flex", alignItems: "center", justifyContent: "center", color: "#fff", opacity: 0.7, fontSize: 14 }}>{err || "Loading…"}</div>
         : items.length === 0 ? <div style={{ height: "100%", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: 10, color: "#fff", padding: 30, textAlign: "center" }}><SxSaved size={40} color="#fff" /><b style={{ fontSize: 17 }}>Nothing shared with you yet</b><span style={{ fontSize: 13.5, opacity: 0.75, lineHeight: 1.45 }}>When people you saved or follow share a reel, post or video with you, it waits here — not in your chats.</span><button type="button" onClick={onBack} className="v2-tap" style={{ marginTop: 8, border: "none", borderRadius: 999, padding: "10px 22px", background: "#fff", color: "#111", fontSize: 14, fontWeight: 800, cursor: "pointer", fontFamily: T.fontBody }}>Back</button></div>
           : items.map((it, i) => <div key={it.post.id} data-testid="social-shared-page" style={{ position: "relative", height: "100%", scrollSnapAlign: "start", scrollSnapStop: "always" }}>{Math.abs(i - at) <= 1 ? <SocialViewer post={it.post} photos={photos} act={act} muted={muted} onMuted={onMuted} onBack={onBack} embedded chip={chipOf(it)} /> : null}</div>)}

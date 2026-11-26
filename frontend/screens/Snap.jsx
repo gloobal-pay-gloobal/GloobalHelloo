@@ -79,54 +79,112 @@ function HellooSnapCamera({ person, onClose, onSend, onToast }) {
   const [caption, setCaption] = useStateH45("");
   const [sending, setSending] = useStateH45(false);
   const video = useRefH45(null);
-  const stream = useRefH45(null);
+  // (26 Nov) The camera and the microphone are kept apart: Flip changes
+  // only the camera (the one in use let go first — see hellooOpenCamera),
+  // so the microphone, and a clip being recorded, carry on.
+  const stream = useRefH45(null); // the camera
+  const mic = useRefH45(null);
+  const camId = useRefH45("");
+  const [actual, setActual] = useStateH45("environment"); // which way it really faces
+  const actualRef = useRefH45("environment");
+  const [switching, setSwitching] = useStateH45(false);
   const rec = useRefH45(null);
   const hold = useRefH45(null);
   const tick = useRefH45(null);
   const started = useRefH45(0);
   const pick = useRefH45(null);
-  const stop = () => { if (stream.current) { stream.current.getTracks().forEach((t) => t.stop()); stream.current = null; } };
+  const drawStop = useRefH45(null);
+  const lastTap = useRefH45(0);
+  const stopCam = () => { if (stream.current) { stream.current.getTracks().forEach((t) => t.stop()); stream.current = null; } };
+  const stopMic = () => { if (mic.current) { mic.current.getTracks().forEach((t) => t.stop()); mic.current = null; } };
+  const stop = () => { stopCam(); stopMic(); };
+  const can = typeof navigator !== "undefined" && navigator.mediaDevices && navigator.mediaDevices.getUserMedia;
+  // The microphone: once while the camera is open, for clips.
+  useEffectH45(() => {
+    if (shot || !can) return undefined;
+    let gone = false;
+    navigator.mediaDevices.getUserMedia({ audio: true, video: false }).then((s) => { if (gone) s.getTracks().forEach((t) => t.stop()); else mic.current = s; }).catch(() => { /* clips without sound */ });
+    return () => { gone = true; stopMic(); };
+  }, [shot]);
+  // The camera: again on every Flip.
   useEffectH45(() => {
     if (shot) return undefined;
     let gone = false;
     setReady(false); setBlocked("");
-    const want = (audio) => navigator.mediaDevices.getUserMedia({ video: { facingMode: facing, width: { ideal: 1280 }, height: { ideal: 720 } }, audio });
-    if (typeof navigator === "undefined" || !navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) { setBlocked("This phone's browser can't open the camera here. Pick from your gallery."); return undefined; }
-    want(true).catch(() => want(false)).then((s) => {
+    if (!can) { setBlocked("This phone's browser can't open the camera here. Pick from your gallery."); return undefined; }
+    const avoid = camId.current;
+    hellooOpenCamera(facing, { width: { ideal: 1280 }, height: { ideal: 720 } }, avoid).catch(() => (avoid ? hellooOpenCamera(facing === "user" ? "environment" : "user", { width: { ideal: 1280 }, height: { ideal: 720 } }, "") : Promise.reject(new Error("no camera")))).then((s) => {
       if (gone) { s.getTracks().forEach((t) => t.stop()); return; }
       stream.current = s;
+      const t = s.getVideoTracks()[0];
+      camId.current = (t && t.getSettings && t.getSettings().deviceId) || "";
+      const way = hellooFacingOf(t, facing); actualRef.current = way; setActual(way);
       const v = video.current; if (v) { v.srcObject = s; v.play().catch(() => {}); }
-      setReady(true);
-    }).catch(() => { if (!gone) setBlocked("Allow the camera for Helloo, or pick from your gallery."); });
-    return () => { gone = true; stop(); };
+      setReady(true); setSwitching(false);
+    }).catch(() => { if (!gone) { setSwitching(false); setBlocked("Allow the camera for Helloo, or pick from your gallery."); } });
+    return () => { gone = true; stopCam(); };
   }, [facing, shot]);
-  useEffectH45(() => () => { clearInterval(tick.current); clearTimeout(hold.current); stop(); }, []);
+  useEffectH45(() => () => { clearInterval(tick.current); clearTimeout(hold.current); if (drawStop.current) drawStop.current(); stop(); }, []);
+  const flip = () => {
+    if (switching) return;
+    // A clip being recorded straight from the camera cannot change camera.
+    if (rec.current && rec.current.state === "recording" && !drawStop.current) { onToast("Flip before you start the clip"); return; }
+    setTorch(false); setSwitching(true);
+    setFacing((f) => (f === "user" ? "environment" : "user"));
+  };
   const toggleTorch = () => { const track = stream.current && stream.current.getVideoTracks()[0]; if (!track) return; const on = !torch; track.applyConstraints({ advanced: [{ torch: on }] }).then(() => setTorch(on)).catch(() => onToast("No flash on this camera")); };
   const takePhoto = () => {
     const v = video.current; if (!v || !v.videoWidth) return;
     const c = document.createElement("canvas"); c.width = v.videoWidth; c.height = v.videoHeight;
     const ctx = c.getContext("2d");
-    if (facing === "user") { ctx.translate(c.width, 0); ctx.scale(-1, 1); }
+    if (actualRef.current === "user") { ctx.translate(c.width, 0); ctx.scale(-1, 1); }
     ctx.drawImage(v, 0, 0);
     c.toBlob((blob) => { if (blob) setShot({ kind: "photo", blob, url: URL.createObjectURL(blob), width: c.width, height: c.height, seconds: 0 }); }, "image/jpeg", 0.9);
   };
   const startClip = () => {
-    if (!stream.current || typeof MediaRecorder === "undefined") { onToast("This phone can't record a clip here"); return; }
+    const v = video.current;
+    if (!stream.current || !v || !v.videoWidth || typeof MediaRecorder === "undefined") { onToast("This phone can't record a clip here"); return; }
     const type = ["video/mp4", "video/webm;codecs=vp8,opus", "video/webm"].find((t) => MediaRecorder.isTypeSupported(t)) || "";
     const chunks = [];
+    // The clip is drawn from the screen's picture onto a canvas and recorded
+    // from there, so Flip in the middle of a clip just carries on with the
+    // other camera. A phone without that records the camera itself.
+    const W = v.videoWidth, H = v.videoHeight;
+    const canvas = document.createElement("canvas");
+    let source = null;
+    if (canvas.captureStream) {
+      canvas.width = W; canvas.height = H;
+      const ctx = canvas.getContext("2d");
+      let raf = 0; let on = true;
+      const draw = () => {
+        if (!on) return;
+        const vv = video.current;
+        if (vv && vv.readyState >= 2 && vv.videoWidth) {
+          const k = Math.max(W / vv.videoWidth, H / vv.videoHeight); const dw = vv.videoWidth * k, dh = vv.videoHeight * k;
+          ctx.drawImage(vv, (W - dw) / 2, (H - dh) / 2, dw, dh);
+        }
+        raf = requestAnimationFrame(draw);
+      };
+      draw();
+      const picture = canvas.captureStream(30);
+      drawStop.current = () => { on = false; cancelAnimationFrame(raf); picture.getTracks().forEach((t) => t.stop()); drawStop.current = null; };
+      source = new MediaStream([...picture.getVideoTracks(), ...(mic.current ? mic.current.getAudioTracks() : [])]);
+    } else {
+      source = new MediaStream([...stream.current.getVideoTracks(), ...(mic.current ? mic.current.getAudioTracks() : [])]);
+    }
     let r;
-    try { r = new MediaRecorder(stream.current, Object.assign({ videoBitsPerSecond: 1600000, audioBitsPerSecond: 64000 }, type ? { mimeType: type } : {})); } catch (e) { onToast("This phone can't record a clip here"); return; }
+    try { r = new MediaRecorder(source, Object.assign({ videoBitsPerSecond: 1600000, audioBitsPerSecond: 64000 }, type ? { mimeType: type } : {})); } catch (e) { if (drawStop.current) drawStop.current(); onToast("This phone can't record a clip here"); return; }
     r.ondataavailable = (e) => { if (e.data && e.data.size) chunks.push(e.data); };
     r.onstop = () => {
       clearInterval(tick.current);
+      if (drawStop.current) drawStop.current();
       const seconds = Math.min(HELLOO_SNAP_MAX_SECONDS, Math.max(1, (Date.now() - started.current) / 1000));
       const blob = new Blob(chunks, { type: (r.mimeType || type || "video/webm").split(";")[0] });
-      const v = video.current;
       setRecording(0);
       if (blob.size > HELLOO_SNAP_MAX_BYTES) { onToast("That clip came out too big. Try a shorter one."); return; }
-      setShot({ kind: "video", blob, url: URL.createObjectURL(blob), width: (v && v.videoWidth) || 0, height: (v && v.videoHeight) || 0, seconds });
+      setShot({ kind: "video", blob, url: URL.createObjectURL(blob), width: W, height: H, seconds });
     };
-    rec.current = r; started.current = Date.now(); r.start(); setRecording(1);
+    rec.current = r; started.current = Date.now(); r.start(250); setRecording(1);
     tick.current = setInterval(() => { const s = Math.floor((Date.now() - started.current) / 1000); setRecording(Math.max(1, s)); if (s >= HELLOO_SNAP_MAX_SECONDS && rec.current && rec.current.state === "recording") rec.current.stop(); }, 250);
   };
   const down = () => { if (!ready) return; hold.current = setTimeout(() => { hold.current = null; startClip(); }, 350); };
@@ -162,11 +220,11 @@ function HellooSnapCamera({ person, onClose, onSend, onToast }) {
   </div>;
 
   return <div data-testid="helloo-snap-camera" style={{ position: "absolute", inset: 0, zIndex: 120, background: "#000", overflow: "hidden", fontFamily: T.fontBody }}>{fileInput}
-    <video ref={video} muted playsInline style={{ width: "100%", height: "100%", objectFit: "cover", transform: facing === "user" ? "scaleX(-1)" : "none" }} />
+    <video ref={video} muted playsInline data-testid="helloo-snap-preview" onClick={() => { const t = Date.now(); if (t - lastTap.current < 320) { lastTap.current = 0; flip(); } else lastTap.current = t; }} style={{ width: "100%", height: "100%", objectFit: "cover", transform: actual === "user" ? "scaleX(-1)" : "none" }} />
     <div style={{ position: "absolute", inset: 0, background: "linear-gradient(180deg, rgba(0,0,0,0.45), transparent 20%, transparent 62%, rgba(0,0,0,0.75))", pointerEvents: "none" }} />
     <div style={{ position: "absolute", left: 14, right: 14, top: "calc(14px + env(safe-area-inset-top, 0px))", display: "flex", alignItems: "center", justifyContent: "space-between" }}>{round(HlX, "Close", onClose)}<span style={{ display: "flex", alignItems: "center", gap: 8, height: 36, padding: "0 12px 0 5px", borderRadius: 999, background: recording ? "#DC2626" : "rgba(0,0,0,0.42)", color: "#fff", fontSize: 13, fontWeight: 800, maxWidth: "60%" }}>{recording ? <span style={{ padding: "0 6px", fontVariantNumeric: "tabular-nums" }}>● {hellooClipTime(recording)} / 0:30</span> : <><HellooAvatar person={person} size={26} flag={false} /><span style={{ whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>To {name}</span></>}</span>{round(SnFlash, "Flash", toggleTorch, torch)}</div>
     {blocked ? <div style={{ position: "absolute", left: 24, right: 24, top: "38%", textAlign: "center", color: "#fff" }}><div style={{ fontSize: 15, fontWeight: 800, lineHeight: 1.4 }}>{blocked}</div><button onClick={() => pick.current && pick.current.click()} className="v2-tap" style={{ marginTop: 16, height: 46, padding: "0 20px", borderRadius: 999, border: "none", background: "#fff", color: "#111", fontSize: 14, fontWeight: 800, cursor: "pointer", fontFamily: T.fontBody }}>Pick from gallery</button></div> : null}
-    <div style={{ position: "absolute", left: 0, right: 0, bottom: "calc(30px + env(safe-area-inset-bottom, 0px))", display: "flex", flexDirection: "column", alignItems: "center", gap: 16 }}><span style={{ fontSize: 12.5, fontWeight: 700, color: "#fff", opacity: 0.9 }}>{recording ? "Let go to finish" : "Tap for a photo · hold for a clip, up to 30 sec"}</span><div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 44, width: "100%" }}><button onClick={() => pick.current && pick.current.click()} aria-label="Pick from gallery" className="v2-tap" style={{ width: 50, height: 50, borderRadius: 16, border: "none", background: "rgba(255,255,255,0.2)", display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer" }}><SnGallery size={22} color="#fff" /></button><button onPointerDown={down} onPointerUp={up} onPointerCancel={up} onContextMenu={(e) => e.preventDefault()} aria-label="Tap for a photo, hold for a clip" data-testid="helloo-snap-shutter" disabled={!ready} style={{ width: 84, height: 84, borderRadius: "50%", border: `5px solid ${recording ? "#DC2626" : "#fff"}`, background: "none", display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer", padding: 0, touchAction: "none", opacity: ready ? 1 : 0.5 }}><span style={{ width: recording ? 34 : 66, height: recording ? 34 : 66, borderRadius: recording ? 10 : "50%", background: recording ? "#DC2626" : "#fff", transition: "all 0.15s ease" }} /></button><button onClick={() => { setTorch(false); setFacing((f) => (f === "user" ? "environment" : "user")); }} aria-label="Turn the camera round" className="v2-tap" style={{ width: 50, height: 50, borderRadius: "50%", border: "none", background: "rgba(255,255,255,0.2)", display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer" }}><SnFlip size={22} color="#fff" /></button></div></div>
+    <div style={{ position: "absolute", left: 0, right: 0, bottom: "calc(30px + env(safe-area-inset-bottom, 0px))", display: "flex", flexDirection: "column", alignItems: "center", gap: 16 }}><span style={{ fontSize: 12.5, fontWeight: 700, color: "#fff", opacity: 0.9 }}>{recording ? "Let go to finish · tap ⟲ to flip" : "Tap for a photo · hold for a clip, up to 30 sec"}</span><div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 44, width: "100%" }}><button onClick={() => pick.current && pick.current.click()} aria-label="Pick from gallery" className="v2-tap" style={{ width: 50, height: 50, borderRadius: 16, border: "none", background: "rgba(255,255,255,0.2)", display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer" }}><SnGallery size={22} color="#fff" /></button><button onPointerDown={down} onPointerUp={up} onPointerCancel={up} onContextMenu={(e) => e.preventDefault()} aria-label="Tap for a photo, hold for a clip" data-testid="helloo-snap-shutter" disabled={!ready && !recording} style={{ width: 84, height: 84, borderRadius: "50%", border: `5px solid ${recording ? "#DC2626" : "#fff"}`, background: "none", display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer", padding: 0, touchAction: "none", opacity: ready || recording ? 1 : 0.5 }}><span style={{ width: recording ? 34 : 66, height: recording ? 34 : 66, borderRadius: recording ? 10 : "50%", background: recording ? "#DC2626" : "#fff", transition: "all 0.15s ease" }} /></button><button onClick={flip} aria-label="Turn the camera round" data-testid="helloo-snap-flip" className="v2-tap" style={{ width: 50, height: 50, borderRadius: "50%", border: "none", background: "rgba(255,255,255,0.2)", display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer", opacity: switching ? 0.5 : 1 }}><SnFlip size={22} color="#fff" style={{ transition: "transform 0.3s", transform: switching ? "rotate(180deg)" : "none" }} /></button></div></div>
   </div>;
 }
 
