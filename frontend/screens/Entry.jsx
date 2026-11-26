@@ -216,9 +216,10 @@ function HellooIdScreen({ value, onChange, status, onBack, onNext, mode = "id", 
   const common = {
     testid: "helloo-signin",
     purpose: "login",
-    mark: <HellooMark size={44} />,
-    // (26 Nov) The header is HELLOO, not "Sign in": the button already says
-    // Log in. As the title it stays on short phones, where the mark hides.
+    // (26 Nov) The app mark sits in the top-left corner (below), on every
+    // phone; the header is HELLOO, not "Sign in" — the button already says
+    // Log in.
+    mark: null,
     title: <span style={{ fontSize: 26, letterSpacing: 0.5 }}><HellooWordmark /></span>,
     background: HT.screenBg || T.bg,
     card,
@@ -231,6 +232,7 @@ function HellooIdScreen({ value, onChange, status, onBack, onNext, mode = "id", 
     {byMobile
       ? <GloobalPhoneStep {...common} lineTestid="helloo-signin-mobile" countryTestid="helloo-signin-country" country={country} onPickCountry={onCountry && typeof CountryPickerScreen === "function" ? () => setPicking(true) : undefined} digits={mobile} onDigits={onMobile} onSubmit={onNext} />
       : <GloobalSymbolStep {...common} value={value} onChange={onChange} onSubmit={onNext} found={status === "found"} error={status === "none" ? "No account with this ID yet" : ""} />}
+    {onBack || picking ? null : <span data-testid="helloo-signin-logo" aria-hidden="true" style={{ position: "absolute", top: "calc(14px + env(safe-area-inset-top, 0px))", left: "calc(14px + env(safe-area-inset-left, 0px))", zIndex: 31, display: "inline-flex", pointerEvents: "none" }}><HellooMark size={40} /></span>}
     {picking ? <CountryPickerScreen topCountries={TOP_COUNTRIES} countries={ALL_COUNTRIES} search={pickQ} onSearch={setPickQ} selectedIso={country && country.iso} onSelect={(c) => { setPicking(false); setPickQ(""); if (onCountry) onCountry(c); }} onClose={() => { setPicking(false); setPickQ(""); }} /> : null}
   </HellooScreen>;
 }
