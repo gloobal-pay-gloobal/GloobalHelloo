@@ -217,7 +217,9 @@ function HellooIdScreen({ value, onChange, status, onBack, onNext, mode = "id", 
     testid: "helloo-signin",
     purpose: "login",
     mark: <HellooMark size={44} />,
-    title: "Sign in",
+    // (26 Nov) The header is HELLOO, not "Sign in": the button already says
+    // Log in. As the title it stays on short phones, where the mark hides.
+    title: <span style={{ fontSize: 26, letterSpacing: 0.5 }}><HellooWordmark /></span>,
     background: HT.screenBg || T.bg,
     card,
     onBack,
