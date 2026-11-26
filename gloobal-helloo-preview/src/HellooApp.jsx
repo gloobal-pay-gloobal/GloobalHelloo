@@ -80737,9 +80737,9 @@ function HellooCallScreen({ reached = false, paidCall = null, me = null, onReply
   const tool = (Icon, label, on, onClick) => <button onClick={onClick} aria-label={label} aria-pressed={on} className="v2-tap" style={{ width: 52, height: 52, borderRadius: "50%", border: "none", background: on ? (showVideo ? "#fff" : INK) : "transparent", display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer" }}><Icon size={22} color={on ? (showVideo ? INK : "#fff") : ink} /></button>;
   const round = (Icon, label, bg, onClick, word) => <button onClick={onClick} aria-label={label} className="v2-tap" style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 8, border: "none", background: "none", cursor: "pointer", color: soft, fontFamily: T.fontBody, fontSize: 12, fontWeight: 700 }}><span style={{ width: 68, height: 68, borderRadius: "50%", background: bg, display: "flex", alignItems: "center", justifyContent: "center", boxShadow: `0 12px 28px ${bg}55` }}><Icon size={27} color="#fff" /></span>{word}</button>;
   return <HellooScreen style={{ background: showVideo ? "#000" : PAPER, color: ink, overflow: "hidden" }}>
-    {video && <video ref={remoteVideoRef} autoPlay playsInline style={{ position: "absolute", inset: 0, width: "100%", height: "100%", objectFit: "cover", background: "#000", opacity: showVideo && !theirCamOff ? 1 : 0, transition: "opacity 0.4s" }} />}
+    {video && <video ref={remoteVideoRef} autoPlay playsInline muted style={{ position: "absolute", inset: 0, width: "100%", height: "100%", objectFit: "cover", background: "#000", opacity: showVideo && !theirCamOff ? 1 : 0, transition: "opacity 0.4s" }} />}
     {theirCamOff && <div data-testid="helloo-call-their-camera-off" style={{ position: "absolute", inset: 0, zIndex: 1, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: 14, background: "#16122B" }}><HellooAvatar person={person} size={120} /><span style={{ display: "inline-flex", alignItems: "center", gap: 7, fontSize: 14.5, fontWeight: 800, color: "rgba(255,255,255,0.86)", fontFamily: T.fontBody }}><HlVideoOff size={17} color="rgba(255,255,255,0.86)" />{theirName}'s camera is off</span></div>}
-    {!video && <audio ref={remoteAudioRef} autoPlay />}
+    <audio ref={remoteAudioRef} autoPlay data-testid="helloo-call-sound" />
     {showVideo && <span aria-hidden="true" style={{ position: "absolute", left: 0, right: 0, top: 0, height: 190, background: "linear-gradient(rgba(0,0,0,0.62), rgba(0,0,0,0))", zIndex: 1 }} />}
     {showVideo && <span aria-hidden="true" style={{ position: "absolute", left: 0, right: 0, bottom: 0, height: 210, background: "linear-gradient(rgba(0,0,0,0), rgba(0,0,0,0.55))", zIndex: 1 }} />}
     {video && <video ref={localVideoRef} autoPlay playsInline muted data-testid="helloo-call-self" style={{ position: "absolute", right: 18, bottom: "calc(118px + env(safe-area-inset-bottom, 0px))", width: 104, height: 104, objectFit: "cover", borderRadius: "50%", background: "#111", border: "3px solid #fff", boxShadow: "0 10px 28px rgba(0,0,0,0.45)", transform: "scaleX(-1)", zIndex: 3, display: cameraOff || !showVideo ? "none" : "block" }} />}
@@ -85429,7 +85429,9 @@ function useHellooBack(depth, closeTop) {
       if (st.ignore > 0) { st.ignore -= 1; return; }
       // A real Back: the browser has already stepped one entry down.
       st.depth = Math.max(0, st.depth - 1);
-      closeRef.current();
+      // "keep": nothing may close (a call is on) — put the step back, so
+      // the next Back lands here again instead of leaving Helloo.
+      if (closeRef.current() === "keep") { window.history.pushState({ helloo: st.depth + 1 }, ""); st.depth += 1; }
     };
     window.addEventListener("popstate", onPop);
     return () => window.removeEventListener("popstate", onPop);
@@ -85623,7 +85625,9 @@ function HellooRoot() {
     if (!signedIn || typeof document === "undefined" || typeof gloobalAwayRecently !== "function") return undefined;
     const awayKey = typeof GLOOBAL_LAST_AWAY_KEY === "string" ? GLOOBAL_LAST_AWAY_KEY : "";
     const wasAway = () => { try { return Boolean(awayKey && localStorage.getItem(awayKey)); } catch (e) { return false; } };
-    const check = () => { if (wasAway() && !gloobalAwayRecently()) setLocked(true); };
+    // Never in the middle of a call (26 Nov): coming back to Helloo to a
+    // PIN or fingerprint prompt over a call is how calls got lost.
+    const check = () => { if (callRef.current && callRef.current.state !== "ended") return; if (wasAway() && !gloobalAwayRecently()) setLocked(true); };
     // A cold open counts: the page was closed, however long ago.
     if (!hellooJustSignedIn.current) check();
     hellooJustSignedIn.current = false;
@@ -86906,6 +86910,7 @@ function HellooRoot() {
     earlySignals.current = [];
     if (peerRef.current) { peerRef.current.close(); peerRef.current = null; }
     if (localRef.current) { localRef.current.getTracks().forEach((t) => t.stop()); localRef.current = null; }
+    remoteStreamRef.current = null;
   };
   const endCallLocally = (status) => {
     tearDown();
@@ -86913,10 +86918,26 @@ function HellooRoot() {
     setTimeout(() => setCall((c) => (c && c.state === "ended" ? null : c)), 1400);
     refreshCalls();
   };
+  // (26 Nov) The other person's sound always plays through its own sound
+  // element — even in a video call, where the picture element is muted. A
+  // phone may pause a picture when Helloo is not on screen; it keeps a
+  // call's sound going. Both are attached again whenever the call screen
+  // is drawn anew, and played again on coming back to Helloo.
+  const remoteStreamRef = useRefH9(null);
+  const attachRemote = () => {
+    const c = callRef.current; const r = remoteStreamRef.current;
+    if (!c || !r) return;
+    for (const el of [remoteAudioRef.current, c.video ? remoteVideoRef.current : null]) {
+      if (!el) continue;
+      if (el.srcObject !== r) el.srcObject = r;
+      if (el.paused && el.play) el.play().catch(() => {});
+    }
+  };
   const attachMedia = () => {
     const c = callRef.current;
     if (!c) return;
-    if (localRef.current && localVideoRef.current && c.video) localVideoRef.current.srcObject = localRef.current;
+    if (localRef.current && localVideoRef.current && c.video) { if (localVideoRef.current.srcObject !== localRef.current) localVideoRef.current.srcObject = localRef.current; if (localVideoRef.current.paused && localVideoRef.current.play) localVideoRef.current.play().catch(() => {}); }
+    attachRemote();
   };
   useEffectH9(() => { attachMedia(); }, [call && call.id, call && call.state]);
   const sendSignal = (callId, data) => { if (liveSend.current) liveSend.current({ type: "signal", callId, data }); };
@@ -86925,8 +86946,8 @@ function HellooRoot() {
     const stream = localRef.current || (await hellooLocalMedia(c.video, "user"));
     localRef.current = stream;
     const peer = hellooPeer(c.iceServers, (data) => sendSignal(c.id, data), (remote) => {
-      const el = c.video ? remoteVideoRef.current : remoteAudioRef.current;
-      if (el && el.srcObject !== remote) { el.srcObject = remote; el.play && el.play().catch(() => {}); }
+      remoteStreamRef.current = remote;
+      attachRemote();
     }, (state) => {
       const mine = () => peerRef.current === peer && callRef.current && callRef.current.id === c.id && callRef.current.state !== "ended";
       if (state === "connected") {
@@ -87069,6 +87090,23 @@ function HellooRoot() {
   const toggleMute = () => { const s = localRef.current; const c = callRef.current; if (!s || !c) return; const next = Object.assign({}, c, { muted: !c.muted }); s.getAudioTracks().forEach((t) => { t.enabled = !next.muted; }); setCall((x) => (x && x.id === c.id ? Object.assign({}, x, { muted: next.muted }) : x)); tellMedia(next); };
   const toggleCamera = () => { const s = localRef.current; const c = callRef.current; if (!s || !c) return; const next = Object.assign({}, c, { cameraOff: !c.cameraOff }); s.getVideoTracks().forEach((t) => { t.enabled = !next.cameraOff; }); setCall((x) => (x && x.id === c.id ? Object.assign({}, x, { cameraOff: next.cameraOff }) : x)); tellMedia(next); };
   const toggleSpeaker = () => setCall((c) => (c ? Object.assign({}, c, { speaker: !c.speaker }) : c));
+  // (26 Nov) Out of Helloo during a call (home screen, another app): the
+  // call goes on. A phone stops the camera meanwhile, so the other person
+  // is told "camera is off" instead of seeing a frozen picture; back in
+  // Helloo, the sound and pictures are played again and the camera's real
+  // state is told.
+  useEffectH9(() => {
+    if (typeof document === "undefined") return undefined;
+    const onVis = () => {
+      const c = callRef.current;
+      if (!c || c.state === "ended" || c.state === "ringing") return;
+      if (document.visibilityState === "hidden") { if (c.video && !c.cameraOff) sendSignal(c.id, { media: { mic: !c.muted, cam: false } }); return; }
+      attachMedia();
+      if (c.video) tellMedia(c);
+    };
+    document.addEventListener("visibilitychange", onVis);
+    return () => document.removeEventListener("visibilitychange", onVis);
+  }, []);
   const flipCamera = async () => {
     const c = callRef.current; const peer = peerRef.current; const s = localRef.current;
     if (!c || !peer || !s) return;
@@ -87299,7 +87337,13 @@ function HellooRoot() {
   useHellooBack(backDepth, () => {
     // Whatever is open on top (a sheet, a viewer, a picker) closes first.
     if (hellooBackLayers.list.length) { hellooBackLayers.list[hellooBackLayers.list.length - 1].close(); return undefined; }
-    if (call) { if (call.state === "ringing" && call.direction === "in") return undefined; return hangUp(); }
+    // (26 Nov) Back never ends a call, and never leaves Helloo during one
+    // — leaving the page would cut it. On the call screen it makes the call
+    // small (a green bar stays on top); while it rings it does nothing.
+    if (call && call.state !== "ended" && !callMin) {
+      if (!(call.state === "ringing" && call.direction === "in")) setCallMin(true);
+      return "keep";
+    }
     if (orderPinOpen) return setOrderPinOpen(false);
     if (payPinOpen) return setPayPinOpen(false);
     if (reachPin) return setReachPin(null);
@@ -87319,6 +87363,7 @@ function HellooRoot() {
     if (screen) return setScreen(null);
     if (signedIn && tab !== "chats") return setTab("chats");
     if (stage === "pin") return setStage("id");
+    if (call && call.state !== "ended") { setToast("You're on a call · tap the green bar to go back to it"); return "keep"; }
     return undefined;
   });
 
